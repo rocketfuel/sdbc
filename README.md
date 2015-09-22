@@ -17,7 +17,9 @@ Include an implementation of the [SLF4J](http://slf4j.org/) logging interface, t
 
 ## SBT Library Dependency
 
-Packages exist on Maven Central for Scala 2.10 and 2.11. The Scala 2.10 builds for PostgreSQL do not include support for arrays.
+Packages exist on Maven Central for Scala 2.10 and 2.11. Cassandra packages only exist for Scala 2.11. The Scala 2.10 builds for PostgreSQL do not include support for arrays.
+
+For Java 7, append "_java7" to the package name.
 
 ### Java 8
 
