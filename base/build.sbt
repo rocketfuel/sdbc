@@ -36,3 +36,5 @@ libraryDependencies <++= scalaVersion { version =>
   }
 
 }
+
+crossScalaVersions := Seq("2.10.5")

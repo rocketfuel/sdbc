@@ -10,3 +10,5 @@ libraryDependencies ++= Seq(
 )
 
 parallelExecution := false
+
+crossScalaVersions := Seq("2.10.5")

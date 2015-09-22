@@ -35,8 +35,6 @@ lazy val root =
 
 scalaVersion in ThisBuild := "2.11.7"
 
-crossScalaVersions := Seq("2.10.5")
-
 version in ThisBuild := "1.0"
 
 licenses in ThisBuild := Seq("The BSD 3-Clause License" -> url("http://opensource.org/licenses/BSD-3-Clause"))

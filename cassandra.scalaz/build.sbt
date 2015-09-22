@@ -1,6 +1,6 @@
-organization := "com.rocketfuel.sdbc.cassandra"
+organization := "com.rocketfuel.sdbc.scalaz"
 
-name := "datastax-scalaz"
+name := "datastax"
 
 description := "Extensions for SDBC's DataStax support for use with Scalaz streaming."
 
