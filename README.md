@@ -128,7 +128,7 @@ val connection = DriverManager.getConnection("...")
 val results =
 	connection.iterator("SELECT * FROM tbl").map(
 		(row: Row) =>
-			row[Int]("key") -> row[String]("value")
+			row.get[Int]("key").get -> row.get[String]("value").get
 	).toMap
 ```
 
@@ -297,7 +297,7 @@ val actionLogger = Update("INSERT INTO action_log (account_id, action) VALUES (@
 for (row <- SelectForUpdate("SELECT * FROM accounts").iterator()) {
 	val accountId = row.get[Int]("account_id")
 	if (accountId == Some(314)) {
-		row("gold_nuggets") = row[Int]("gold_nuggets") + 159
+		row.get("gold_nuggets").get = row.get[Int]("gold_nuggets").get + 159
 		actionLogger.on("account_id" -> 314, "action" -> "added 159 gold nuggets").execute()
 	}
 }
