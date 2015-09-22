@@ -1,6 +1,6 @@
 organization := "com.rocketfuel.sdbc"
 
-name := "base-java7"
+name := "base_java7"
 
 description := "SDBC is a database API for Scala."
 

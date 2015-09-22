@@ -1,6 +1,6 @@
 organization := "com.rocketfuel.sdbc.scalaz"
 
-name := "datastax-java7"
+name := "datastax_java7"
 
 description := "Extensions for SDBC's DataStax support for use with Scalaz streaming."
 

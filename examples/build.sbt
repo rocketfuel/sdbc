@@ -1,5 +1,5 @@
 organization := "com.rocketfuel.sdbc"
 
-name := "examples-java7"
+name := "examples_java7"
 
 publishArtifact := false

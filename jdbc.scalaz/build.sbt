@@ -1,6 +1,6 @@
 organization := "com.rocketfuel.sdbc.scalaz"
 
-name := "jdbc-java7"
+name := "jdbc_java7"
 
 description := "Extensions for SDBC's JDBC support for use with Scalaz streaming."
 
