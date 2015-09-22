@@ -1,6 +1,6 @@
 organization := "com.rocketfuel.sdbc.postgresql"
 
-name := "jdbc"
+name := "jdbc-java7"
 
 description := "An implementation of WDA SDBC for accessing PostgreSQL."
 
