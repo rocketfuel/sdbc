@@ -1,6 +1,6 @@
 organization := "com.rocketfuel.sdbc.jdbc"
 
-name := "base"
+name := "base_java7"
 
 libraryDependencies ++= Seq(
   //Connection pooling
