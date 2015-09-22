@@ -37,14 +37,12 @@ private[sdbc] abstract class PostgreSql
           DoubleGetter(row, ix)
         case "time" =>
           LocalTimeGetter(row, ix)
-        case "timetz" =>
-          OffsetTimeGetter(row, ix)
         case "date" =>
           DateGetter(row, ix)
         case "timestamp" =>
           TimestampGetter(row, ix)
         case "timestamptz" =>
-          OffsetDateTimeGetter(row, ix)
+          DateTimeGetter(row, ix)
         case "bytea" =>
           ArrayByteGetter(row, ix)
         case "varchar" | "bpchar" | "text" =>
