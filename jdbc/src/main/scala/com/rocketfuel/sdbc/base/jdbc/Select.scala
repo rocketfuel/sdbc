@@ -93,7 +93,7 @@ object Select {
     parameterSetter: ParameterSetter
   ): Select[T] = {
     implicit def converter(row: Row): T = {
-      genericConverter.getter()
+      genericConverter.getter(row, 0)
     }
 
     Select[T](
