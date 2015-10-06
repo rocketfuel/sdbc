@@ -27,31 +27,9 @@ trait CompositeGetter[A] {
 /**
  * This is inspired from doobie, which supports using Shapeless to create getters, setters, and updaters.
  */
-object GenericRowConverter extends ProductTypeClassCompanion[CompositeGetter] {
+object CompositeGetter extends LowerPriorityCompositeGetter {
 
   def apply[A](implicit A: CompositeGetter[A]): CompositeGetter[A] = A
-
-  object typeClass extends ProductTypeClass[CompositeGetter] {
-    override def product[H, T <: HList](ch: CompositeGetter[H], ct: CompositeGetter[T]): CompositeGetter[::[H, T]] =
-      new CompositeGetter[H :: T] {
-        override val getter: (Row, Int) => H :: T = {
-          (row: Row, ix: Int) =>
-            ch.getter(row, ix) :: ct.getter(row, ix + ch.length)
-        }
-
-        override val length: Int = ch.length + ct.length
-      }
-
-    override def emptyProduct: CompositeGetter[HNil] =
-      new CompositeGetter[HNil] {
-        override val getter: (Row, Int) => HNil = (_, _) => HNil
-        override val length: Int = 1
-      }
-
-    override def project[F, G](instance: => CompositeGetter[G], to: (F) => G, from: (G) => F): CompositeGetter[F] = {
-      instance.xmap(from, to)
-    }
-  }
 
   implicit def optionFromGetter[A](implicit g: Getter[A]): CompositeGetter[Option[A]] =
     new CompositeGetter[Option[A]] {
@@ -78,4 +56,28 @@ object GenericRowConverter extends ProductTypeClassCompanion[CompositeGetter] {
       override val length: Int = H.length + T.length
     }
 
+}
+
+trait LowerPriorityCompositeGetter extends ProductTypeClassCompanion[CompositeGetter] {
+  object typeClass extends ProductTypeClass[CompositeGetter] {
+    override def product[H, T <: HList](ch: CompositeGetter[H], ct: CompositeGetter[T]): CompositeGetter[::[H, T]] =
+      new CompositeGetter[H :: T] {
+        override val getter: (Row, Int) => H :: T = {
+          (row: Row, ix: Int) =>
+            ch.getter(row, ix) :: ct.getter(row, ix + ch.length)
+        }
+
+        override val length: Int = ch.length + ct.length
+      }
+
+    override def emptyProduct: CompositeGetter[HNil] =
+      new CompositeGetter[HNil] {
+        override val getter: (Row, Int) => HNil = (_, _) => HNil
+        override val length: Int = 1
+      }
+
+    override def project[F, G](instance: => CompositeGetter[G], to: (F) => G, from: (G) => F): CompositeGetter[F] = {
+      instance.xmap(from, to)
+    }
+  }
 }

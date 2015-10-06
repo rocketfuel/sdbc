@@ -18,6 +18,10 @@ abstract class DBMS
 
   implicit val ParameterSetter: ParameterSetter
 
+  type CompositeGetter[A] = jdbc.CompositeGetter[A]
+
+  val CompositeGetter = jdbc.CompositeGetter
+
   type Index = jdbc.Index
 
   type Getter[+T] = jdbc.Getter[T]
@@ -74,6 +78,7 @@ abstract class DBMS
   }
 
   implicit class ConnectionMethods(connection: Connection) {
+
     def iterator[T](
       queryText: String,
       parameters: (String, Option[ParameterValue])*
@@ -110,6 +115,7 @@ abstract class DBMS
     ): Unit = {
       Execute(queryText).on(parameterValues: _*).execute()(connection)
     }
+
   }
 
   /**

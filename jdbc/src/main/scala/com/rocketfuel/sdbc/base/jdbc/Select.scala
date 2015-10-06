@@ -4,6 +4,7 @@ import java.io.Closeable
 import java.sql._
 import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
+import scala.collection.generic.CanBuildFrom
 
 case class Select[T] private[jdbc] (
   override val statement: CompiledStatement,
@@ -55,11 +56,23 @@ case class Select[T] private[jdbc] (
   override def option()(implicit connection: Connection): Option[T] = {
     val results = iterator()
 
-    val value = results.toStream.headOption
+    val value = results.to[Stream].headOption
 
     results.close()
 
     value
+  }
+
+  override def to[F[_]](implicit
+    connection: Connection,
+    cbf: CanBuildFrom[Nothing, T, F[T]]
+  ): F[T] = {
+    val rows = iterator()
+    try {
+      rows.to[F]
+    } finally {
+      rows.close()
+    }
   }
 
   override protected def subclassConstructor(
@@ -80,22 +93,6 @@ object Select {
   )(implicit converter: Row => T,
     parameterSetter: ParameterSetter
   ): Select[T] = {
-    Select[T](
-      statement = CompiledStatement(queryText, hasParameters),
-      parameterValues = Map.empty[String, Option[Any]]
-    )
-  }
-
-  def generic[T](
-    queryText: String,
-    hasParameters: Boolean = true
-  )(implicit genericConverter: CompositeGetter[T],
-    parameterSetter: ParameterSetter
-  ): Select[T] = {
-    implicit def converter(row: Row): T = {
-      genericConverter.getter(row, 0)
-    }
-
     Select[T](
       statement = CompiledStatement(queryText, hasParameters),
       parameterValues = Map.empty[String, Option[Any]]

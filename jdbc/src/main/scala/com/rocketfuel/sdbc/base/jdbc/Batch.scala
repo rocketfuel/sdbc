@@ -4,6 +4,18 @@ import java.sql.PreparedStatement
 import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
 
+/**
+ * Create and run a batch using a statement and a sequence of parameters.
+ *
+ * Batch contains two collections of parameters. One is a list of parameters for building a batch,
+ * and a list of batches. Batches can be built using {@link #on} and finalized with {@link #addBatch},
+ * or by passing parameters to {@link #addBatch}.
+ *
+ * @param statement
+ * @param parameterValues
+ * @param parameterValueBatches
+ * @param parameterSetter
+ */
 case class Batch private [jdbc] (
   statement: CompiledStatement,
   parameterValues: Map[String, Option[Any]],
@@ -41,7 +53,7 @@ case class Batch private [jdbc] (
     prepared
   }
 
-  def seq()(implicit connection: Connection): Seq[Long] = {
+  def seq()(implicit connection: Connection): IndexedSeq[Long] = {
     logger.debug(s"""Batching "$originalQueryText".""")
     val prepared = prepare()
     val result = try {
@@ -51,7 +63,7 @@ case class Batch private [jdbc] (
         prepared.executeBatch().map(_.toLong)
     }
     prepared.close()
-    result
+    result.toVector
   }
 
   override def iterator()(implicit connection: Connection): Iterator[Long] = {
@@ -63,8 +75,8 @@ case class Batch private [jdbc] (
    * @param connection
    * @return
    */
-  override def option()(implicit connection: Connection): Option[Long] = {
-    Some(seq().sum)
+  def sum()(implicit connection: Connection): Long = {
+    seq().sum
   }
 
   override protected def subclassConstructor(
