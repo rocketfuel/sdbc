@@ -45,7 +45,7 @@ object GenericRowConverter extends ProductTypeClassCompanion[CompositeGetter] {
     override def emptyProduct: CompositeGetter[HNil] =
       new CompositeGetter[HNil] {
         override val getter: (Row, Int) => HNil = (_, _) => HNil
-        override val length: Int = 0
+        override val length: Int = 1
       }
 
     override def project[F, G](instance: => CompositeGetter[G], to: (F) => G, from: (G) => F): CompositeGetter[F] = {
@@ -53,16 +53,16 @@ object GenericRowConverter extends ProductTypeClassCompanion[CompositeGetter] {
     }
   }
 
-  implicit def optionFromGetter[A](g: Getter[A]): CompositeGetter[Option[A]] =
+  implicit def optionFromGetter[A](implicit g: Getter[A]): CompositeGetter[Option[A]] =
     new CompositeGetter[Option[A]] {
       override val getter = (row: Row, ix: Int) => g(row, IntIndex(ix))
-      override val length: Int = 0
+      override val length: Int = 1
     }
 
-  implicit def fromGetter[A](g: Getter[A]): CompositeGetter[A] =
+  implicit def fromGetter[A](implicit g: Getter[A]): CompositeGetter[A] =
     new CompositeGetter[A] {
       override val getter = (row: Row, ix: Int) => g(row, IntIndex(ix)).get
-      override val length: Int = 0
+      override val length: Int = 1
     }
 
   implicit def recordComposite[K <: Symbol, H, T <: HList](implicit
