@@ -3,7 +3,6 @@ package com.rocketfuel.sdbc.scalaz
 import com.rocketfuel.sdbc.base.jdbc._
 import scalaz.concurrent.Task
 import scalaz.stream._
-import me.jeffshaw.scalaz.stream.IteratorConstructors._
 
 object JdbcProcess {
 
@@ -65,7 +64,7 @@ object JdbcProcess {
       select: Select[T]
     )(implicit connection: Connection
     ): Process[Task, T] = {
-      Process.iterator(Task.delay(select.iterator()))
+      io.iterator(Task.delay(select.iterator()))
     }
 
     /**
@@ -133,7 +132,7 @@ object JdbcProcess {
         channel.lift[Task, ParameterList, Process[Task, T]] { params =>
           Task.delay {
             Process.await(getConnection(pool)) {implicit connection =>
-              Process.iterator(Task.delay(select.on(params: _*).iterator())).onComplete(Process.eval_(closeConnection(connection)))
+              io.iterator(Task.delay(select.on(params: _*).iterator())).onComplete(Process.eval_(closeConnection(connection)))
             }
           }
         }
@@ -215,8 +214,8 @@ object JdbcProcess {
       ): Channel[Task, Key, Process[Task, Value]] = {
         channel.lift[Task, Key, Process[Task, Value]] { key =>
           Task.delay {
-            Process.await(getConnection(pool)) {implicit connection =>
-              Process.iterator(Task.delay(selectable.select(key).iterator())).onComplete(Process.eval_(closeConnection(connection)))
+            io.iteratorR[Connection, Value](getConnection(pool))(closeConnection){implicit connection =>
+              Task.delay(selectable.select(key).iterator())
             }
           }
         }
