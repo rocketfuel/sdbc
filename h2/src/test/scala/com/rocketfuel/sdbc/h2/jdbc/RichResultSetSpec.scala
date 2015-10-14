@@ -15,7 +15,7 @@ class RichResultSetSpec
 
   test("iterator() works on several results") {implicit connection =>
     val randoms = Seq.fill(10)(util.Random.nextInt())
-    Execute("CREATE TABLE tbl (x int)").execute()
+    Execute("CREATE TABLE tbl (id identity PRIMARY KEY, x int)").execute()
 
     val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
       case (batch, r) =>
@@ -26,7 +26,7 @@ class RichResultSetSpec
 
     assertResult(randoms.size)(insertions.sum)
 
-    val results = Select[Int]("SELECT x FROM tbl").iterator().toSeq
+    val results = Select[Int]("SELECT x FROM tbl ORDER BY id ASC").iterator().toSeq
 
     assertResult(randoms)(results)
   }
@@ -53,6 +53,23 @@ class RichResultSetSpec
     for ((afterUpdate, original) <- afterUpdate.zip(randoms)) {
       assertResult(original + 1)(afterUpdate)
     }
+  }
+
+  test("to[Vector] works") {implicit connection =>
+    val randoms = Seq.fill(10)(util.Random.nextInt()).sorted
+
+    Execute("CREATE TABLE tbl (id identity PRIMARY KEY, x int)").execute()
+
+    val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
+      case (batch, r) =>
+        batch.addBatch("x" -> r)
+    }
+
+    batch.iterator()
+
+    val result = Select[Int]("SELECT x FROM tbl ORDER BY id ASC").to[Vector]
+
+    assertResult(randoms)(result)
   }
 
   override protected def afterEach(): Unit = {

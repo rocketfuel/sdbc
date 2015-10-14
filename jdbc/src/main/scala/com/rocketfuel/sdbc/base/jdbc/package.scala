@@ -6,11 +6,7 @@ import com.zaxxer.hikari.HikariConfig
 
 package object jdbc
   extends HikariImplicits
-  with ResultSetImplicits
-  with base.BatchableMethods[java.sql.Connection, jdbc.Batch]
-  with base.UpdatableMethods[java.sql.Connection, jdbc.Update]
-  with base.SelectableMethods[java.sql.Connection, jdbc.Select]
-  with base.ExecutableMethods[java.sql.Connection, jdbc.Execute] {
+  with ResultSetImplicits {
 
   type ParameterizedQuery[Self <: ParameterizedQuery[Self]] = base.ParameterizedQuery[Self, PreparedStatement, Int]
 

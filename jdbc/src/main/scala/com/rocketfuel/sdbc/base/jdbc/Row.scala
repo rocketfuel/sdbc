@@ -9,6 +9,9 @@ import com.rocketfuel.sdbc.base.CIMap
 
 abstract class Row {
 
+  //TODO: Use ProductTypeclass from shapeless to get HList support, and therefore also tuples and case classes
+  //Tip from tpolecat
+
   def columnTypes: IndexedSeq[String]
 
   def columnNames: IndexedSeq[String]
