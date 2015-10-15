@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import java.sql.PreparedStatement
+import java.sql.{SQLFeatureNotSupportedException, PreparedStatement}
 import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
 
@@ -59,7 +59,8 @@ case class Batch private [jdbc] (
     val result = try {
       prepared.executeLargeBatch()
     } catch {
-      case e: UnsupportedOperationException =>
+      case _: UnsupportedOperationException |
+           _: SQLFeatureNotSupportedException =>
         prepared.executeBatch().map(_.toLong)
     }
     prepared.close()
