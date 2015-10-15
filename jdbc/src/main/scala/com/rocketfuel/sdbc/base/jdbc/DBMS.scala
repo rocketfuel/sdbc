@@ -82,7 +82,7 @@ abstract class DBMS
     def iterator[T](
       queryText: String,
       parameters: (String, Option[ParameterValue])*
-    )(implicit converter: Row => T
+    )(implicit converter: CompositeGetter[T]
     ): Iterator[T] = {
       Select[T](queryText).on(parameters: _*).iterator()(connection)
     }
@@ -97,7 +97,7 @@ abstract class DBMS
     def option[T](
       queryText: String,
       parameters: (String, Option[ParameterValue])*
-    )(implicit converter: Row => T
+    )(implicit converter: CompositeGetter[T]
     ): Option[T] = {
       Select[T](queryText).on(parameters: _*).option()(connection)
     }

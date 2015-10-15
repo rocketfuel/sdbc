@@ -12,7 +12,7 @@ import scala.reflect.ClassTag
 
 class UpdatersSpec extends H2Suite {
 
-  def testUpdate[T](typeName: String)(before: T)(after: T)(implicit ctag: ClassTag[T], updater: Updater[T], converter: Row => T): Unit = {
+  def testUpdate[T](typeName: String)(before: T)(after: T)(implicit ctag: ClassTag[T], updater: Updater[T], converter: CompositeGetter[T]): Unit = {
     test(s"Update ${ctag.runtimeClass.getName}") {implicit connection =>
       Update(s"CREATE TABLE tbl (id identity PRIMARY KEY, v $typeName)").update()
 
