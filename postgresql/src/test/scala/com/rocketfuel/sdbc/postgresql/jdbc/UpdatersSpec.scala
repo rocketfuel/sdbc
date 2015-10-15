@@ -5,6 +5,7 @@ import java.time._
 import java.util.UUID
 
 import com.rocketfuel.sdbc.base.jdbc.Updater
+import org.apache.commons.lang3.RandomStringUtils
 import org.json4s.JValue
 import org.json4s.jackson.JsonMethods
 import scodec.bits.ByteVector
@@ -21,19 +22,22 @@ class UpdatersSpec
   )(after: T
   )(implicit ctag: ClassTag[T],
     updater: Updater[T],
+    setter: T => Option[ParameterValue],
     converter: CompositeGetter[T]
   ): Unit = {
     test(s"Update ${ctag.runtimeClass.getName}") {implicit connection =>
-      Update(s"CREATE TABLE tbl (id serial PRIMARY KEY, v $typeName)").update()
+      val tableName = RandomStringUtils.randomAlphabetic(10)
 
-      update"INSERT INTO tbl (v) VALUES ($before)".update()
+      Update(s"CREATE TABLE $tableName (id serial PRIMARY KEY, v $typeName)").update()
 
-      for (row <- selectForUpdate"SELECT * FROM tbl".iterator()) {
+      Update(s"INSERT INTO $tableName (v) VALUES (@before)").on("before" -> before).update()
+
+      for (row <- SelectForUpdate(s"SELECT * FROM $tableName").iterator()) {
         row("v") = after
         row.updateRow()
       }
 
-      val maybeValue = Select[T]("SELECT v FROM tbl").option()
+      val maybeValue = Select[T](s"SELECT v FROM $tableName").option()
 
       assert(maybeValue.nonEmpty)
 
