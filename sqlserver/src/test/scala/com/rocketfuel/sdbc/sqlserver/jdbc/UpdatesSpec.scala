@@ -11,7 +11,14 @@ import scala.reflect.ClassTag
 
 class UpdatesSpec extends SqlServerSuite {
 
-  def testUpdate[T](typeName: String)(before: T)(after: T)(implicit ctag: ClassTag[T], updater: Updater[T], converter: Row => T): Unit = {
+  def testUpdate[T](
+    typeName: String
+  )(before: T
+  )(after: T
+  )(implicit ctag: ClassTag[T],
+    updater: Updater[T],
+    converter: CompositeGetter[T]
+  ): Unit = {
     test(s"Update ${ctag.runtimeClass.getName}") {implicit connection =>
       Update(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v $typeName)").update()
 
