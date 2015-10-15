@@ -28,7 +28,7 @@ class OffsetDateTimeFormatterSpec extends FunSuite {
   }
 
   test("Can parse timestamp with no fractional seconds from PostgreSql.") {
-    val asString = "2014-10-21 15:59:08 -04:30"
+    val asString = "2014-10-21 15:59:08-04:30"
     val manual = OffsetDateTime.of(2014, 10, 21, 15, 59, 8, 0, ZoneOffset.ofHoursMinutes(-4, -30))
     val parsed =  OffsetDateTime.from(offsetDateTimeFormatter.parse(asString))
     assertResult(manual)(parsed)
