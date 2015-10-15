@@ -17,7 +17,7 @@ abstract class PostgreSqlSuite
 
   override def pgConfigKey: String = "pg"
 
-  def testSelect[T](query: String, expectedValue: Option[T])(implicit converter: Row => Option[T]): Unit = {
+  def testSelect[T](query: String, expectedValue: Option[T])(implicit converter: CompositeGetter[Option[T]]): Unit = {
     test(query) { implicit connection =>
       val result = Select[Option[T]](query).option().get
       (expectedValue, result) match {
