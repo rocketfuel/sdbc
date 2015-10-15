@@ -87,15 +87,21 @@ case class Select[T] private[jdbc] (
 }
 
 object Select {
+
   def apply[T](
     queryText: String,
     hasParameters: Boolean = true
-  )(implicit converter: Row => T,
+  )(implicit compositeGetter: CompositeGetter[T],
     parameterSetter: ParameterSetter
   ): Select[T] = {
+    implicit def getter(row: Row): T = {
+      compositeGetter.getter(row, 0)
+    }
+
     Select[T](
       statement = CompiledStatement(queryText, hasParameters),
       parameterValues = Map.empty[String, Option[Any]]
     )
   }
+
 }

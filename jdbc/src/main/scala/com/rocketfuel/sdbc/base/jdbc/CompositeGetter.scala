@@ -31,6 +31,13 @@ object CompositeGetter extends LowerPriorityCompositeGetter {
 
   def apply[A](implicit A: CompositeGetter[A]): CompositeGetter[A] = A
 
+  def apply[A](implicit converter: Row => A): CompositeGetter[A]= {
+    new CompositeGetter[A] {
+      override val getter: (Row, Int) => A = (row: Row, _: Int) => converter(row)
+      override val length: Int = 1
+    }
+  }
+
   implicit def optionFromGetter[A](implicit g: Getter[A]): CompositeGetter[Option[A]] =
     new CompositeGetter[Option[A]] {
       override val getter = (row: Row, ix: Int) => g(row, IntIndex(ix))
