@@ -2,7 +2,7 @@ package com.rocketfuel.sdbc.sqlserver.jdbc.implementation
 
 import java.io.{InputStream, Reader}
 import java.sql.PreparedStatement
-import java.time.OffsetDateTime
+import java.time.{LocalTime, OffsetDateTime}
 import java.util.UUID
 import com.rocketfuel.sdbc.base.CISet
 import com.rocketfuel.sdbc.base.jdbc._
@@ -78,6 +78,8 @@ private[sdbc] abstract class SqlServer
           setParameter[java.sql.Timestamp](preparedStatement, parameterIndex, b)
         case b: OffsetDateTime =>
           setParameter[OffsetDateTime](preparedStatement, parameterIndex, b)
+        case b: java.time.LocalTime =>
+          setParameter[LocalTime](preparedStatement, parameterIndex, b)
         case b: Reader =>
           setParameter[Reader](preparedStatement, parameterIndex, b)
         case b: InputStream =>
