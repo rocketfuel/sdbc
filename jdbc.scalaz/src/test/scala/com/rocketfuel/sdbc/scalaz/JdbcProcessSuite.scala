@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.scalaz
 
-import com.rocketfuel.sdbc.base.jdbc.Updatable
-import com.rocketfuel.sdbc.h2.jdbc._
+import com.rocketfuel.sdbc.h2.jdbc.H2._
+import com.rocketfuel.sdbc.h2.jdbc.H2Suite
 import com.zaxxer.hikari.HikariConfig
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import scalaz.stream._

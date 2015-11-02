@@ -1,4 +1,4 @@
-package com.rocketfuel.sdbc.sqlserver
+package com.rocketfuel.sdbc.sqlserver.jdbc
 
 /**
  * Import the contents of this package to interact with [[http://www.microsoft.com/en-us/server-cloud/products/sql-server/ Microsoft SQL Server]] using JDBC.
@@ -11,4 +11,4 @@ package com.rocketfuel.sdbc.sqlserver
  * pool.withConnection(_.iterator[Int]("SELECT 1").toSeq)
  * }}}
  */
-package object jdbc extends implementation.SqlServer
+case object SqlServer extends implementation.SqlServer

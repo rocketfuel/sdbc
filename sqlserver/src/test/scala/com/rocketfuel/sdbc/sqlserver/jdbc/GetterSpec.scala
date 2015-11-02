@@ -4,7 +4,7 @@ import java.nio.ByteBuffer
 import java.sql.{Date, Time, Timestamp}
 import java.time._
 import java.util.UUID
-
+import SqlServer._
 import scalaz.Scalaz._
 
 /**

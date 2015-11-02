@@ -1,5 +1,7 @@
 package com.rocketfuel.sdbc.sqlserver.jdbc
 
+import SqlServer._
+
 trait HasSqlServerPool {
   self: SqlTestingConfig =>
 

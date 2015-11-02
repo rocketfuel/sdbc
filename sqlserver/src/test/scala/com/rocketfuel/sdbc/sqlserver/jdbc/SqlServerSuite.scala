@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.sqlserver.jdbc
 
 import java.time.{Instant, OffsetDateTime}
-
+import SqlServer._
 import com.typesafe.config.{ConfigFactory, Config}
 import com.rocketfuel.sdbc.config.TestingConfig
 import org.scalatest._

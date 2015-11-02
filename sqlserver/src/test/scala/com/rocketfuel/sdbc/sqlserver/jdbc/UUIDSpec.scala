@@ -1,6 +1,7 @@
 package com.rocketfuel.sdbc.sqlserver.jdbc
 
 import java.util.UUID
+import SqlServer._
 
 class UUIDSpec
   extends SqlServerSuite {

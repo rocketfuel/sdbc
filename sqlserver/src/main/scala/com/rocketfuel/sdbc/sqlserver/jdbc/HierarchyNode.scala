@@ -7,18 +7,17 @@ case class HierarchyNode(start: Int, path: Int*) {
 }
 
 object HierarchyNode {
-  def fromString(path: String): HierarchyNode = {
+  implicit def fromString(path: String): HierarchyNode = {
     val pathParts = path.split('.').map(_.toInt)
     apply(pathParts.head, pathParts.tail: _*)
   }
-}
 
-trait HierarchyNodeImplicits {
-  implicit def IntToHierarchyNode(i: Int): HierarchyNode = {
+  implicit def fromInt(i: Int): HierarchyNode = {
     HierarchyNode(i)
   }
 
-  implicit def SeqIntToHierarchyNode(path: Seq[Int]): HierarchyNode = {
+  implicit def fromInts(path: Seq[Int]): HierarchyNode = {
     HierarchyNode(path.head, path.tail: _*)
   }
+
 }

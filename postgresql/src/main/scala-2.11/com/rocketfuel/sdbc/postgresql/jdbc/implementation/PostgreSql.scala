@@ -71,7 +71,7 @@ private[sdbc] abstract class PostgreSql
           LTreeGetter(row, ix)
         case array if array.startsWith("_") =>
           for {
-            jdbcArray <- Option(row.getArray(ix(row)))
+            jdbcArray <- Option(row.getArray(Index(ix)(row)))
           } yield {
             val innerRows = jdbcArray.getResultSet().iterator()
             val innerRowsAsParameters = innerRows.map(r => ParameterGetter(r, 1)).toSeq

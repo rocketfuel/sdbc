@@ -3,10 +3,9 @@ package com.rocketfuel.sdbc.sqlserver.jdbc
 import java.sql.{Time, Date, Timestamp}
 import java.time.{LocalTime, LocalDate, Instant}
 import java.util.UUID
-
+import SqlServer._
 import com.rocketfuel.sdbc.base.jdbc.Updater
 import scodec.bits.ByteVector
-
 import scala.reflect.ClassTag
 
 class UpdatesSpec extends SqlServerSuite {

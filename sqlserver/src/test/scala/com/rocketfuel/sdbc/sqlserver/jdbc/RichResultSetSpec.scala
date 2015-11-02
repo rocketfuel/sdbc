@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.sqlserver.jdbc
 
 import org.scalatest.BeforeAndAfterEach
-
+import SqlServer._
 import scala.collection.immutable.Seq
 
 class RichResultSetSpec
