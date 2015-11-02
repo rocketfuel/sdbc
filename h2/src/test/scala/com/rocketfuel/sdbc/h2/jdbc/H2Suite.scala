@@ -1,6 +1,7 @@
 package com.rocketfuel.sdbc.h2.jdbc
 
 import org.scalatest._
+import H2._
 
 abstract class H2Suite
   extends fixture.FunSuite {

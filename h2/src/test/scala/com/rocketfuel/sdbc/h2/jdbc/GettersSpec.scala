@@ -4,13 +4,13 @@ import java.nio.ByteBuffer
 import java.sql.{Timestamp, Time, Date}
 import java.time._
 import java.util.UUID
-
+import H2._
 import scalaz.Scalaz._
 
 class GettersSpec
   extends H2Suite {
 
-  def testSelect[T](query: String, expectedValue: Option[T])(implicit converter: CompositeGetter[Option[T]]): Unit = {
+  def testSelect[T](query: String, expectedValue: Option[T])(implicit converter: RowConverter[Option[T]]): Unit = {
     test(query) { implicit connection =>
       val result = Select[Option[T]](query).option().flatten
       (expectedValue, result) match {

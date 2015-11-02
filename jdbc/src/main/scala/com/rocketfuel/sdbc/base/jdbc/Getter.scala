@@ -11,9 +11,9 @@ import java.util.UUID
 import scodec.bits.ByteVector
 
 object Getter {
+
   def fromValGetter[T <: AnyVal](valGetter: Row => Int => T): Getter[T] = {
     new Getter[T] {
-
       override def apply(row: Row, ix: Index): Option[T] = {
         val value = valGetter(row)(ix(row))
         if (row.wasNull) None
@@ -21,6 +21,7 @@ object Getter {
       }
     }
   }
+
 }
 
 trait Parser[+T] extends Getter[T] {

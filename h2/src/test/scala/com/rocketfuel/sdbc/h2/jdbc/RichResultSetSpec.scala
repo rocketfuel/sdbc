@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.h2.jdbc
 
 import org.scalatest.BeforeAndAfterEach
-
+import H2._
 import scala.collection.immutable.Seq
 
 class RichResultSetSpec

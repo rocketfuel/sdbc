@@ -1,5 +1,7 @@
 package com.rocketfuel.sdbc.h2.jdbc
 
+import H2._
+
 class OtherSpec
   extends H2Suite {
 

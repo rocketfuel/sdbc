@@ -7,7 +7,4 @@ private[sdbc] trait Getters
   with LocalDateGetter
   with LocalDateTimeGetter
   with LocalTimeGetter
-  with InstantGetter {
-  self: SerializedParameter =>
-
-}
+  with InstantGetter

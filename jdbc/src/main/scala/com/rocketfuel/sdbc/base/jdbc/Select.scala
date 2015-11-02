@@ -9,7 +9,7 @@ import scala.collection.generic.CanBuildFrom
 case class Select[T] private[jdbc] (
   override val statement: CompiledStatement,
   override val parameterValues: Map[String, Option[Any]]
-)(implicit val converter: Row => T,
+)(implicit val converter: RowConverter[T],
   parameterSetter: ParameterSetter
 ) extends base.Select[Connection, T]
   with ParameterizedQuery[Select[T]]
@@ -91,13 +91,9 @@ object Select {
   def apply[T](
     queryText: String,
     hasParameters: Boolean = true
-  )(implicit compositeGetter: CompositeGetter[T],
+  )(implicit converter: RowConverter[T],
     parameterSetter: ParameterSetter
   ): Select[T] = {
-    implicit def getter(row: Row): T = {
-      compositeGetter.getter(row, 0)
-    }
-
     Select[T](
       statement = CompiledStatement(queryText, hasParameters),
       parameterValues = Map.empty[String, Option[Any]]

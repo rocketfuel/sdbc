@@ -8,7 +8,6 @@ abstract class DBMS
   extends IndexImplicits
   with HikariImplicits
   with ParameterValueImplicits
-  with GetterImplicits
   with UpdaterImplicits
   with base.BatchableMethods[java.sql.Connection, Batch]
   with base.UpdatableMethods[java.sql.Connection, Update]
@@ -20,11 +19,12 @@ abstract class DBMS
 
   type CompositeGetter[A] = jdbc.CompositeGetter[A]
 
-  val CompositeGetter = jdbc.CompositeGetter
-
   type Index = jdbc.Index
 
   type Getter[+T] = jdbc.Getter[T]
+
+  type RowConverter[T] = jdbc.RowConverter[T]
+  val RowConverter = jdbc.RowConverter
 
   type ParameterValue = jdbc.ParameterValue
   val ParameterValue = jdbc.ParameterValue
@@ -82,7 +82,7 @@ abstract class DBMS
     def iterator[T](
       queryText: String,
       parameters: (String, Option[ParameterValue])*
-    )(implicit converter: CompositeGetter[T]
+    )(implicit converter: RowConverter[T]
     ): Iterator[T] = {
       Select[T](queryText).on(parameters: _*).iterator()(connection)
     }
@@ -97,7 +97,7 @@ abstract class DBMS
     def option[T](
       queryText: String,
       parameters: (String, Option[ParameterValue])*
-    )(implicit converter: CompositeGetter[T]
+    )(implicit converter: RowConverter[T]
     ): Option[T] = {
       Select[T](queryText).on(parameters: _*).option()(connection)
     }
