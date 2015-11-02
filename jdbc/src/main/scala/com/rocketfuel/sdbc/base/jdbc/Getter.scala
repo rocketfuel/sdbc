@@ -308,7 +308,7 @@ trait SeqGetter {
         val arrayValues = for {
           arrayRow <- arrayIterator
         } yield {
-            arrayRow.get[T](IntIndex(1))
+            arrayRow.get[T](1)
           }
         arrayValues.toVector
       }

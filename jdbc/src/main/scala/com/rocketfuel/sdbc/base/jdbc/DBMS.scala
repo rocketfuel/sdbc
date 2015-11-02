@@ -5,8 +5,7 @@ import com.rocketfuel.sdbc.base.{ParameterValueImplicits, jdbc}
 import com.zaxxer.hikari.HikariDataSource
 
 abstract class DBMS
-  extends IndexImplicits
-  with HikariImplicits
+  extends HikariImplicits
   with ParameterValueImplicits
   with UpdaterImplicits
   with base.BatchableMethods[java.sql.Connection, Batch]

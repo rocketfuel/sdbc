@@ -56,7 +56,7 @@ class MutableRow private[sdbc] (
 
   def asIntMap(implicit getter: Getter[ParameterValue]): IndexedSeq[Option[Any]] = {
     IndexedSeq.tabulate(underlying.getMetaData.getColumnCount) { ix =>
-      getter(this, IntIndex(ix)).map(_.value)
+      getter(this, ix).map(_.value)
     }
   }
 

@@ -1,7 +1,6 @@
 package com.rocketfuel.sdbc.h2.jdbc
 
 import H2._
-import com.rocketfuel.sdbc.base.jdbc.CompositeGetter._
 
 class GenericGetterSpec extends H2Suite {
 

@@ -7,12 +7,10 @@ import scala.collection.immutable.TreeSet
  */
 object CISet {
 
-  implicit val ordering: Ordering[String] = CaseInsensitiveOrdering
-
-  val empty = TreeSet.empty[String]
+  val empty = TreeSet.empty[String](CaseInsensitiveOrdering)
 
   def apply(elems: String*): TreeSet[String] = {
-    TreeSet(elems: _*)
+    TreeSet(elems: _*)(CaseInsensitiveOrdering)
   }
 
 }

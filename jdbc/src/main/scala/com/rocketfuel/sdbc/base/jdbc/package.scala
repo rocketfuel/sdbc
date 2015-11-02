@@ -17,8 +17,6 @@ package object jdbc
 
   type IsParameter[T] = base.IsParameter[T, PreparedStatement, Int]
 
-  type Index = PartialFunction[Row, Int]
-
   type Getter[+T] = base.Getter[Row, Index, T]
 
   type Connection = java.sql.Connection
