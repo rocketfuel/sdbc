@@ -1,5 +1,6 @@
-package com.rocketfuel.sdbc.base.jdbc
+package com.rocketfuel.sdbc.cassandra.datastax.implementation
 
+import com.datastax.driver.core.Row
 import shapeless._
 import shapeless.labelled._
 
@@ -16,12 +17,12 @@ trait CompositeGetter[+A] {
 }
 
 /**
- * This is inspired from doobie, which supports using Shapeless to create getters, setters, and updaters.
- */
+  * This is inspired from doobie, which supports using Shapeless to create getters, setters, and updaters.
+  */
 object CompositeGetter extends LowerPriorityCompositeGetter {
   def apply[A](implicit getter: CompositeGetter[A]): CompositeGetter[A] = getter
 
-  implicit def fromGetterOption[A](implicit g: Getter[A]): CompositeGetter[Option[A]] =
+  implicit def fromGetterOption[A](implicit g: RowGetter[A]): CompositeGetter[Option[A]] =
     new CompositeGetter[Option[A]] {
       override def apply(v1: Row, v2: Index): Option[A] = {
         g(v1, v2)
@@ -30,7 +31,7 @@ object CompositeGetter extends LowerPriorityCompositeGetter {
       override val length: Int = 1
     }
 
-  implicit def fromGetter[A](implicit g: Getter[A]): CompositeGetter[A] =
+  implicit def fromGetter[A](implicit g: RowGetter[A]): CompositeGetter[A] =
     new CompositeGetter[A] {
       override def apply(v1: Row, v2: Index): A = {
         g(v1, v2).get
@@ -69,7 +70,7 @@ trait LowerPriorityCompositeGetter {
   implicit def emptyProduct: CompositeGetter[HNil] =
     new CompositeGetter[HNil] {
       override def apply(row: Row, ix: Index): HNil = {
-          HNil : HNil
+        HNil : HNil
       }
 
       override val length: Int = 0
@@ -81,7 +82,7 @@ trait LowerPriorityCompositeGetter {
   ): CompositeGetter[F] =
     new CompositeGetter[F] {
       override def apply(row: Row, ix: Index): F = {
-          gen.from(G.value(row, ix))
+        gen.from(G.value(row, ix))
       }
 
       override val length: Int = G.value.length

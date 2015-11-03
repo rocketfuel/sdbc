@@ -3,7 +3,7 @@ package com.rocketfuel.sdbc.cassandra.datastax.implementation
 import com.datastax.driver.core.{Row => CRow}
 
 private[sdbc] trait RowMethods {
-  self: ParameterValues with IndexImplicits =>
+  self: ParameterValues =>
 
   implicit class Row(underlying: CRow) {
 

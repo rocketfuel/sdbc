@@ -16,8 +16,6 @@ package object implementation {
 
   type ParameterizedQuery[Self <: ParameterizedQuery[Self]] = base.ParameterizedQuery[Self, core.BoundStatement, Int]
 
-  type Index = PartialFunction[core.Row, Int]
-
   type RowGetter[+T] = base.Getter[core.Row, Index, T]
 
   type TupleGetter[+T] = base.Getter[core.TupleValue, Int, T]

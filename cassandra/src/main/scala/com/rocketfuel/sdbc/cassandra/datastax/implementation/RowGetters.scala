@@ -7,7 +7,7 @@ import java.util.{UUID, Date}
 import scodec.bits.ByteVector
 
 import scala.collection.convert.wrapAsScala._
-import com.datastax.driver.core.{Row => CRow, UDTValue, TupleValue}
+import com.datastax.driver.core.{Row, UDTValue, TupleValue}
 import com.google.common.reflect.TypeToken
 
 import scala.reflect.ClassTag
@@ -72,7 +72,7 @@ private[sdbc] trait RowGetters {
 
   implicit val Tuple0RowGetter: RowGetter[Unit] = new RowGetter[Unit] {
     override def apply(
-      row: CRow,
+      row: Row,
       ix: Index
     ): Option[Unit] = {
       val columnIndex = ix(row)
@@ -83,7 +83,7 @@ private[sdbc] trait RowGetters {
 
   implicit def Tuple1RowGetter[T0](implicit getter0: TupleGetter[T0]): RowGetter[(Option[T0])] = new RowGetter[(Option[T0])] {
     override def apply(
-      row: CRow,
+      row: Row,
       ix: Index
     ): Option[(Option[T0])] = {
       val columnIndex = ix(row)
@@ -515,7 +515,7 @@ private[sdbc] trait RowGetters {
 
   implicit val ParameterGetter: RowGetter[ParameterValue] =
     new RowGetter[ParameterValue] {
-      override def apply(row: CRow, ix: Index): Option[ParameterValue] = {
+      override def apply(row: Row, ix: Index): Option[ParameterValue] = {
 
         Option(row.getObject(ix(row))).flatMap {
           case map: java.util.Map[_, _] =>
@@ -567,9 +567,9 @@ private[sdbc] trait RowGetters {
 }
 
 private[sdbc] object RowGetters {
-  def apply[T](getter: CRow => Int => T): RowGetter[T] = {
+  def apply[T](getter: Row => Int => T): RowGetter[T] = {
     new RowGetter[T] {
-      override def apply(row: CRow, toIx: Index): Option[T] = {
+      override def apply(row: Row, toIx: Index): Option[T] = {
         val ix = toIx(row)
         if (row.isNull(ix)) None
         else Some(getter(row)(toIx(row)))

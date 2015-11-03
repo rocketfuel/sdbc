@@ -1,4 +1,6 @@
-package com.rocketfuel.sdbc.base.jdbc
+package com.rocketfuel.sdbc.cassandra.datastax.implementation
+
+import com.datastax.driver.core.Row
 
 import scala.annotation.implicitNotFound
 
@@ -30,3 +32,4 @@ trait LowerPriorityRowConverterImplicits {
       }
     }
 }
+

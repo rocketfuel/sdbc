@@ -10,7 +10,11 @@ import scalaz.Scalaz._
 class GettersSpec
   extends H2Suite {
 
-  def testSelect[T](query: String, expectedValue: Option[T])(implicit converter: RowConverter[Option[T]]): Unit = {
+  def testSelect[T](
+    query: String,
+    expectedValue: Option[T]
+  )(implicit converter: RowConverter[Option[T]]
+  ): Unit = {
     test(query) { implicit connection =>
       val result = Select[Option[T]](query).option().flatten
       (expectedValue, result) match {

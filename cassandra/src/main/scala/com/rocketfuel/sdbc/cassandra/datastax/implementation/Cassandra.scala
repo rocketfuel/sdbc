@@ -6,7 +6,6 @@ import com.rocketfuel.sdbc.cassandra.datastax.implementation
 private[sdbc] abstract class Cassandra
   extends RowGetters
   with RowGetterImplicits
-  with IndexImplicits
   with RowMethods
   with ParameterValues
   with TupleParameterValues

@@ -3,7 +3,7 @@ package com.rocketfuel.sdbc.cassandra.datastax.implementation
 import com.datastax.driver.core.{Row => CRow}
 
 private[sdbc] trait RowGetterImplicits {
-    self: RowMethods with IndexImplicits =>
+    self: RowMethods =>
 
   implicit def GetterToRowConverterOption[T](implicit getter: RowGetter[T]): CRow => Option[T] = { row =>
     getter(row, 0)

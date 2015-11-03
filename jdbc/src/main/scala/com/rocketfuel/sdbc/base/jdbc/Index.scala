@@ -1,32 +1,33 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import java.sql.SQLException
-
 trait Index extends PartialFunction[Row, Int]
 
 object Index {
 
-  implicit def apply(columnIndex: Int): Index = new Index {
-    override def isDefinedAt(row: Row): Boolean = {
-      columnIndex < row.getMetaData.getColumnCount
-    }
+  implicit def apply(columnIndex: Int): Index = IntIndex(columnIndex)
 
-    override def apply(row: Row): Int = columnIndex
+  implicit def apply(columnLabel: String): Index = StringIndex(columnLabel)
+
+}
+
+case class IntIndex(columnIndex: Int) extends Index {
+  override def isDefinedAt(row: Row): Boolean = {
+    columnIndex < row.getMetaData.getColumnCount
   }
 
-  implicit def apply(columnLabel: String): Index = new Index {
-    override def isDefinedAt(row: Row): Boolean = {
-      try {
-        apply(row) >= 0
-      } catch {
-        case e: SQLException =>
-          false
-      }
-    }
+  override def apply(row: Row): Int = columnIndex
 
-    override def apply(row: Row): Int = {
-      row.columnIndexes(columnLabel)
-    }
+  def +(i: Int): Index = {
+    i + columnIndex
+  }
+}
+
+case class StringIndex(columnLabel: String) extends Index {
+  override def isDefinedAt(row: Row): Boolean = {
+    row.columnIndexes.contains(columnLabel)
   }
 
+  override def apply(row: Row): Int = {
+    row.columnIndexes(columnLabel)
+  }
 }

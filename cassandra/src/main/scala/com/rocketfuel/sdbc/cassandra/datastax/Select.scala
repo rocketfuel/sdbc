@@ -10,7 +10,7 @@ case class Select[T] private [cassandra] (
   override val statement: CompiledStatement,
   override val parameterValues: Map[String, Option[Any]],
   override val queryOptions: QueryOptions
-)(implicit val converter: CRow => T)
+)(implicit val converter: implementation.RowConverter[T])
   extends base.Select[Session, T]
   with implementation.ParameterizedQuery[Select[T]]
   with implementation.HasQueryOptions
