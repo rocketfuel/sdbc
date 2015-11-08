@@ -1,6 +1,7 @@
 package com.rocketfuel.sdbc.postgresql.jdbc
 
 import scalaz.Scalaz._
+import PostgreSql._
 
 class SeqGetterSpec
   extends PostgreSqlSuite {

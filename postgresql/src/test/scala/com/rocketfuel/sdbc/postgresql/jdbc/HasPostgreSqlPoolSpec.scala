@@ -3,6 +3,7 @@ package com.rocketfuel.sdbc.postgresql.jdbc
 import com.typesafe.config.{ConfigFactory, Config}
 import com.rocketfuel.sdbc.config.TestingConfig
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
+import PostgreSql._
 
 class HasPostgreSqlPoolSpec
   extends FunSuite

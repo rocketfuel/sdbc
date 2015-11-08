@@ -1,5 +1,6 @@
 package com.rocketfuel.sdbc.cassandra.datastax
 
+import com.rocketfuel.sdbc.cassandra.datastax.implementation.RowGetter
 import org.scalacheck.Gen
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import scala.reflect._
@@ -121,7 +122,7 @@ class RichResultSetSpec
     t1 <- Gen.alphaStr
   } yield (t0, t1)
 
-  implicit val getter = MapRowGetter[String, String](classTag[String], classTag[String])
+  implicit val getter = RowGetter.MapRowGetter[String, String](classTag[String], classTag[String])
 
   test("Insert and select works for maps.") {implicit connection =>
     Execute("CREATE KEYSPACE spc WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}").execute()

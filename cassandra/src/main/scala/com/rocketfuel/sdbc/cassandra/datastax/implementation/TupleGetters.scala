@@ -5,65 +5,81 @@ import java.nio.ByteBuffer
 import java.util.{Date, UUID}
 import com.datastax.driver.core.{TupleValue, UDTValue}
 import com.google.common.reflect.TypeToken
+import com.rocketfuel.sdbc.base
 import scodec.bits.ByteVector
 import scala.collection.convert.wrapAsScala._
 
-private[sdbc] trait TupleGetters {
-  implicit val UnitTupleGetter: TupleGetter[Unit] = TupleGetters[Unit](row => ix => ())
+trait TupleGetter[+T] extends base.Getter[TupleValue, Int, T]
 
-  implicit val BooleanTupleGetter: TupleGetter[Boolean] = TupleGetters[Boolean](row => ix => row.getBool(ix))
+private[sdbc] object TupleGetter {
 
-  implicit val BoxedBooleanTupleGetter: TupleGetter[java.lang.Boolean] = TupleGetters[java.lang.Boolean](row => ix => row.getBool(ix))
+  def apply[T](getter: TupleValue => Int => T): TupleGetter[T] = {
+    new TupleGetter[T] {
+      override def apply(
+        tuple: TupleValue,
+        ix: Int
+      ): Option[T] = {
+        if (tuple.isNull(ix)) None
+        else Some(getter(tuple)(ix))
+      }
+    }
+  }
 
-  implicit val ByteVectorTupleGetter: TupleGetter[ByteVector] = TupleGetters[ByteVector](row => ix => ByteVector(row.getBytes(ix)))
+  implicit val UnitTupleGetter: TupleGetter[Unit] = TupleGetter[Unit](row => ix => ())
 
-  implicit val ByteBufferTupleGetter: TupleGetter[ByteBuffer] = TupleGetters[ByteBuffer](row => ix => row.getBytes(ix))
+  implicit val BooleanTupleGetter: TupleGetter[Boolean] = TupleGetter[Boolean](row => ix => row.getBool(ix))
 
-  implicit val ArrayByteTupleGetter: TupleGetter[Array[Byte]] = TupleGetters[Array[Byte]](row => ix => ByteVector(row.getBytes(ix)).toArray)
+  implicit val BoxedBooleanTupleGetter: TupleGetter[java.lang.Boolean] = TupleGetter[java.lang.Boolean](row => ix => row.getBool(ix))
 
-  implicit val DateTupleGetter: TupleGetter[Date] = TupleGetters[Date](row => ix => row.getDate(ix))
+  implicit val ByteVectorTupleGetter: TupleGetter[ByteVector] = TupleGetter[ByteVector](row => ix => ByteVector(row.getBytes(ix)))
 
-  implicit val BigDecimalTupleGetter: TupleGetter[BigDecimal] = TupleGetters[BigDecimal](row => ix => row.getDecimal(ix))
+  implicit val ByteBufferTupleGetter: TupleGetter[ByteBuffer] = TupleGetter[ByteBuffer](row => ix => row.getBytes(ix))
 
-  implicit val JavaBigDecimalTupleGetter: TupleGetter[java.math.BigDecimal] = TupleGetters[java.math.BigDecimal](row => ix => row.getDecimal(ix))
+  implicit val ArrayByteTupleGetter: TupleGetter[Array[Byte]] = TupleGetter[Array[Byte]](row => ix => ByteVector(row.getBytes(ix)).toArray)
 
-  implicit val IntTupleGetter: TupleGetter[Int] = TupleGetters[Int](row => ix => row.getInt(ix))
+  implicit val DateTupleGetter: TupleGetter[Date] = TupleGetter[Date](row => ix => row.getDate(ix))
 
-  implicit val BoxedIntTupleGetter: TupleGetter[java.lang.Integer] = TupleGetters[java.lang.Integer](row => ix => row.getInt(ix))
+  implicit val BigDecimalTupleGetter: TupleGetter[BigDecimal] = TupleGetter[BigDecimal](row => ix => row.getDecimal(ix))
 
-  implicit val LongTupleGetter: TupleGetter[Long] = TupleGetters[Long](row => ix => row.getLong(ix))
+  implicit val JavaBigDecimalTupleGetter: TupleGetter[java.math.BigDecimal] = TupleGetter[java.math.BigDecimal](row => ix => row.getDecimal(ix))
 
-  implicit val BoxedLongTupleGetter: TupleGetter[java.lang.Long] = TupleGetters[java.lang.Long](row => ix => row.getLong(ix))
+  implicit val IntTupleGetter: TupleGetter[Int] = TupleGetter[Int](row => ix => row.getInt(ix))
 
-  implicit val FloatTupleGetter: TupleGetter[Float] = TupleGetters[Float](row => ix => row.getFloat(ix))
+  implicit val BoxedIntTupleGetter: TupleGetter[java.lang.Integer] = TupleGetter[java.lang.Integer](row => ix => row.getInt(ix))
 
-  implicit val BoxedFloatTupleGetter: TupleGetter[java.lang.Float] = TupleGetters[java.lang.Float](row => ix => row.getFloat(ix))
+  implicit val LongTupleGetter: TupleGetter[Long] = TupleGetter[Long](row => ix => row.getLong(ix))
 
-  implicit val DoubleTupleGetter: TupleGetter[Double] = TupleGetters[Double](row => ix => row.getDouble(ix))
+  implicit val BoxedLongTupleGetter: TupleGetter[java.lang.Long] = TupleGetter[java.lang.Long](row => ix => row.getLong(ix))
 
-  implicit val BoxedDoubleTupleGetter: TupleGetter[java.lang.Double] = TupleGetters[java.lang.Double](row => ix => row.getDouble(ix))
+  implicit val FloatTupleGetter: TupleGetter[Float] = TupleGetter[Float](row => ix => row.getFloat(ix))
 
-  implicit val InetTupleGetter: TupleGetter[InetAddress] = TupleGetters[InetAddress](row => ix => row.getInet(ix))
+  implicit val BoxedFloatTupleGetter: TupleGetter[java.lang.Float] = TupleGetter[java.lang.Float](row => ix => row.getFloat(ix))
 
-  implicit val StringTupleGetter: TupleGetter[String] = TupleGetters[String](row => ix => row.getString(ix))
+  implicit val DoubleTupleGetter: TupleGetter[Double] = TupleGetter[Double](row => ix => row.getDouble(ix))
 
-  implicit val UUIDTupleGetter: TupleGetter[UUID] = TupleGetters[UUID](row => ix => row.getUUID(ix))
+  implicit val BoxedDoubleTupleGetter: TupleGetter[java.lang.Double] = TupleGetter[java.lang.Double](row => ix => row.getDouble(ix))
 
-  implicit val TupleValueTupleGetter: TupleGetter[TupleValue] = TupleGetters[TupleValue](row => ix => row.getTupleValue(ix))
+  implicit val InetTupleGetter: TupleGetter[InetAddress] = TupleGetter[InetAddress](row => ix => row.getInet(ix))
 
-  implicit val UDTValueTupleGetter: TupleGetter[UDTValue] = TupleGetters[UDTValue](row => ix => row.getUDTValue(ix))
+  implicit val StringTupleGetter: TupleGetter[String] = TupleGetter[String](row => ix => row.getString(ix))
 
-  implicit def SeqTupleGetter[T]: TupleGetter[Seq[T]] = TupleGetters[Seq[T]](row => ix => row.getList[T](ix, new TypeToken[T]() {}))
+  implicit val UUIDTupleGetter: TupleGetter[UUID] = TupleGetter[UUID](row => ix => row.getUUID(ix))
 
-  implicit def JavaListTupleGetter[T]: TupleGetter[java.util.List[T]] = TupleGetters[java.util.List[T]](row => ix => row.getList[T](ix, new TypeToken[T]() {}))
+  implicit val TupleValueTupleGetter: TupleGetter[TupleValue] = TupleGetter[TupleValue](row => ix => row.getTupleValue(ix))
 
-  implicit def SetTupleGetter[T]: TupleGetter[Set[T]] = TupleGetters[Set[T]](row => ix => row.getSet[T](ix, new TypeToken[T]() {}).toSet)
+  implicit val UDTValueTupleGetter: TupleGetter[UDTValue] = TupleGetter[UDTValue](row => ix => row.getUDTValue(ix))
 
-  implicit def JavaSetTupleGetter[T]: TupleGetter[java.util.Set[T]] = TupleGetters[java.util.Set[T]](row => ix => row.getSet[T](ix, new TypeToken[T]() {}))
+  implicit def SeqTupleGetter[T]: TupleGetter[Seq[T]] = TupleGetter[Seq[T]](row => ix => row.getList[T](ix, new TypeToken[T]() {}))
 
-  implicit def MapTupleGetter[K, V]: TupleGetter[Map[K, V]] = TupleGetters[Map[K, V]](row => ix => row.getMap[K, V](ix, new TypeToken[K] {}, new TypeToken[V] {}).toMap)
+  implicit def JavaListTupleGetter[T]: TupleGetter[java.util.List[T]] = TupleGetter[java.util.List[T]](row => ix => row.getList[T](ix, new TypeToken[T]() {}))
 
-  implicit def JavaMapTupleGetter[K, V]: TupleGetter[java.util.Map[K, V]] = TupleGetters[java.util.Map[K, V]](row => ix => row.getMap[K, V](ix, new TypeToken[K] {}, new TypeToken[V] {}))
+  implicit def SetTupleGetter[T]: TupleGetter[Set[T]] = TupleGetter[Set[T]](row => ix => row.getSet[T](ix, new TypeToken[T]() {}).toSet)
+
+  implicit def JavaSetTupleGetter[T]: TupleGetter[java.util.Set[T]] = TupleGetter[java.util.Set[T]](row => ix => row.getSet[T](ix, new TypeToken[T]() {}))
+
+  implicit def MapTupleGetter[K, V]: TupleGetter[Map[K, V]] = TupleGetter[Map[K, V]](row => ix => row.getMap[K, V](ix, new TypeToken[K] {}, new TypeToken[V] {}).toMap)
+
+  implicit def JavaMapTupleGetter[K, V]: TupleGetter[java.util.Map[K, V]] = TupleGetter[java.util.Map[K, V]](row => ix => row.getMap[K, V](ix, new TypeToken[K] {}, new TypeToken[V] {}))
 
   implicit val Tuple0TupleGetter: TupleGetter[Unit] = new TupleGetter[Unit] {
     override def apply(
@@ -90,7 +106,7 @@ private[sdbc] trait TupleGetters {
     getter0: TupleGetter[T0],
     getter1: TupleGetter[T1]
   ): TupleGetter[(Option[T0], Option[T1])] = {
-    TupleGetters[(Option[T0], Option[T1])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1))
     }
@@ -101,7 +117,7 @@ private[sdbc] trait TupleGetters {
     getter1: TupleGetter[T1],
     getter2: TupleGetter[T2]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2))
     }
@@ -113,7 +129,7 @@ private[sdbc] trait TupleGetters {
     getter2: TupleGetter[T2],
     getter3: TupleGetter[T3]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3))
     }
@@ -126,7 +142,7 @@ private[sdbc] trait TupleGetters {
     getter3: TupleGetter[T3],
     getter4: TupleGetter[T4]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4))
     }
@@ -140,7 +156,7 @@ private[sdbc] trait TupleGetters {
     getter4: TupleGetter[T4],
     getter5: TupleGetter[T5]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4), getter5(tupleValue, 5))
     }
@@ -155,7 +171,7 @@ private[sdbc] trait TupleGetters {
     getter5: TupleGetter[T5],
     getter6: TupleGetter[T6]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4), getter5(tupleValue, 5), getter6(tupleValue, 6))
     }
@@ -171,7 +187,7 @@ private[sdbc] trait TupleGetters {
     getter6: TupleGetter[T6],
     getter7: TupleGetter[T7]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4), getter5(tupleValue, 5), getter6(tupleValue, 6), getter7(tupleValue, 7))
     }
@@ -188,7 +204,7 @@ private[sdbc] trait TupleGetters {
     getter7: TupleGetter[T7],
     getter8: TupleGetter[T8]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4), getter5(tupleValue, 5), getter6(tupleValue, 6), getter7(tupleValue, 7), getter8(tupleValue, 8))
     }
@@ -206,7 +222,7 @@ private[sdbc] trait TupleGetters {
     getter8: TupleGetter[T8],
     getter9: TupleGetter[T9]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4), getter5(tupleValue, 5), getter6(tupleValue, 6), getter7(tupleValue, 7), getter8(tupleValue, 8), getter9(tupleValue, 9))
     }
@@ -225,7 +241,7 @@ private[sdbc] trait TupleGetters {
     getter9: TupleGetter[T9],
     getter10: TupleGetter[T10]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4), getter5(tupleValue, 5), getter6(tupleValue, 6), getter7(tupleValue, 7), getter8(tupleValue, 8), getter9(tupleValue, 9), getter10(tupleValue, 10))
     }
@@ -245,7 +261,7 @@ private[sdbc] trait TupleGetters {
     getter10: TupleGetter[T10],
     getter11: TupleGetter[T11]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4), getter5(tupleValue, 5), getter6(tupleValue, 6), getter7(tupleValue, 7), getter8(tupleValue, 8), getter9(tupleValue, 9), getter10(tupleValue, 10), getter11(tupleValue, 11))
     }
@@ -266,7 +282,7 @@ private[sdbc] trait TupleGetters {
     getter11: TupleGetter[T11],
     getter12: TupleGetter[T12]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4), getter5(tupleValue, 5), getter6(tupleValue, 6), getter7(tupleValue, 7), getter8(tupleValue, 8), getter9(tupleValue, 9), getter10(tupleValue, 10), getter11(tupleValue, 11), getter12(tupleValue, 12))
     }
@@ -288,7 +304,7 @@ private[sdbc] trait TupleGetters {
     getter12: TupleGetter[T12],
     getter13: TupleGetter[T13]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4), getter5(tupleValue, 5), getter6(tupleValue, 6), getter7(tupleValue, 7), getter8(tupleValue, 8), getter9(tupleValue, 9), getter10(tupleValue, 10), getter11(tupleValue, 11), getter12(tupleValue, 12), getter13(tupleValue, 13))
     }
@@ -311,7 +327,7 @@ private[sdbc] trait TupleGetters {
     getter13: TupleGetter[T13],
     getter14: TupleGetter[T14]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4), getter5(tupleValue, 5), getter6(tupleValue, 6), getter7(tupleValue, 7), getter8(tupleValue, 8), getter9(tupleValue, 9), getter10(tupleValue, 10), getter11(tupleValue, 11), getter12(tupleValue, 12), getter13(tupleValue, 13), getter14(tupleValue, 14))
     }
@@ -335,7 +351,7 @@ private[sdbc] trait TupleGetters {
     getter14: TupleGetter[T14],
     getter15: TupleGetter[T15]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4), getter5(tupleValue, 5), getter6(tupleValue, 6), getter7(tupleValue, 7), getter8(tupleValue, 8), getter9(tupleValue, 9), getter10(tupleValue, 10), getter11(tupleValue, 11), getter12(tupleValue, 12), getter13(tupleValue, 13), getter14(tupleValue, 14), getter15(tupleValue, 15))
     }
@@ -360,7 +376,7 @@ private[sdbc] trait TupleGetters {
     getter15: TupleGetter[T15],
     getter16: TupleGetter[T16]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4), getter5(tupleValue, 5), getter6(tupleValue, 6), getter7(tupleValue, 7), getter8(tupleValue, 8), getter9(tupleValue, 9), getter10(tupleValue, 10), getter11(tupleValue, 11), getter12(tupleValue, 12), getter13(tupleValue, 13), getter14(tupleValue, 14), getter15(tupleValue, 15), getter16(tupleValue, 16))
     }
@@ -386,7 +402,7 @@ private[sdbc] trait TupleGetters {
     getter16: TupleGetter[T16],
     getter17: TupleGetter[T17]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16], Option[T17])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16], Option[T17])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16], Option[T17])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4), getter5(tupleValue, 5), getter6(tupleValue, 6), getter7(tupleValue, 7), getter8(tupleValue, 8), getter9(tupleValue, 9), getter10(tupleValue, 10), getter11(tupleValue, 11), getter12(tupleValue, 12), getter13(tupleValue, 13), getter14(tupleValue, 14), getter15(tupleValue, 15), getter16(tupleValue, 16), getter17(tupleValue, 17))
     }
@@ -413,7 +429,7 @@ private[sdbc] trait TupleGetters {
     getter17: TupleGetter[T17],
     getter18: TupleGetter[T18]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16], Option[T17], Option[T18])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16], Option[T17], Option[T18])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16], Option[T17], Option[T18])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4), getter5(tupleValue, 5), getter6(tupleValue, 6), getter7(tupleValue, 7), getter8(tupleValue, 8), getter9(tupleValue, 9), getter10(tupleValue, 10), getter11(tupleValue, 11), getter12(tupleValue, 12), getter13(tupleValue, 13), getter14(tupleValue, 14), getter15(tupleValue, 15), getter16(tupleValue, 16), getter17(tupleValue, 17), getter18(tupleValue, 18))
     }
@@ -441,7 +457,7 @@ private[sdbc] trait TupleGetters {
     getter18: TupleGetter[T18],
     getter19: TupleGetter[T19]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16], Option[T17], Option[T18], Option[T19])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16], Option[T17], Option[T18], Option[T19])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16], Option[T17], Option[T18], Option[T19])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4), getter5(tupleValue, 5), getter6(tupleValue, 6), getter7(tupleValue, 7), getter8(tupleValue, 8), getter9(tupleValue, 9), getter10(tupleValue, 10), getter11(tupleValue, 11), getter12(tupleValue, 12), getter13(tupleValue, 13), getter14(tupleValue, 14), getter15(tupleValue, 15), getter16(tupleValue, 16), getter17(tupleValue, 17), getter18(tupleValue, 18), getter19(tupleValue, 19))
     }
@@ -470,7 +486,7 @@ private[sdbc] trait TupleGetters {
     getter19: TupleGetter[T19],
     getter20: TupleGetter[T20]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16], Option[T17], Option[T18], Option[T19], Option[T20])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16], Option[T17], Option[T18], Option[T19], Option[T20])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16], Option[T17], Option[T18], Option[T19], Option[T20])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4), getter5(tupleValue, 5), getter6(tupleValue, 6), getter7(tupleValue, 7), getter8(tupleValue, 8), getter9(tupleValue, 9), getter10(tupleValue, 10), getter11(tupleValue, 11), getter12(tupleValue, 12), getter13(tupleValue, 13), getter14(tupleValue, 14), getter15(tupleValue, 15), getter16(tupleValue, 16), getter17(tupleValue, 17), getter18(tupleValue, 18), getter19(tupleValue, 19), getter20(tupleValue, 20))
     }
@@ -500,23 +516,10 @@ private[sdbc] trait TupleGetters {
     getter20: TupleGetter[T20],
     getter21: TupleGetter[T21]
   ): TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16], Option[T17], Option[T18], Option[T19], Option[T20], Option[T21])] = {
-    TupleGetters[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16], Option[T17], Option[T18], Option[T19], Option[T20], Option[T21])]{ row => ix =>
+    TupleGetter[(Option[T0], Option[T1], Option[T2], Option[T3], Option[T4], Option[T5], Option[T6], Option[T7], Option[T8], Option[T9], Option[T10], Option[T11], Option[T12], Option[T13], Option[T14], Option[T15], Option[T16], Option[T17], Option[T18], Option[T19], Option[T20], Option[T21])]{ row => ix =>
       val tupleValue = row.getTupleValue(ix)
       (getter0(tupleValue, 0), getter1(tupleValue, 1), getter2(tupleValue, 2), getter3(tupleValue, 3), getter4(tupleValue, 4), getter5(tupleValue, 5), getter6(tupleValue, 6), getter7(tupleValue, 7), getter8(tupleValue, 8), getter9(tupleValue, 9), getter10(tupleValue, 10), getter11(tupleValue, 11), getter12(tupleValue, 12), getter13(tupleValue, 13), getter14(tupleValue, 14), getter15(tupleValue, 15), getter16(tupleValue, 16), getter17(tupleValue, 17), getter18(tupleValue, 18), getter19(tupleValue, 19), getter20(tupleValue, 20), getter21(tupleValue, 21))
     }
   }
-}
 
-private[sdbc] object TupleGetters {
-  def apply[T](getter: TupleValue => Int => T): TupleGetter[T] = {
-    new TupleGetter[T] {
-      override def apply(
-        tuple: TupleValue,
-        ix: Int
-      ): Option[T] = {
-        if (tuple.isNull(ix)) None
-        else Some(getter(tuple)(ix))
-      }
-    }
-  }
 }

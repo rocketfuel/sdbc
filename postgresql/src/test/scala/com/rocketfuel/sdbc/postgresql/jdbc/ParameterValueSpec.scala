@@ -5,11 +5,10 @@ import java.nio.ByteBuffer
 import java.sql.{Array => _, _}
 import java.time._
 import java.util.UUID
-
+import PostgreSql._
 import org.json4s.JValue
 import org.json4s.jackson.JsonMethods
 import org.postgresql.util.PGInterval
-
 import scalaz.Scalaz._
 
 class ParameterValueSpec

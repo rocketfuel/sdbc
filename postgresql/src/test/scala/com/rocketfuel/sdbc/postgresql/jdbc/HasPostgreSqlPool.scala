@@ -1,5 +1,7 @@
 package com.rocketfuel.sdbc.postgresql.jdbc
 
+import PostgreSql._
+
 trait HasPostgreSqlPool {
   this: PgTestingConfig =>
 

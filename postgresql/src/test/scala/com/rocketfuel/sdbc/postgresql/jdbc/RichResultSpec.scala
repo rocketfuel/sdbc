@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.postgresql.jdbc
 
 import org.scalatest.BeforeAndAfterEach
-
+import PostgreSql._
 import scala.collection.immutable.Seq
 
 class RichResultSpec

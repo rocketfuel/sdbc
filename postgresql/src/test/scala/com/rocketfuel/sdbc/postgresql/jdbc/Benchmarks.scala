@@ -5,6 +5,7 @@ import java.util.UUID
 import org.apache.commons.lang3.time.StopWatch
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
+import PostgreSql._
 
 class Benchmarks
   extends PostgreSqlSuite

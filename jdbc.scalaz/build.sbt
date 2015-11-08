@@ -1,6 +1,6 @@
-organization := "com.rocketfuel.sdbc.scalaz"
+organization := "com.rocketfuel.sdbc.jdbc"
 
-name := "jdbc"
+name := "scalaz"
 
 description := "Extensions for SDBC's JDBC support for use with Scalaz streaming."
 

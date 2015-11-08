@@ -1,5 +1,7 @@
 package com.rocketfuel.sdbc.postgresql.jdbc
 
+import PostgreSql._
+
 class EnumerateTypesSpec extends PostgreSqlSuite {
 
   test("list type map") {implicit connection =>
