@@ -5,7 +5,7 @@ import org.scalatest.FunSuite
 import shapeless._
 import shapeless.record._
 
-class CompositeRowConverterSpec extends FunSuite {
+class RowConverterSpec extends FunSuite {
 
   case class Woozle(a: (String, Int), b: Int :: String :: HNil, c: Boolean)
 
@@ -13,27 +13,27 @@ class CompositeRowConverterSpec extends FunSuite {
     RowConverter[Int]
   }
 
-  test("CompositeRowConverter[(Int, Int)]") {
+  test("RowConverter[(Int, Int)]") {
     RowConverter[(Int, Int)]
   }
 
-  test("CompositeRowConverter[(Int, Int, String)]") {
+  test("RowConverter[(Int, Int, String)]") {
     RowConverter[(Int, Int, String)]
   }
 
-  test("CompositeRowConverter[(Int, (Int, String))]") {
+  test("RowConverter[(Int, (Int, String))]") {
     RowConverter[(Int, (Int, String))]
   }
 
-  test("CompositeRowConverter[Woozle]") {
+  test("RowConverter[Woozle]") {
     RowConverter[[Woozle]
   }
 
-  test("CompositeRowConverter[(Woozle, String)]") {
+  test("RowConverter[(Woozle, String)]") {
     RowConverter[(Woozle, String)]
   }
 
-  test("CompositeRowConverter[(Int, Woozle :: Woozle :: String :: HNil)]") {
+  test("RowConverter[(Int, Woozle :: Woozle :: String :: HNil)]") {
     RowConverter[(Int, Woozle :: Woozle :: String :: HNil)]
   }
 
