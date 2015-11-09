@@ -601,7 +601,7 @@ trait LowerPriorityRowGetters {
     * only if there isn't an explicit row converter.
     */
   implicit def fromComposite[A](implicit
-    converter: CompositeGetter[A]
+    converter: CompositeRowConverter[A]
   ): RowConverter[A] =
     new RowConverter[A] {
       override def apply(row: Row): A = {

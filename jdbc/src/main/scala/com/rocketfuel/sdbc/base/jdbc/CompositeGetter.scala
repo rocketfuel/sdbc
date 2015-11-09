@@ -7,9 +7,7 @@ import shapeless.labelled._
   * Like doobie's Composite, but only the getter part.
   * @tparam A
   */
-trait CompositeGetter[+A] {
-
-  def apply(row: Row, ix: Index): A
+trait CompositeGetter[+A] extends Function2[Row, Index, A] {
 
   val length: Int
 

@@ -8,9 +8,7 @@ import shapeless.labelled._
   * Like doobie's Composite, but only the getter part.
   * @tparam A
   */
-trait CompositeGetter[+A] {
-
-  def apply(row: Row, ix: Index): A
+trait CompositeRowConverter[+A] extends Function2[Row, Index, A] {
 
   val length: Int
 
@@ -19,11 +17,12 @@ trait CompositeGetter[+A] {
 /**
   * This is inspired from doobie, which supports using Shapeless to create getters, setters, and updaters.
   */
-object CompositeGetter extends LowerPriorityCompositeGetter {
-  def apply[A](implicit getter: CompositeGetter[A]): CompositeGetter[A] = getter
+object CompositeRowConverter extends LowerPriorityCompositeRowConverter {
+  def apply[A](implicit converter: CompositeRowConverter[A]): CompositeRowConverter[A] = converter
 
-  implicit def fromGetterOption[A](implicit g: RowGetter[A]): CompositeGetter[Option[A]] =
-    new CompositeGetter[Option[A]] {
+  implicit def fromGetterOption[A](implicit g: RowGetter[A]): CompositeRowConverter[Option[A]] =
+    new CompositeRowConverter[Option[A]] {
+
       override def apply(v1: Row, v2: Index): Option[A] = {
         g(v1, v2)
       }
@@ -31,8 +30,8 @@ object CompositeGetter extends LowerPriorityCompositeGetter {
       override val length: Int = 1
     }
 
-  implicit def fromGetter[A](implicit g: RowGetter[A]): CompositeGetter[A] =
-    new CompositeGetter[A] {
+  implicit def fromGetter[A](implicit g: RowGetter[A]): CompositeRowConverter[A] =
+    new CompositeRowConverter[A] {
       override def apply(v1: Row, v2: Index): A = {
         g(v1, v2).get
       }
@@ -41,10 +40,10 @@ object CompositeGetter extends LowerPriorityCompositeGetter {
     }
 
   implicit def recordComposite[K <: Symbol, H, T <: HList](implicit
-    H: CompositeGetter[H],
-    T: CompositeGetter[T]
-  ): CompositeGetter[FieldType[K, H] :: T] =
-    new CompositeGetter[FieldType[K, H]:: T] {
+    H: CompositeRowConverter[H],
+    T: CompositeRowConverter[T]
+  ): CompositeRowConverter[FieldType[K, H] :: T] =
+    new CompositeRowConverter[FieldType[K, H]:: T] {
       override def apply(row: Row, ix: Index): FieldType[K, H]::T = {
         field[K](H(row, ix)) :: T(row, ix.asInstanceOf[IntIndex] + H.length)
       }
@@ -53,13 +52,13 @@ object CompositeGetter extends LowerPriorityCompositeGetter {
     }
 }
 
-trait LowerPriorityCompositeGetter {
+trait LowerPriorityCompositeRowConverter {
 
   implicit def product[H, T <: HList](implicit
-    H: CompositeGetter[H],
-    T: CompositeGetter[T]
-  ): CompositeGetter[H :: T] =
-    new CompositeGetter[H :: T] {
+    H: CompositeRowConverter[H],
+    T: CompositeRowConverter[T]
+  ): CompositeRowConverter[H :: T] =
+    new CompositeRowConverter[H :: T] {
       override def apply(row: Row, ix: Index): ::[H, T] = {
         H(row, ix) :: T(row, ix.asInstanceOf[IntIndex] + H.length)
       }
@@ -67,8 +66,8 @@ trait LowerPriorityCompositeGetter {
       override val length: Int = H.length + T.length
     }
 
-  implicit def emptyProduct: CompositeGetter[HNil] =
-    new CompositeGetter[HNil] {
+  implicit def emptyProduct: CompositeRowConverter[HNil] =
+    new CompositeRowConverter[HNil] {
       override def apply(row: Row, ix: Index): HNil = {
         HNil : HNil
       }
@@ -78,9 +77,9 @@ trait LowerPriorityCompositeGetter {
 
   implicit def generic[F, G](implicit
     gen: Generic.Aux[F, G],
-    G: Lazy[CompositeGetter[G]]
-  ): CompositeGetter[F] =
-    new CompositeGetter[F] {
+    G: Lazy[CompositeRowConverter[G]]
+  ): CompositeRowConverter[F] =
+    new CompositeRowConverter[F] {
       override def apply(row: Row, ix: Index): F = {
         gen.from(G.value(row, ix))
       }
