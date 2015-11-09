@@ -8,6 +8,8 @@ import scala.annotation.implicitNotFound
 trait RowConverter[A] extends Function[Row, A]
 
 object RowConverter extends LowerPriorityRowConverterImplicits {
+  def apply[A](implicit rowConverter: RowConverter[A]): RowConverter[A] = rowConverter
+
   implicit def fromFunction[A](implicit
     converter: Row => A
   ): RowConverter[A] =
@@ -23,6 +25,7 @@ object RowConverter extends LowerPriorityRowConverterImplicits {
   * only if there isn't an explicit row converter.
   */
 trait LowerPriorityRowConverterImplicits {
+
   implicit def fromComposite[A](implicit
     converter: CompositeRowConverter[A]
   ): RowConverter[A] =
@@ -32,4 +35,3 @@ trait LowerPriorityRowConverterImplicits {
       }
     }
 }
-

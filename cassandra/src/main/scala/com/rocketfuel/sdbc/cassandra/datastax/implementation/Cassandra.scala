@@ -9,8 +9,7 @@ import com.rocketfuel.sdbc.base.ParameterValueImplicits
 import com.rocketfuel.sdbc.cassandra.datastax.implementation
 
 private[sdbc] abstract class Cassandra
-  extends RowGetterImplicits
-  with RowMethods
+  extends RowMethods
   with ParameterValues
   with TupleParameterValues
   with TupleDataTypes

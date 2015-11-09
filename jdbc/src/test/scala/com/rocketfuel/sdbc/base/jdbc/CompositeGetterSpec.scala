@@ -7,54 +7,50 @@ import shapeless.record._
 /**
  * Test cases taken from https://github.com/tpolecat/doobie/blob/c8a273c365edf5a583621fbfd77a49297986d82f/core/src/test/scala/doobie/util/composite.scala
  */
-class CompositeGetterSpec extends FunSuite {
-
-  implicit def intGetter: Getter[Int] = ???
-
-  implicit def stringGetter: Getter[String] = ???
-
-  implicit def booleanGetter: Getter[Boolean] = ???
-
-  implicit def doubleGetter: Getter[Double] = ???
-
-  implicit def longGetter: Getter[Long] = ???
+class CompositeGetterSpec
+  extends FunSuite
+  with IntGetter
+  with StringGetter
+  with BooleanGetter
+  with DoubleGetter
+  with LongGetter {
 
   case class Woozle(a: (String, Int), b: Int :: String :: HNil, c: Boolean)
 
   test("CompositeGetter[Int]") {
-    assertCompiles("CompositeGetter[Int]")
+    CompositeGetter[Int]
   }
 
   test("CompositeGetter[(Int, Int)]") {
-    assertCompiles("CompositeGetter[(Int, Int)]")
+    CompositeGetter[(Int, Int)]
   }
 
   test("CompositeGetter[(Int, Int, String)]") {
-    assertCompiles("CompositeGetter[(Int, Int, String)]")
+    CompositeGetter[(Int, Int, String)]
   }
 
   test("CompositeGetter[(Int, (Int, String))]") {
-    assertCompiles("CompositeGetter[(Int, (Int, String))]")
+    CompositeGetter[(Int, (Int, String))]
   }
 
   test("CompositeGetter[Woozle]") {
-    assertCompiles("CompositeGetter[Woozle]")
+    CompositeGetter[Woozle]
   }
 
   test("CompositeGetter[(Woozle, String)]") {
-    assertCompiles("CompositeGetter[(Woozle, String)]")
+    CompositeGetter[(Woozle, String)]
   }
 
   test("CompositeGetter[(Int, Woozle :: Woozle :: String :: HNil)]") {
-    assertCompiles("CompositeGetter[(Int, Woozle :: Woozle :: String :: HNil)]")
+    CompositeGetter[(Int, Woozle :: Woozle :: String :: HNil)]
   }
 
   test("shapeless record") {
     type DL = (Double, Long)
     type A = Record.`'foo -> Int, 'bar -> String, 'baz -> DL, 'quz -> Woozle`.T
 
-    assertCompiles("CompositeGetter[A]")
-    assertCompiles("CompositeGetter[(A, A)]")
+    CompositeGetter[A]
+    CompositeGetter[(A, A)]
   }
 
 }
