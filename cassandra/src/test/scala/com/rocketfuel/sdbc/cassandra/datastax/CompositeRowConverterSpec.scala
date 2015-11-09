@@ -26,7 +26,7 @@ class RowConverterSpec extends FunSuite {
   }
 
   test("RowConverter[Woozle]") {
-    RowConverter[[Woozle]
+    RowConverter[Woozle]
   }
 
   test("RowConverter[(Woozle, String)]") {
