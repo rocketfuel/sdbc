@@ -7,7 +7,7 @@ import shapeless.labelled._
   * Like doobie's Composite, but only the getter part.
   * @tparam A
   */
-trait CompositeGetter[+A] {
+trait CompositeGetter[A] {
 
   def apply(row: Row, ix: Index): A
 
@@ -20,6 +20,7 @@ trait CompositeGetter[+A] {
  */
 object CompositeGetter extends LowerPriorityCompositeGetter {
   def apply[A](implicit getter: CompositeGetter[A]): CompositeGetter[A] = getter
+
 
   implicit def fromGetterOption[A](implicit g: Getter[A]): CompositeGetter[Option[A]] =
     new CompositeGetter[Option[A]] {
@@ -45,7 +46,7 @@ object CompositeGetter extends LowerPriorityCompositeGetter {
   ): CompositeGetter[FieldType[K, H] :: T] =
     new CompositeGetter[FieldType[K, H]:: T] {
       override def apply(row: Row, ix: Index): FieldType[K, H]::T = {
-        field[K](H(row, ix)) :: T(row, ix.asInstanceOf[IntIndex] + H.length)
+        field[K](H(row, ix)) :: T(row, ix + H.length)
       }
 
       override val length: Int = H.length + T.length
@@ -60,7 +61,7 @@ trait LowerPriorityCompositeGetter {
   ): CompositeGetter[H :: T] =
     new CompositeGetter[H :: T] {
       override def apply(row: Row, ix: Index): ::[H, T] = {
-        H(row, ix) :: T(row, ix.asInstanceOf[IntIndex] + H.length)
+        H(row, ix) :: T(row, ix + H.length)
       }
 
       override val length: Int = H.length + T.length

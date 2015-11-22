@@ -1,6 +1,19 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-trait Index extends PartialFunction[Row, Int]
+trait Index extends PartialFunction[Row, Int] {
+  def +(toAdd: Int): Index = {
+    this match {
+      case AdditiveIndex(ix, originalToAdd) =>
+        AdditiveIndex(ix, originalToAdd + toAdd)
+      case otherwise =>
+        AdditiveIndex(this, toAdd)
+    }
+  }
+
+  def -(toSubtract: Int): Index = {
+    this + (-toSubtract)
+  }
+}
 
 object Index {
 
@@ -16,10 +29,6 @@ case class IntIndex(columnIndex: Int) extends Index {
   }
 
   override def apply(row: Row): Int = columnIndex
-
-  def +(i: Int): Index = {
-    i + columnIndex
-  }
 }
 
 case class StringIndex(columnLabel: String) extends Index {
@@ -29,5 +38,18 @@ case class StringIndex(columnLabel: String) extends Index {
 
   override def apply(row: Row): Int = {
     row.columnIndexes(columnLabel)
+  }
+}
+
+case class AdditiveIndex(ix: Index, toAdd: Int) extends Index {
+  override def isDefinedAt(row: Row): Boolean = {
+    ix.isDefinedAt(row) && {
+      val baseIx = ix(row)
+      baseIx + toAdd < row.getMetaData.getColumnCount
+    }
+  }
+
+  override def apply(row: Row): Int = {
+    ix(row) + toAdd
   }
 }

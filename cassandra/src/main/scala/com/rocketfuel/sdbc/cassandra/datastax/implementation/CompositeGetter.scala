@@ -8,7 +8,7 @@ import shapeless.labelled._
   * Like doobie's Composite, but only the getter part.
   * @tparam A
   */
-trait CompositeGetter[+A] {
+trait CompositeGetter[A] {
 
   def apply(row: Row, ix: Index): A
 
@@ -46,7 +46,7 @@ object CompositeGetter extends LowerPriorityCompositeGetter {
   ): CompositeGetter[FieldType[K, H] :: T] =
     new CompositeGetter[FieldType[K, H]:: T] {
       override def apply(row: Row, ix: Index): FieldType[K, H]::T = {
-        field[K](H(row, ix)) :: T(row, ix.asInstanceOf[IntIndex] + H.length)
+        field[K](H(row, ix)) :: T(row, ix + H.length)
       }
 
       override val length: Int = H.length + T.length
