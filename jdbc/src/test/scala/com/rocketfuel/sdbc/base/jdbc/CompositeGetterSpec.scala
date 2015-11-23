@@ -7,17 +7,13 @@ import shapeless.record._
 /**
  * Test cases taken from https://github.com/tpolecat/doobie/blob/c8a273c365edf5a583621fbfd77a49297986d82f/core/src/test/scala/doobie/util/composite.scala
  */
-class CompositeGetterSpec extends FunSuite {
-
-  implicit def intGetter: Getter[Int] = ???
-
-  implicit def stringGetter: Getter[String] = ???
-
-  implicit def booleanGetter: Getter[Boolean] = ???
-
-  implicit def doubleGetter: Getter[Double] = ???
-
-  implicit def longGetter: Getter[Long] = ???
+class CompositeGetterSpec
+  extends FunSuite
+  with IntGetter
+  with StringGetter
+  with BooleanGetter
+  with DoubleGetter
+  with LongGetter {
 
   case class Woozle(a: (String, Int), b: Int :: String :: HNil, c: Boolean)
 
@@ -53,8 +49,8 @@ class CompositeGetterSpec extends FunSuite {
     type DL = (Double, Long)
     type A = Record.`'foo -> Int, 'bar -> String, 'baz -> DL, 'quz -> Woozle`.T
 
-    assertCompiles("CompositeGetter[A]")
-    assertCompiles("CompositeGetter[(A, A)]")
+    CompositeGetter[A]
+    CompositeGetter[(A, A)]
   }
 
 }

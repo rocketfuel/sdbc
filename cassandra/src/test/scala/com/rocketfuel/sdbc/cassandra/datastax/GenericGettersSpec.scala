@@ -1,8 +1,5 @@
 package com.rocketfuel.sdbc.cassandra.datastax
 
-import com.rocketfuel.sdbc.cassandra.datastax.implementation.{RowGetter, RowConverter, CompositeGetter}
-import org.scalatest.FunSuite
-
 class GenericGettersSpec extends DatastaxSuite {
 
   test("(Int, Int, Int)") {implicit connection =>

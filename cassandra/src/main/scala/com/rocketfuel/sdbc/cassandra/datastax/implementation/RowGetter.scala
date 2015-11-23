@@ -13,7 +13,7 @@ import scala.reflect.ClassTag
 
 private[sdbc] trait RowGetter[+T] extends base.Getter[Row, Index, T]
 
-private[sdbc] object RowGetter extends LowerPriorityRowGetters {
+private[sdbc] object RowGetter {
   self: ParameterValues =>
 
   def apply[T](getter: Row => Int => T): RowGetter[T] = {
@@ -25,8 +25,6 @@ private[sdbc] object RowGetter extends LowerPriorityRowGetters {
       }
     }
   }
-
-
 
   implicit val BooleanRowGetter: RowGetter[Boolean] = RowGetter[Boolean](row => ix => row.getBool(ix))
 
@@ -592,21 +590,4 @@ private[sdbc] object RowGetter extends LowerPriorityRowGetters {
 
     builder.toString()
   }
-}
-
-trait LowerPriorityRowGetters {
-
-  /**
-    * Automatically generated row converters are to be used
-    * only if there isn't an explicit row converter.
-    */
-  implicit def fromComposite[A](implicit
-    converter: CompositeGetter[A]
-  ): RowConverter[A] =
-    new RowConverter[A] {
-      override def apply(row: Row): A = {
-        converter(row, 0)
-      }
-    }
-
 }

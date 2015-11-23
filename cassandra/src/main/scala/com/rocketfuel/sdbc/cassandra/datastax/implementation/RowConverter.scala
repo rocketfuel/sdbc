@@ -4,10 +4,12 @@ import com.datastax.driver.core.Row
 
 import scala.annotation.implicitNotFound
 
-@implicitNotFound("Import a DBMS or define a function from Row to A.")
+//@implicitNotFound("Define an implicit function from Row to A, or make A a Product (i.e., a tuple or case class).")
 trait RowConverter[A] extends Function[Row, A]
 
 object RowConverter extends LowerPriorityRowConverterImplicits {
+  def apply[A](implicit rowConverter: RowConverter[A]): RowConverter[A] = rowConverter
+
   implicit def fromFunction[A](implicit
     converter: Row => A
   ): RowConverter[A] =
@@ -23,6 +25,7 @@ object RowConverter extends LowerPriorityRowConverterImplicits {
   * only if there isn't an explicit row converter.
   */
 trait LowerPriorityRowConverterImplicits {
+
   implicit def fromComposite[A](implicit
     converter: CompositeGetter[A]
   ): RowConverter[A] =
@@ -32,4 +35,3 @@ trait LowerPriorityRowConverterImplicits {
       }
     }
 }
-

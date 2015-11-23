@@ -3,6 +3,7 @@ package com.rocketfuel.sdbc.cassandra.datastax
 import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
 import com.datastax.driver.core.{Row => CRow, _}
+import com.rocketfuel.sdbc.cassandra.datastax.implementation.RowConverter
 import scala.concurrent._
 import scala.collection.convert.decorateAsScala._
 
@@ -63,7 +64,7 @@ object Select {
     queryText: String,
     hasParameters: Boolean = true,
     queryOptions: QueryOptions = QueryOptions.default
-  )(implicit converter: CRow => T
+  )(implicit converter: RowConverter[T]
   ): Select[T] = {
     Select[T](
       statement = CompiledStatement(queryText, hasParameters),

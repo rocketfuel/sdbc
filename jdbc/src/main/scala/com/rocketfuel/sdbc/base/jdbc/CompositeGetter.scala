@@ -7,7 +7,7 @@ import shapeless.labelled._
   * Like doobie's Composite, but only the getter part.
   * @tparam A
   */
-trait CompositeGetter[A] {
+trait CompositeGetter[A] extends Function2[Row, Index, A] {
 
   def apply(row: Row, ix: Index): A
 
@@ -20,7 +20,6 @@ trait CompositeGetter[A] {
  */
 object CompositeGetter extends LowerPriorityCompositeGetter {
   def apply[A](implicit getter: CompositeGetter[A]): CompositeGetter[A] = getter
-
 
   implicit def fromGetterOption[A](implicit g: Getter[A]): CompositeGetter[Option[A]] =
     new CompositeGetter[Option[A]] {
