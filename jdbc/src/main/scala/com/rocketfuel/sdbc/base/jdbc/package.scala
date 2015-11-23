@@ -6,7 +6,8 @@ import com.zaxxer.hikari.HikariConfig
 
 package object jdbc
   extends HikariImplicits
-  with ResultSetImplicits {
+  with ResultSetImplicits
+  with jdbc.Index {
 
   type ParameterizedQuery[Self <: ParameterizedQuery[Self]] = base.ParameterizedQuery[Self, PreparedStatement, Int]
 

@@ -7,7 +7,8 @@ import com.rocketfuel.sdbc.cassandra.datastax
 
 import scala.concurrent.{Promise, Future, ExecutionContext}
 
-package object implementation {
+package object implementation
+  extends Index {
 
   type ParameterValue = base.ParameterValue
   val ParameterValue = base.ParameterValue

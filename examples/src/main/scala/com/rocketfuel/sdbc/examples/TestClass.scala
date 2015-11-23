@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.examples
 
-import com.rocketfuel.sdbc.h2.jdbc._
+import com.rocketfuel.sdbc.h2.jdbc.H2._
 
 case class TestClass(
   id: Int,
