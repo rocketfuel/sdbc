@@ -297,7 +297,7 @@ val actionLogger = Update("INSERT INTO action_log (account_id, action) VALUES (@
 for (row <- SelectForUpdate("SELECT * FROM accounts").iterator()) {
 	val accountId = row.get[Int]("account_id")
 	if (accountId == Some(314)) {
-		row.get("gold_nuggets").get = row.get[Int]("gold_nuggets").get + 159
+		row("gold_nuggets") = row.get[Int]("gold_nuggets").get + 159
 		actionLogger.on("account_id" -> 314, "action" -> "added 159 gold nuggets").execute()
 	}
 }
