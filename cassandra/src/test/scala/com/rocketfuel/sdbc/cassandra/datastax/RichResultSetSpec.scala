@@ -151,5 +151,4 @@ object RichResultSetSpec {
   def truncate()(implicit connection: Session): Unit = {
     Execute("TRUNCATE spc.tbl").execute()
   }
-
 }

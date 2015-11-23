@@ -62,7 +62,7 @@ trait LowerPriorityCompositeGetter {
   ): CompositeGetter[H :: T] =
     new CompositeGetter[H :: T] {
       override def apply(row: Row, ix: Index): ::[H, T] = {
-        H(row, ix) :: T(row, ix.asInstanceOf[IntIndex] + H.length)
+        H(row, ix) :: T(row, ix + H.length)
       }
 
       override val length: Int = H.length + T.length
