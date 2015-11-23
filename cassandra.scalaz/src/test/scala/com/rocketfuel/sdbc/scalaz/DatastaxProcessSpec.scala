@@ -2,9 +2,8 @@ package com.rocketfuel.sdbc.scalaz
 
 import com.rocketfuel.sdbc.cassandra.datastax._
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
-import datastax._
 import scalaz.concurrent.Task
-import scalaz.stream._
+import _root_.scalaz.stream._
 
 class DatastaxProcessSpec
   extends DatastaxSuite
