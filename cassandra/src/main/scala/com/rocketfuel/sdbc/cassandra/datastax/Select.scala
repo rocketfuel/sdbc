@@ -19,14 +19,14 @@ case class Select[T] private [cassandra] (
 
   override def iterator()(implicit session: Session): Iterator[T] = {
     logger.debug(s"""Selecting "$originalQueryText" with parameters $parameterValues.""")
-    val prepared = implementation.prepare(statement, parameterValues, queryOptions)
+    val prepared = implementation.prepare(this, queryOptions)
     session.execute(prepared).iterator.asScala.map(converter)
   }
 
   def iteratorAsync()(implicit session: Session, ec: ExecutionContext): Future[Iterator[T]] = {
     logger.debug(s"""Asynchronously selecting "$originalQueryText" with parameters $parameterValues.""")
 
-    val prepared = implementation.prepare(statement, parameterValues, queryOptions)
+    val prepared = implementation.prepare(this, queryOptions)
     val toListen = session.executeAsync(prepared)
 
     for {

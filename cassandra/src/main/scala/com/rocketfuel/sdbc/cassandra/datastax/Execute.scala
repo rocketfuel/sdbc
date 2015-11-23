@@ -19,13 +19,13 @@ case class Execute private [cassandra] (
 
   override def execute()(implicit session: Session): Unit = {
     logger.debug(s"""Executing "$originalQueryText" with parameters $parameterValues.""")
-    val prepared = implementation.prepare(statement, parameterValues, queryOptions)
+    val prepared = implementation.prepare(this, queryOptions)
     session.execute(prepared)
   }
 
   def executeAsync()(implicit session: Session, ec: ExecutionContext): Future[Unit] = {
     logger.debug(s"""Asynchronously executing "$originalQueryText" with parameters $parameterValues.""")
-    val prepared = implementation.prepare(statement, parameterValues, queryOptions)
+    val prepared = implementation.prepare(this, queryOptions)
 
     toScalaFuture[ResultSet](session.executeAsync(prepared)).map(Function.const(()))
   }

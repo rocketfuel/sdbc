@@ -6,8 +6,6 @@ import java.util.function.UnaryOperator
 import com.datastax.driver.core.{BoundStatement, PreparedStatement, ResultSet, Row => CRow}
 import com.google.common.util.concurrent.{FutureCallback, Futures, ListenableFuture}
 import com.rocketfuel.sdbc.cassandra.datastax._
-import com.rocketfuel.sdbc.cassandra.datastax.implementation.ParameterSetter
-import me.jeffshaw.scalaz.stream.IteratorConstructors._
 
 import scalaz.concurrent.Task
 import scalaz.stream._
@@ -47,49 +45,13 @@ object datastax {
     toTask(session.prepareAsync(query.queryText))
   }
 
-  private [scalaz] def bind(
-    query: implementation.ParameterizedQuery[_] with implementation.HasQueryOptions,
-    statement: PreparedStatement
-  ): BoundStatement = {
-    val forBinding = statement.bind()
 
-    for ((key, maybeValue) <- query.parameterValues) {
-      val parameterIndices = query.parameterPositions(key)
-
-      maybeValue match {
-        case None =>
-          for (parameterIndex <- parameterIndices) {
-            ParameterSetter.setNone(forBinding, parameterIndex)
-          }
-        case Some(value) =>
-          for (parameterIndex <- parameterIndices) {
-            ParameterSetter.setAny(forBinding, parameterIndex, value)
-          }
-      }
-    }
-
-    val queryOptions = query.queryOptions
-    forBinding.setConsistencyLevel(queryOptions.consistencyLevel)
-    forBinding.setSerialConsistencyLevel(queryOptions.serialConsistencyLevel)
-    queryOptions.defaultTimestamp.map(forBinding.setDefaultTimestamp)
-    forBinding.setFetchSize(queryOptions.fetchSize)
-    forBinding.setIdempotent(queryOptions.idempotent)
-    forBinding.setRetryPolicy(queryOptions.retryPolicy)
-
-    if (queryOptions.tracing) {
-      forBinding.enableTracing()
-    } else {
-      forBinding.disableTracing()
-    }
-
-    forBinding
-  }
 
   private [scalaz] def runSelect[Value](
     select: Select[Value]
   )(implicit session: Session
   ): Process[Task, Value] = {
-    Process.await(prepareAsync(select).map(p => bind(select, p))) { bound =>
+    Process.await(prepareAsync(select).map(p => implementation.bind(select, select.queryOptions, p))) { bound =>
       Process.await(runBoundStatement(bound))(_.map(select.converter))
     }
   }
@@ -99,7 +61,7 @@ object datastax {
   )(implicit session: Session
   ): Task[Process[Task, CRow]] = {
     toTask[ResultSet](session.executeAsync(prepared)).map { result =>
-      Process.iterator(Task.delay(result.iterator()))
+      io.iterator(Task.delay(result.iterator()))
     }
   }
 
@@ -109,7 +71,7 @@ object datastax {
   ): Task[Unit] = {
     for {
       prepared <- prepareAsync(execute)
-      bound = bind(execute, prepared)
+      bound = implementation.bind(execute, execute.queryOptions, prepared)
       _ <- ignoreBoundStatement(bound)
     } yield ()
   }

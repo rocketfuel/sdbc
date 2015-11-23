@@ -26,28 +26,28 @@ package object implementation
   type Selectable[Key, Value] = base.Selectable[Key, Value, Session, datastax.Select[Value]]
 
   private [datastax] def prepare(
-    select: ParameterizedQuery[_] with HasQueryOptions
-  )(implicit session: Session
-  ): core.BoundStatement = {
-    prepare(
-      select.statement,
-      select.parameterValues,
-      select.queryOptions
-    )
-  }
-
-  private [datastax] def prepare(
-    statement: base.CompiledStatement,
-    parameterValues: Map[String, Option[Any]],
+    query: implementation.ParameterizedQuery[_],
     queryOptions: QueryOptions
   )(implicit session: Session
   ): core.BoundStatement = {
-    val prepared = session.prepare(statement.queryText)
+    val prepared = session.prepare(query.queryText)
 
-    val forBinding = prepared.bind()
+    bind(
+      query,
+      queryOptions,
+      prepared
+    )
+  }
 
-    for ((key, maybeValue) <- parameterValues) {
-      val parameterIndices = statement.parameterPositions(key)
+  private [sdbc] def bind(
+    query: implementation.ParameterizedQuery[_],
+    queryOptions: QueryOptions,
+    statement: core.PreparedStatement
+  ): core.BoundStatement = {
+    val forBinding = statement.bind()
+
+    for ((key, maybeValue) <- query.parameterValues) {
+      val parameterIndices = query.parameterPositions(key)
 
       maybeValue match {
         case None =>
@@ -60,6 +60,7 @@ package object implementation
           }
       }
     }
+
     forBinding.setConsistencyLevel(queryOptions.consistencyLevel)
     forBinding.setSerialConsistencyLevel(queryOptions.serialConsistencyLevel)
     queryOptions.defaultTimestamp.map(forBinding.setDefaultTimestamp)
