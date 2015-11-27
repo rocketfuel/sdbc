@@ -1,6 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.CompiledStatement
+import com.rocketfuel.sdbc.base.{CompositeParameter, CompiledStatement}
+import shapeless.{HList, ProductArgs}
 
 trait StringContextMethods {
 
@@ -18,10 +19,16 @@ trait StringContextMethods {
       Batch(compiled, Map.empty, Seq(byNumberName(args)))
     }
 
-    def execute(args: Any*)(implicit parameterSetter: ParameterSetter): Execute = {
-      sc.checkLengths(args)
-      Execute(compiled, byNumberName(args))
+    object execute extends ProductArgs {
+      def applyProduct[A <: HList](a: A)(implicit setter: CompositeParameter[A]): Execute = {
+        Execute(compiled, Map.empty)
+      }
     }
+
+//    def execute(args: Any*)(implicit parameterSetter: ParameterSetter): Execute = {
+//      sc.checkLengths(args)
+//      Execute(compiled, byNumberName(args))
+//    }
 
     def update(args: Any*)(implicit parameterSetter: ParameterSetter): Update = {
       sc.checkLengths(args)

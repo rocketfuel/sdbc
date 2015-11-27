@@ -43,8 +43,8 @@ object CompositeGetter extends LowerPriorityCompositeGetter {
     H: CompositeGetter[H],
     T: CompositeGetter[T]
   ): CompositeGetter[FieldType[K, H] :: T] =
-    new CompositeGetter[FieldType[K, H]:: T] {
-      override def apply(row: Row, ix: Index): FieldType[K, H]::T = {
+    new CompositeGetter[FieldType[K, H] :: T] {
+      override def apply(row: Row, ix: Index): FieldType[K, H] :: T = {
         field[K](H(row, ix)) :: T(row, ix + H.length)
       }
 

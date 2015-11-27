@@ -2,7 +2,7 @@ package com.rocketfuel.sdbc.h2.jdbc
 
 import H2._
 
-class GenericGetterSpec extends H2Suite {
+class CompositeGetterSpec extends H2Suite {
 
   test("(Int, Int, Int)") {implicit connection =>
     val query = Select[(Int, Int, Int)]("VALUES (1, 2, 3)", hasParameters = false)

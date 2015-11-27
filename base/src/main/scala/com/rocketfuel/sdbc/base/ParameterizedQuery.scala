@@ -62,6 +62,17 @@ trait ParameterizedQuery[
     subclassConstructor(statement, newValues)
   }
 
+  /*
+    * The goal here is to use generic programming to map over an generic type
+    * to get maps from elems to parametervalues. The keys of the generic will provide
+    * the names.
+    */
+  def on[A <: Product](t: A): Self = {
+   val tAsParameters: CompositeParameter = t
+    val newValues = setParameters(tAsparameters.parameters: _*)
+    subclassConstructor(statement, newValues)
+  }
+
   protected def setParameters(nameValuePairs: (String, Option[ParameterValue])*): Map[String, Option[Any]] = {
     nameValuePairs.foldLeft(parameterValues)(setParameter)
   }

@@ -2,11 +2,11 @@ package com.rocketfuel.sdbc.base
 
 trait Index[Row] {
 
-  def getColumnCount(row: Row): Int
+  protected def getColumnCount(row: Row): Int
 
-  def containsColumn(row: Row, columnName: String): Boolean
+  protected def containsColumn(row: Row, columnName: String): Boolean
 
-  def getColumnIndex(row: Row, columnName: String): Int
+  protected def getColumnIndex(row: Row, columnName: String): Int
 
   trait Index extends PartialFunction[Row, Int] {
 

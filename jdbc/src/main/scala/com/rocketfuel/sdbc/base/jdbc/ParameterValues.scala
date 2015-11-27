@@ -5,7 +5,7 @@ import java.net.URL
 import java.nio.ByteBuffer
 import java.sql.{Array => JdbcArray, _}
 import java.util.UUID
-import com.rocketfuel.sdbc.base.ToParameter
+import com.rocketfuel.sdbc.base.{CompositeParameter, ToParameter}
 import scodec.bits.ByteVector
 import scala.xml.Node
 
@@ -473,5 +473,11 @@ object QLocalDateTime extends ToParameter with QLocalDateTimeImplicits {
 trait QLocalDateTimeImplicits {
   implicit def LocalDateTimeToParameterValue(x: java.time.LocalDateTime): ParameterValue = {
     ParameterValue(Timestamp.valueOf(x))
+  }
+}
+
+trait QCompositeParameterImplicits {
+  implicit def CompositeValueToParameterValue[A](value: A)(implicit setter: CompositeParameter[A]): ParameterValue = {
+    ParameterValue(CompositeParameter(value, setter))
   }
 }

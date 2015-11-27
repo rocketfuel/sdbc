@@ -14,6 +14,7 @@ libraryDependencies ++= Seq(
   //Config file loading
   //https://github.com/typesafehub/config
   "com.typesafe" % "config" % "1.3.0",
+  "com.chuusai" %% "shapeless" % "2.2.5",
   "org.scalatest" %% "scalatest" % "2.2.5" % "test",
   "org.scalacheck" %% "scalacheck" % "1.12.5" % "test",
   "org.scalaz" %% "scalaz-core" % "7.1.3" % "test",
