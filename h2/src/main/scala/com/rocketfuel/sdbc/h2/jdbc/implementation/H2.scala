@@ -4,7 +4,7 @@ import java.io.{InputStream, Reader}
 import java.nio.file.Path
 import java.sql.{PreparedStatement, DriverManager}
 import java.util.UUID
-import com.rocketfuel.sdbc.base.{CompositeParameter, CISet}
+import com.rocketfuel.sdbc.base.{CompositeSetter$, CISet}
 import com.rocketfuel.sdbc.base.jdbc.{ParameterSetter, DBMS}
 import com.rocketfuel.sdbc.h2.jdbc.Serialized
 import scodec.bits.ByteVector
@@ -111,7 +111,7 @@ private[sdbc] abstract class H2
           setParameter[Serialized](preparedStatement, parameterIndex, b)
         case b: QSeq =>
           setParameter[QSeq](preparedStatement, parameterIndex, b)
-        case b: CompositeParameter[_] =>
+        case b: CompositeSetter[_] =>
           b.set(preparedStatement, parameterIndex, b)
       }
     }

@@ -1,5 +1,10 @@
 package com.rocketfuel.sdbc.base
 
+import shapeless._
+import shapeless.ops.hlist._
+import shapeless.ops.product._
+import shapeless.ops.record.{MapValues, Values, Keys}
+
 /**
  * Given a query with named parameters beginning with '@',
  * construct the query for use with JDBC, so that names
@@ -62,14 +67,35 @@ trait ParameterizedQuery[
     subclassConstructor(statement, newValues)
   }
 
-  /*
-    * The goal here is to use generic programming to map over an generic type
-    * to get maps from elems to parametervalues. The keys of the generic will provide
-    * the names.
-    */
-  def on[A <: Product](t: A): Self = {
-   val tAsParameters: CompositeParameter = t
-    val newValues = setParameters(tAsparameters.parameters: _*)
+  def onGeneric[
+    A,
+    Repr <: HList,
+    MappedRepr <: HList,
+    AKeys <: HList
+  ](t: A
+  )(implicit genericA: LabelledGeneric.Aux[A, Repr],
+    mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
+    keys: Keys.Aux[Repr, AKeys],
+    ktl: ToList[AKeys, Symbol],
+    vtl: ToList[MappedRepr, Option[ParameterValue]]
+  ): Self = {
+    val setter = CompositeSetter.fromGeneric[A, Repr, MappedRepr, AKeys]
+    val newValues = setParameters(setter(t): _*)
+    subclassConstructor(statement, newValues)
+  }
+
+  def onRecord[
+    Repr <: HList,
+    MappedRepr <: HList,
+    Keys <: HList,
+    MappedReprWithKeys <: HList
+  ](t: Repr
+  )(implicit mapper: MapValues.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
+    withKeys: ZipWithKeys.Aux[Keys, MappedRepr, MappedReprWithKeys],
+    vtl: ToList[MappedReprWithKeys, (Symbol, Option[ParameterValue])]
+  ): Self = {
+    val setter = CompositeSetter.fromRecord[Repr, MappedRepr, Keys, MappedReprWithKeys]
+    val newValues = setParameters(setter(t): _*)
     subclassConstructor(statement, newValues)
   }
 

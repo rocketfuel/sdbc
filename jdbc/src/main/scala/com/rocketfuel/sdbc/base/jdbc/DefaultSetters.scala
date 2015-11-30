@@ -18,8 +18,7 @@ trait DefaultSetters
   with QTimestampImplicits
   with QReaderImplicits
   with QInputStreamImplicits
-  with QUUIDImplicits
-  with QCompositeParameterImplicits {
+  with QUUIDImplicits {
 
   val QBoolean = jdbc.QBoolean
 
