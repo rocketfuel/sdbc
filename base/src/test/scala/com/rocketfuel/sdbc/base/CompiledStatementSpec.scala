@@ -6,17 +6,17 @@ class CompiledStatementSpec extends FunSuite {
 
   test("Example parameter name @hello works.") {
     val statement = CompiledStatement("@hello")
-    assert(statement.parameterPositions == Map("hello" -> Set(1)))
+    assert(statement.parameterPositions == Map("hello" -> Set(0)))
   }
 
   test("Example parameter name @`hello there` works.") {
     val statement = CompiledStatement("@`hello there`")
-    assert(statement.parameterPositions == Map("hello there" -> Set(1)))
+    assert(statement.parameterPositions == Map("hello there" -> Set(0)))
   }
 
   test("Example parameter name @_i_am_busy works.") {
     val statement = CompiledStatement("@_i_am_busy")
-    assert(statement.parameterPositions == Map("_i_am_busy" -> Set(1)))
+    assert(statement.parameterPositions == Map("_i_am_busy" -> Set(0)))
   }
 
   test("No parameters cause no change in the query") {
@@ -67,7 +67,7 @@ class CompiledStatementSpec extends FunSuite {
 
     val statement = CompiledStatement(queryText)
 
-    assert(statement.parameterPositions("t") == Set(1, 2))
+    assert(statement.parameterPositions("t") == Set(0, 1))
   }
 
   test("One quoted parameter used twice has two parameter indexes") {
@@ -75,7 +75,7 @@ class CompiledStatementSpec extends FunSuite {
 
     val statement = CompiledStatement(queryText)
 
-    assert(statement.parameterPositions("t") == Set(1, 2))
+    assert(statement.parameterPositions("t") == Set(0, 1))
   }
 
   test("Two parameters used once each get one parameter index each") {
@@ -83,9 +83,9 @@ class CompiledStatementSpec extends FunSuite {
 
     val statement = CompiledStatement(queryText)
 
-    assert(statement.parameterPositions("start") == Set(1, 3))
+    assert(statement.parameterPositions("start") == Set(0, 2))
 
-    assert(statement.parameterPositions("end") == Set(2, 4))
+    assert(statement.parameterPositions("end") == Set(1, 3))
   }
 
   test("Two quoted parameters used once each get one parameter index each") {
@@ -93,9 +93,9 @@ class CompiledStatementSpec extends FunSuite {
 
     val statement = CompiledStatement(queryText)
 
-    assert(statement.parameterPositions("start") == Set(1, 3))
+    assert(statement.parameterPositions("start") == Set(0, 2))
 
-    assert(statement.parameterPositions("end") == Set(2, 4))
+    assert(statement.parameterPositions("end") == Set(1, 3))
   }
 
   test("Recognizes non-latin character in identifier") {
