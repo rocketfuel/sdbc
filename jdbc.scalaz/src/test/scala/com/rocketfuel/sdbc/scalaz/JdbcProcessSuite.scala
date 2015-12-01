@@ -24,20 +24,19 @@ abstract class JdbcProcessSuite
   case class LongKey(key: Long)
 
   implicit val LongInsertable = new Updatable[LongKey] {
-    val update = Update("INSERT INTO tbl (i) VALUES (@i)")
+    val update = Update("INSERT INTO tbl (i) VALUES (@key)")
 
     override def update(key: LongKey): Update = {
-      update.on("i" -> key.key)
+      update.onProduct(key)
     }
   }
 
   val insertSet = 0L.until(expectedCount).toSet
 
-  val inserts = {
+  val inserts =
     Process.emitAll(insertSet.toSeq.map(key => LongKey(key)))
-  }
 
-  val select = Select[Int]("SELECT i FROM tbl")
+  val select = Select[Long]("SELECT i FROM tbl")
 
   override protected def beforeEach(): Unit = {
     withMemConnection(name = "test", dbCloseDelay = None) { implicit connection: Connection =>
