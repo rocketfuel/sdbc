@@ -11,13 +11,6 @@ object CompositeSetter {
 
   def apply[A](implicit compositeA: CompositeSetter[A]): CompositeSetter[A] = compositeA
 
-  implicit def fromHNil[Tail <: HNil] =
-    new CompositeSetter[Tail] {
-      override def apply(v1: Tail): Seq[(String, Option[ParameterValue])] = {
-        Seq.empty
-      }
-    }
-
   implicit def fromSetter[
     Key <: Symbol,
     A
@@ -36,7 +29,7 @@ object CompositeSetter {
     }
   }
 
-  implicit def fromGeneric[
+  def fromGeneric[
     A,
     Repr <: HList,
     MappedRepr <: HList,
@@ -57,7 +50,7 @@ object CompositeSetter {
 
   }
 
-  implicit def fromRecord[
+  def fromRecord[
     Repr <: HList,
     MappedRepr <: HList,
     ReprKeys <: HList
