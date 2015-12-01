@@ -63,7 +63,7 @@ trait jdbc {
     select: Select[T]
   )(implicit connection: Connection
   ): Process[Task, T] = {
-    io.iterator(Task.delay(select.iterator()))
+    io.iteratorR(Task.delay(select.iterator()))(i => Task.delay(i.close()))(Task.now)
   }
 
   /**
