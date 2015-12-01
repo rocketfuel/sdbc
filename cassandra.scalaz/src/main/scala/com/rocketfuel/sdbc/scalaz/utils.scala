@@ -1,12 +1,10 @@
 package com.rocketfuel.sdbc.scalaz
 
-import java.util.concurrent.atomic.AtomicReference
-import java.util.function.UnaryOperator
-
 import com.datastax.driver.core.{BoundStatement, PreparedStatement, ResultSet, Row => CRow}
 import com.google.common.util.concurrent.{FutureCallback, Futures, ListenableFuture}
 import com.rocketfuel.sdbc.cassandra.datastax._
 
+import scala.collection.concurrent.TrieMap
 import scalaz.concurrent.Task
 import scalaz.stream._
 import scalaz.{-\/, \/-}
@@ -18,6 +16,12 @@ trait utils {
     Task.delay(keyspace.map(cluster.connect).getOrElse(cluster.connect()))
   }
 
+  /**
+    * Convert a Google future to a Task.
+    * @param f
+    * @tparam T
+    * @return
+    */
   private [scalaz] def toTask[T](f: ListenableFuture[T]): Task[T] = {
     Task.async[T] { callback =>
       val googleCallback = new FutureCallback[T] {
@@ -40,8 +44,6 @@ trait utils {
   ): Task[PreparedStatement] = {
     toTask(session.prepareAsync(query.queryText))
   }
-
-
 
   private [scalaz] def runSelect[Value](
     select: Select[Value]
@@ -99,7 +101,7 @@ trait utils {
   )(cluster: Cluster
   ): Channel[Task, (String, T), O] = {
 
-    val sessionsRef = new AtomicReference(Map.empty[String, Session])
+    val sessions = TrieMap.empty[String, Session]
 
     /**
      * Get a Session for the keyspace, creating it if it does not exist.
@@ -107,39 +109,22 @@ trait utils {
      * @return
      */
     def getSession(keyspace: String): Task[Session] = Task.delay {
-      val sessions =
-        sessionsRef.updateAndGet(
-          new UnaryOperator[Map[String, Session]] {
-            override def apply(t: Map[String, Session]): Map[String, Session] = {
-              if (t.contains(keyspace)) t
-              else {
-                val session = cluster.connect(keyspace)
-                t + (keyspace -> session)
-              }
-            }
-          }
-        )
-
-      sessions(keyspace)
+      sessions.getOrElseUpdate(keyspace, cluster.connect(keyspace))
     }
 
     /**
      * Empty the sessions collection, and close all the sessions.
      */
     val closeSessions: Task[Unit] = {
-      val getToClose = Task.delay[Map[String, Session]] {
-        sessionsRef.getAndUpdate(
-          new UnaryOperator[Map[String, Session]] {
-            override def apply(t: Map[String, Session]): Map[String, Session] = {
-              Map.empty
-            }
-          }
-        )
+      val getToClose = Task.delay[Iterable[Session]] {
+        val toClose = sessions.readOnlySnapshot().values
+        sessions.clear()
+        toClose
       }
 
       for {
         toClose <- getToClose
-        _ <- Task.gatherUnordered(toClose.map(kvp => closeSession(kvp._2)).toSeq)
+        _ <- Task.gatherUnordered(toClose.toSeq.map(closeSession))
       } yield ()
     }
 
