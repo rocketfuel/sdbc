@@ -64,8 +64,6 @@ class UpdatesSpec extends SqlServerSuite {
 
   testUpdate[BigDecimal]("decimal")(BigDecimal(3))(BigDecimal("500"))
 
-  testUpdate[Timestamp]("datetime2")(new Timestamp(0))(Timestamp.from(Instant.now()))
-
   testUpdate[Date]("date")(new Date(0))(Date.valueOf(LocalDate.now()))
 
   testUpdate[Time]("time")(new Time(0))(Time.valueOf(LocalTime.now()))
@@ -81,6 +79,31 @@ class UpdatesSpec extends SqlServerSuite {
   testUpdate[String]("varchar(max)")("hi")("bye")
 
   testUpdate[UUID]("uniqueidentifier")(UUID.randomUUID())(UUID.randomUUID())
+
+  /**
+    * JTDS returns a value with a precision of about 4 ms,
+    * so we can't use straight equality.
+    *
+    * http://sourceforge.net/p/jtds/feature-requests/73/
+    */
+  test("Update java.sql.Timestamp") {implicit connection =>
+    Update(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v datetime2)").update()
+
+    update"INSERT INTO tbl (v) VALUES (${new Timestamp(0)})".update()
+
+    val after = Timestamp.from(Instant.now())
+
+    for (row <- selectForUpdate"SELECT * FROM tbl".iterator()) {
+      row("v") = after
+      row.updateRow()
+    }
+
+    val maybeValue = Select[Timestamp]("SELECT v FROM tbl").option()
+
+    assert(maybeValue.nonEmpty)
+
+    assert(Math.abs(maybeValue.get.getTime - after.getTime) < 5)
+  }
 
   test(s"Update HierarchyId") {implicit connection =>
     val before = HierarchyId()
