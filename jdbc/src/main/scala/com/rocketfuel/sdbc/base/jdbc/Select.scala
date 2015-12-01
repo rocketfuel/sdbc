@@ -4,7 +4,6 @@ import java.io.Closeable
 import java.sql._
 import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
-import scala.collection.generic.CanBuildFrom
 
 case class Select[T] private[jdbc] (
   override val statement: CompiledStatement,
@@ -61,18 +60,6 @@ case class Select[T] private[jdbc] (
     results.close()
 
     value
-  }
-
-  override def to[F[_]](implicit
-    connection: Connection,
-    cbf: CanBuildFrom[Nothing, T, F[T]]
-  ): F[T] = {
-    val rows = iterator()
-    try {
-      rows.to[F]
-    } finally {
-      rows.close()
-    }
   }
 
   override protected def subclassConstructor(
