@@ -2,17 +2,8 @@ package com.rocketfuel.sdbc.base
 
 import shapeless._
 import shapeless.record._
-import shapeless.labelled.FieldType
 import shapeless.ops.record._
 import shapeless.ops.hlist._
-
-case class CompositeParameter(parameters: Seq[(String, Option[ParameterValue])])
-
-object CompositeParameter {
-  implicit def from[A](a: A)(implicit compositeSetter: CompositeSetter[A]): CompositeParameter = {
-    CompositeParameter(compositeSetter(a))
-  }
-}
 
 trait CompositeSetter[A] extends (A => Seq[(String, Option[ParameterValue])])
 
@@ -49,18 +40,18 @@ object CompositeSetter {
     A,
     Repr <: HList,
     MappedRepr <: HList,
-    AKeys <: HList
+    ReprKeys <: HList
   ](implicit genericA: LabelledGeneric.Aux[A, Repr],
     mapper: Mapper.Aux[ToParameterValue.type, Repr, MappedRepr],
-    keys: Keys.Aux[Repr, AKeys],
-    ktl: ToList[AKeys, Symbol],
+    keys: Keys.Aux[Repr, ReprKeys],
+    ktl: ToList[ReprKeys, Symbol],
     vtl: ToList[MappedRepr, Option[ParameterValue]]
   ): CompositeSetter[A] = {
     new CompositeSetter[A] {
+      val aFromRecord = fromRecord[Repr, MappedRepr, ReprKeys]
       override def apply(v1: A): Seq[(String, Option[ParameterValue])] = {
         val asGeneric = genericA.to(v1)
-        val mapped = asGeneric.map(ToParameterValue)
-        asGeneric.keys.toList.map(_.name) zip mapped.toList
+        aFromRecord(asGeneric)
       }
     }
 
@@ -69,19 +60,18 @@ object CompositeSetter {
   implicit def fromRecord[
     Repr <: HList,
     MappedRepr <: HList,
-    Keys <: HList,
-    MappedReprWithKeys <: HList
-  ](implicit mapper: MapValues.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
-    withKeys: ZipWithKeys.Aux[Keys, MappedRepr, MappedReprWithKeys],
-    vtl: ToList[MappedReprWithKeys, (Symbol, Option[ParameterValue])]
+    ReprKeys <: HList
+  ](implicit mapper: Mapper.Aux[ToParameterValue.type, Repr, MappedRepr],
+    keys: Keys.Aux[Repr, ReprKeys],
+    ktl: ToList[ReprKeys, Symbol],
+    vtl: ToList[MappedRepr, Option[ParameterValue]]
   ): CompositeSetter[Repr] = {
     new CompositeSetter[Repr] {
       override def apply(v1: Repr): Seq[(String, Option[ParameterValue])] = {
-        val mapped = v1.mapValues(ToParameterValue)
-        mapped.zipWithKeys(withKeys).toList.map { case (key, value) => (key.name, value) }
+        val mapped = v1.map(ToParameterValue)
+        v1.keys.toList.map(_.name) zip mapped.toList
       }
     }
-
   }
 
 }

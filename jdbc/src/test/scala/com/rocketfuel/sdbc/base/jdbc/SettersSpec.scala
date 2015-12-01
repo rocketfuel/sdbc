@@ -2,7 +2,7 @@ package com.rocketfuel.sdbc.base.jdbc
 
 import java.sql.PreparedStatement
 
-import com.rocketfuel.sdbc.base.ParameterValueImplicits
+import com.rocketfuel.sdbc.base._
 import org.scalatest.FunSuite
 import shapeless._
 import shapeless.syntax.singleton._
@@ -17,12 +17,6 @@ class SettersSpec
   }
 
   val q = Update("@hi @bye")
-
-  test("") {
-
-  }
-
-  case class Woozle(a: (Int, Int), b: Int :: Int :: HNil, c: Int)
 
   test("set a pair") {
     q.on("hi" -> 3)
@@ -42,26 +36,13 @@ class SettersSpec
 
     val param = Args(3, 4)
 
-    assertCompiles("""q.onGeneric(param)""")
+    assertCompiles("""q.onProduct(param)""")
   }
 
-//  test("implicit Unit conversion works") {
-//    val u = Record.`'i -> 3`
-//    val setter = CompositeSetter.fromRecord.apply(u)
-//    val toCheck: CompositeParameter = CompositeParameter(setter(u))
-//    assertResult(HNil)(toCheck)
-//  }
+  test("CompositeSetter[Woozle] exists") {
+    case class Heffalump(a: Int, b: String, c: Double)
 
-  //  test("CompositeSetter[Woozle] exists") {
-  //    assertCompiles("implicitly[CompositeSetter[Woozle]]")
-  //  }
-  //
-  //  test("implicit Tuple2 conversion works") {
-  //    assertCompiles("val _: CompositeParameter = CompositeParameter((3, 3))")
-  //  }
-  //
-  //  test("implicit Record conversion works") {
-  //    assertCompiles("val _: CompositeParameter = (\"hi\" ->> 3) :: HNil")
-  //  }
+    assertCompiles("implicitly[CompositeSetter[Heffalump]]")
+  }
 
 }

@@ -2,8 +2,7 @@ package com.rocketfuel.sdbc.base
 
 import shapeless._
 import shapeless.ops.hlist._
-import shapeless.ops.product._
-import shapeless.ops.record.{MapValues, Values, Keys}
+import shapeless.ops.record.{MapValues, Keys}
 
 /**
  * Given a query with named parameters beginning with '@',
@@ -67,19 +66,19 @@ trait ParameterizedQuery[
     subclassConstructor(statement, newValues)
   }
 
-  def onGeneric[
+  def onProduct[
     A,
     Repr <: HList,
     MappedRepr <: HList,
-    AKeys <: HList
+    ReprKeys <: HList
   ](t: A
   )(implicit genericA: LabelledGeneric.Aux[A, Repr],
     mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
-    keys: Keys.Aux[Repr, AKeys],
-    ktl: ToList[AKeys, Symbol],
+    keys: Keys.Aux[Repr, ReprKeys],
+    ktl: ToList[ReprKeys, Symbol],
     vtl: ToList[MappedRepr, Option[ParameterValue]]
   ): Self = {
-    val setter = CompositeSetter.fromGeneric[A, Repr, MappedRepr, AKeys]
+    val setter = CompositeSetter.fromGeneric[A, Repr, MappedRepr, ReprKeys]
     val newValues = setParameters(setter(t): _*)
     subclassConstructor(statement, newValues)
   }
@@ -87,14 +86,14 @@ trait ParameterizedQuery[
   def onRecord[
     Repr <: HList,
     MappedRepr <: HList,
-    Keys <: HList,
-    MappedReprWithKeys <: HList
+    ReprKeys <: HList
   ](t: Repr
-  )(implicit mapper: MapValues.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
-    withKeys: ZipWithKeys.Aux[Keys, MappedRepr, MappedReprWithKeys],
-    vtl: ToList[MappedReprWithKeys, (Symbol, Option[ParameterValue])]
+  )(implicit mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
+    keys: Keys.Aux[Repr, ReprKeys],
+    ktl: ToList[ReprKeys, Symbol],
+    vtl: ToList[MappedRepr, Option[ParameterValue]]
   ): Self = {
-    val setter = CompositeSetter.fromRecord[Repr, MappedRepr, Keys, MappedReprWithKeys]
+    val setter = CompositeSetter.fromRecord[Repr, MappedRepr, ReprKeys]
     val newValues = setParameters(setter(t): _*)
     subclassConstructor(statement, newValues)
   }
