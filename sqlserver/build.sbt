@@ -1,6 +1,6 @@
-organization := "com.rocketfuel.sdbc.sqlserver"
+organization := "com.rocketfuel.sdbc"
 
-name := "jdbc"
+name := "jdbc-sqlserver"
 
 description := "An implementation of SDBC for accessing Microsoft SQL Server using JDBC."
 

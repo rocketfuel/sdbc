@@ -1,10 +1,10 @@
-organization := "com.rocketfuel.sdbc.h2"
+organization := "com.rocketfuel.sdbc"
 
-name := "jdbc"
+name := "jdbc-h2"
 
 description := "An implementation of SDBC for accessing H2 using JDBC."
 
-libraryDependencies += "com.h2database" % "h2" % "1.4.189"
+libraryDependencies += "com.h2database" % "h2" % "1.4.190"
 
 parallelExecution := false
 
