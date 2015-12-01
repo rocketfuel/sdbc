@@ -1,3 +1,3 @@
 package com.rocketfuel.sdbc.postgresql.jdbc
 
-object PostgreSql extends implementation.PostgreSql
+case object PostgreSql extends implementation.PostgreSql
