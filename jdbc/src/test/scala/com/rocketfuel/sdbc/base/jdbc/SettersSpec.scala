@@ -19,14 +19,11 @@ class SettersSpec
   val q = Update("@hi @bye")
 
   test("set a pair") {
-    q.on("hi" -> 3)
     assertCompiles("""q.on("hi" -> 3)""")
   }
 
   test("set a record") {
     val params = ('hi ->> 3) :: ('bye ->> 4) :: HNil
-
-    q.onRecord(params)
 
     assertCompiles("""q.onRecord(params)""")
   }
