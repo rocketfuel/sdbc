@@ -111,8 +111,6 @@ private[sdbc] abstract class H2
           setParameter[Serialized](preparedStatement, parameterIndex, b)
         case b: QSeq =>
           setParameter[QSeq](preparedStatement, parameterIndex, b)
-        case b: CompositeSetter[_] =>
-          b.set(preparedStatement, parameterIndex, b)
       }
     }
   }

@@ -5,9 +5,13 @@ import H2._
 class CompositeSetterSpec extends H2Suite {
 
   test("(Int, Int, Int)") { implicit connection =>
-    val q = Select[(Int, Int, Int)]("VALUES (@a, @b, @c)")
-    q.on(("a", (1, 2, 3)))
-    assertResult(Some(1, 2, 3))(q.option())
+    case class Param(a: Int, b: Int, c: Int)
+
+    val expected = Param(1, 2, 3)
+
+    val q = Select[Param]("VALUES (@a, @b, @c)").onProduct(expected)
+
+    assertResult(Some(expected))(q.option())
   }
 
 }
