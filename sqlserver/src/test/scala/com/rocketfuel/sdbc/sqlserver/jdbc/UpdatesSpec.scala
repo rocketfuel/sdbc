@@ -68,8 +68,6 @@ class UpdatesSpec extends SqlServerSuite {
 
   testUpdate[Time]("time")(new Time(0))(Time.valueOf(LocalTime.now()))
 
-  testUpdate[Instant]("datetime2")(Instant.ofEpochMilli(0))(Instant.now())
-
   testUpdate[LocalDate]("date")(LocalDate.ofEpochDay(0))(LocalDate.now())
 
   testUpdate[LocalTime]("time")(LocalTime.of(0, 0, 0))(LocalTime.now())
@@ -103,6 +101,31 @@ class UpdatesSpec extends SqlServerSuite {
     assert(maybeValue.nonEmpty)
 
     assert(Math.abs(maybeValue.get.getTime - after.getTime) < 5)
+  }
+
+  /**
+    * JTDS returns a value with a precision of about 4 ms,
+    * so we can't use straight equality.
+    *
+    * http://sourceforge.net/p/jtds/feature-requests/73/
+    */
+  test("Update java.time.Instant") {implicit connection =>
+    Update(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v datetime2)").update()
+
+    update"INSERT INTO tbl (v) VALUES (${Instant.ofEpochMilli(0)})".update()
+
+    val after = Instant.now()
+
+    for (row <- selectForUpdate"SELECT * FROM tbl".iterator()) {
+      row("v") = after
+      row.updateRow()
+    }
+
+    val maybeValue = Select[Instant]("SELECT v FROM tbl").option()
+
+    assert(maybeValue.nonEmpty)
+
+    assert(Math.abs(maybeValue.get.toEpochMilli - after.toEpochMilli) < 5)
   }
 
   test(s"Update HierarchyId") {implicit connection =>
