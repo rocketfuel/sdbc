@@ -36,10 +36,4 @@ class SettersSpec
     assertCompiles("""q.onProduct(param)""")
   }
 
-  test("CompositeSetter[Woozle] exists") {
-    case class Heffalump(a: Int, b: String, c: Double)
-
-    assertCompiles("implicitly[CompositeSetter[Heffalump]]")
-  }
-
 }
