@@ -10,12 +10,13 @@ import scalaz.Scalaz._
 class GettersSpec
   extends H2Suite {
 
-  def testSelect[T](
+  def testAux[T](
     query: String,
-    expectedValue: Option[T]
+    expectedValue: Option[T],
+    ignore: Boolean
   )(implicit converter: RowConverter[Option[T]]
   ): Unit = {
-    test(query) { implicit connection =>
+    (if (ignore) this.ignore _ else test _)(query, Seq.empty) { implicit connection =>
       val result = Select[Option[T]](query).option().flatten
       (expectedValue, result) match {
         case (Some(expectedArray: Array[_]), Some(resultArray: Array[_])) =>
@@ -26,6 +27,22 @@ class GettersSpec
         case _ => false
       }
     }
+  }
+
+  def testSelect[T](
+    query: String,
+    expectedValue: Option[T]
+  )(implicit converter: RowConverter[Option[T]]
+  ): Unit = {
+    testAux[T](query, expectedValue, false)
+  }
+
+  def testIgnore[T](
+    query: String,
+    expectedValue: Option[T]
+  )(implicit converter: RowConverter[Option[T]]
+  ): Unit = {
+    testAux[T](query, expectedValue, true)
   }
 
   val uuid = UUID.randomUUID()
@@ -82,8 +99,8 @@ class GettersSpec
 
   testSelect[Seq[Seq[Int]]]("SELECT (())", Seq.empty.some)
 
-  testSelect[Seq[Seq[Int]]]("SELECT ((1, 2),)", Seq(Seq(1, 2)).some)
+  testIgnore[Seq[Seq[Int]]]("SELECT ((1, 2),)", Seq(Seq(1, 2)).some)
 
-  testSelect[Seq[Seq[Option[Int]]]]("SELECT ((1, NULL), (2, NULL))", Seq(Seq(Some(1), None), Seq(Some(2), None)).some)
+  testIgnore[Seq[Seq[Option[Int]]]]("SELECT ((1, NULL), (2, NULL))", Seq(Seq(Some(1), None), Seq(Some(2), None)).some)
 
 }
