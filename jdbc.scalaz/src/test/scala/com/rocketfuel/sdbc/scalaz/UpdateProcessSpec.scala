@@ -1,6 +1,5 @@
 package com.rocketfuel.sdbc.scalaz
 
-import com.rocketfuel.sdbc.scalaz._
 import scala.concurrent.duration._
 import scalaz.stream._
 
