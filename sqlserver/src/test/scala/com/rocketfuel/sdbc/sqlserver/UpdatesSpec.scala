@@ -3,8 +3,6 @@ package com.rocketfuel.sdbc.sqlserver
 import java.sql.{Date, Time, Timestamp}
 import java.time.{Instant, LocalDate, LocalTime}
 import java.util.UUID
-
-import com.rocketfuel.sdbc.SqlServer._
 import com.rocketfuel.sdbc.base.jdbc.Updater
 import scodec.bits.ByteVector
 

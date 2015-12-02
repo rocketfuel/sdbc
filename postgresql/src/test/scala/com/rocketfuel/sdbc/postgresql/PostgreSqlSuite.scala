@@ -1,11 +1,9 @@
-package com.rocketfuel.sdbc.postgresql.jdbc
+package com.rocketfuel.sdbc.postgresql
 
 import java.time.{Instant, OffsetDateTime}
-import com.rocketfuel.sdbc.PostgreSql
-import com.typesafe.config.{ConfigFactory, Config}
 import com.rocketfuel.sdbc.config.TestingConfig
+import com.typesafe.config.{Config, ConfigFactory}
 import org.scalatest._
-import PostgreSql._
 
 abstract class PostgreSqlSuite
   extends fixture.FunSuite

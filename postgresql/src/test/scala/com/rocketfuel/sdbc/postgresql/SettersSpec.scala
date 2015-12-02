@@ -1,10 +1,6 @@
-package com.rocketfuel.sdbc.postgresql.jdbc
+package com.rocketfuel.sdbc.postgresql
 
 import java.math.{BigDecimal => JBigDecimal}
-import com.rocketfuel.sdbc.PostgreSql
-import PostgreSql._
-import com.rocketfuel.sdbc.PostgreSql
-
 import org.scalatest._
 
 class SettersSpec

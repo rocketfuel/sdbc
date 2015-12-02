@@ -1,8 +1,6 @@
-package com.rocketfuel.sdbc.postgresql.jdbc
+package com.rocketfuel.sdbc.postgresql
 
-import com.rocketfuel.sdbc.PostgreSql
 import org.scalatest.FunSuite
-import PostgreSql._
 
 class UpdateSpec extends FunSuite {
 

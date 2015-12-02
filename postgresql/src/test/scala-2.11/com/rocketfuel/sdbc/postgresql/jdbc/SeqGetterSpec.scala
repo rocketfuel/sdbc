@@ -1,10 +1,7 @@
 package com.rocketfuel.sdbc.postgresql.jdbc
 
-import com.rocketfuel.sdbc.PostgreSql
-import com.rocketfuel.sdbc.postgresql.LTree
-
+import com.rocketfuel.sdbc.postgresql._
 import scalaz.Scalaz._
-import PostgreSql._
 
 class SeqGetterSpec
   extends PostgreSqlSuite {

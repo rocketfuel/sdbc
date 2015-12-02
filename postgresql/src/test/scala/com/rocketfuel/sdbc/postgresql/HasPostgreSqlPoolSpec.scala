@@ -1,10 +1,9 @@
-package com.rocketfuel.sdbc.postgresql.jdbc
+package com.rocketfuel.sdbc.postgresql
 
-import com.rocketfuel.sdbc.PostgreSql
-import com.typesafe.config.{ConfigFactory, Config}
+import com.rocketfuel.sdbc.postgresql._
 import com.rocketfuel.sdbc.config.TestingConfig
+import com.typesafe.config.{Config, ConfigFactory}
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
-import PostgreSql._
 
 class HasPostgreSqlPoolSpec
   extends FunSuite

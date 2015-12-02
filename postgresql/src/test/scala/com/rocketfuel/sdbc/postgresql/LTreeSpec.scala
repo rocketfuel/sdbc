@@ -1,6 +1,5 @@
-package com.rocketfuel.sdbc.postgresql.jdbc
+package com.rocketfuel.sdbc.postgresql
 
-import com.rocketfuel.sdbc.postgresql.LTree
 import org.scalatest.FunSuite
 
 class LTreeSpec extends FunSuite {

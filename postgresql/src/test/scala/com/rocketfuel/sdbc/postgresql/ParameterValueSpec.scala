@@ -1,17 +1,15 @@
-package com.rocketfuel.sdbc.postgresql.jdbc
+package com.rocketfuel.sdbc.postgresql
 
 import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.sql.{Array => _, _}
 import java.time._
 import java.util.UUID
-import com.rocketfuel.sdbc.PostgreSql
-import com.rocketfuel.sdbc.postgresql.{LTree, Cidr}
-import PostgreSql._
-import com.rocketfuel.sdbc.postgresql.{LTree, Cidr}
+import com.rocketfuel.sdbc.postgresql._
 import org.json4s.JValue
 import org.json4s.jackson.JsonMethods
 import org.postgresql.util.PGInterval
+
 import scalaz.Scalaz._
 
 class ParameterValueSpec

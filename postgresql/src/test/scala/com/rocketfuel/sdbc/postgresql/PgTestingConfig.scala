@@ -1,7 +1,7 @@
-package com.rocketfuel.sdbc.postgresql.jdbc
+package com.rocketfuel.sdbc.postgresql
 
-import com.typesafe.config.{Config, ConfigFactory}
 import com.rocketfuel.sdbc.config.TestingConfig
+import com.typesafe.config.{Config, ConfigFactory}
 
 trait PgTestingConfig {
   self: TestingConfig =>
