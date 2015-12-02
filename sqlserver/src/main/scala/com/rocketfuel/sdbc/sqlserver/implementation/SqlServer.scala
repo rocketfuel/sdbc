@@ -49,6 +49,8 @@ private[sdbc] abstract class SqlServer
      */
     override def setAny(preparedStatement: PreparedStatement, parameterIndex: Int, parameter: Any): Unit = {
       parameter match {
+        case b: ParameterValue =>
+          setAny(preparedStatement, parameterIndex, b.value)
         case b: Boolean =>
           setParameter[Boolean](preparedStatement, parameterIndex, b)
         case b: ByteVector =>

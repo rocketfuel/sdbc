@@ -1,12 +1,12 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 import com.rocketfuel.sdbc.base
-import com.rocketfuel.sdbc.base.{ParameterValueImplicits, jdbc}
+import com.rocketfuel.sdbc.base.jdbc
 import com.zaxxer.hikari.HikariDataSource
 
 abstract class DBMS
   extends HikariImplicits
-  with ParameterValueImplicits
+  with base.ParameterValueImplicits
   with UpdaterImplicits
   with base.BatchableMethods[java.sql.Connection, Batch]
   with base.UpdatableMethods[java.sql.Connection, Update]
@@ -28,8 +28,6 @@ abstract class DBMS
   type ParameterValue = jdbc.ParameterValue
   val ParameterValue = jdbc.ParameterValue
 
-  type ParameterList = jdbc.ParameterList
-
   type Batchable[Key] = base.Batchable[Key, Connection, Batch]
 
   type Executable[Key] = jdbc.Executable[Key]
@@ -40,23 +38,59 @@ abstract class DBMS
 
   type Select[T] = jdbc.Select[T]
 
-  val Select = jdbc.Select
+  object Select {
+    def apply[T](
+      queryText: String,
+      hasParameters: Boolean = true
+    )(implicit converter: RowConverter[T]
+    ): Select[T] = {
+      jdbc.Select[T](queryText, hasParameters)
+    }
+  }
 
   type SelectForUpdate = jdbc.SelectForUpdate
 
-  val SelectForUpdate = jdbc.SelectForUpdate
+  object SelectForUpdate {
+    def apply(
+      queryText: String,
+      hasParameters: Boolean = true
+    ): SelectForUpdate = {
+      jdbc.SelectForUpdate(queryText, hasParameters)
+    }
+  }
 
   type Update = jdbc.Update
 
-  val Update = jdbc.Update
+  object Update {
+    def apply(
+      queryText: String,
+      hasParameters: Boolean = true
+    ): Update = {
+      jdbc.Update(queryText, hasParameters)
+    }
+  }
 
   type Batch = jdbc.Batch
 
-  val Batch = jdbc.Batch
+  object Batch {
+    def apply(
+      queryText: String,
+      hasParameters: Boolean = true
+    ): Batch = {
+      jdbc.Batch(queryText, hasParameters)
+    }
+  }
 
   type Execute = jdbc.Execute
 
-  val Execute = jdbc.Execute
+  object Execute {
+    def apply(
+      queryText: String,
+      hasParameters: Boolean = true
+    ): Execute = {
+      jdbc.Execute(queryText, hasParameters)
+    }
+  }
 
   type Pool = jdbc.Pool
 

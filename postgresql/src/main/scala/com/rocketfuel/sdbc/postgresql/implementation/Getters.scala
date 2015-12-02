@@ -33,7 +33,7 @@ private[sdbc] trait Getters
   with ParameterGetter
   with InstantGetter
   with LocalDateGetter
-  with LocalDateTimeGetter  {
+  with LocalDateTimeGetter {
   self: PGTimestampTzImplicits
     with PGTimeTzImplicits
     with IntervalImplicits

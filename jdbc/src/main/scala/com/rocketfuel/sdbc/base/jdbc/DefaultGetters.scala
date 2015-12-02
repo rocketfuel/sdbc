@@ -1,8 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 trait DefaultGetters
-  extends AnyRefGetter
-  with BooleanGetter
+  extends BooleanGetter
   with ByteGetter
   with BytesGetter
   with DateGetter

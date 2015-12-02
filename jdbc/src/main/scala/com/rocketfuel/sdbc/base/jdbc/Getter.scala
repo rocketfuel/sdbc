@@ -332,13 +332,3 @@ trait SeqGetter {
 trait ParameterGetter {
   implicit val ParameterGetter: Getter[ParameterValue]
 }
-
-trait AnyRefGetter {
-
-  val AnyRefGetter = new Getter[AnyRef] {
-    override def apply(row: Row, ix: Index): Option[AnyRef] = {
-      Option(row.getObject(ix(row)))
-    }
-  }
-
-}

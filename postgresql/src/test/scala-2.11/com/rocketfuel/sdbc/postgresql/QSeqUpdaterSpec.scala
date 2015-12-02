@@ -1,6 +1,4 @@
-package com.rocketfuel.sdbc.postgresql.jdbc
-
-import com.rocketfuel.sdbc.postgresql._
+package com.rocketfuel.sdbc.postgresql
 
 class QSeqUpdaterSpec
   extends PostgreSqlSuite {
