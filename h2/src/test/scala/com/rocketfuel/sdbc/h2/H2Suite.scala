@@ -1,6 +1,5 @@
 package com.rocketfuel.sdbc.h2
 
-import com.rocketfuel.sdbc.h2.H2._
 import org.scalatest._
 
 abstract class H2Suite
@@ -13,4 +12,5 @@ abstract class H2Suite
       withFixture(test.toNoArgTest(connection))
     }
   }
+
 }

@@ -1,11 +1,14 @@
 package com.rocketfuel.sdbc.cassandra
 
 import java.math.{BigDecimal => JBigDecimal}
-
+import java.net.InetAddress
+import java.nio.ByteBuffer
+import java.util.{Date, UUID}
+import java.util
 import org.scalatest.FunSuite
+import scodec.bits.ByteVector
 
 class ParameterValuesSpec extends FunSuite {
-
 
   test("implicit Boolean conversion works") {
     assertCompiles("val _: Option[ParameterValue] = false")

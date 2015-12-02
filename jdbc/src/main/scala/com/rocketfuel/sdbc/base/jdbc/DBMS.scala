@@ -3,6 +3,7 @@ package com.rocketfuel.sdbc.base.jdbc
 import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.jdbc
 import com.zaxxer.hikari.HikariDataSource
+import scalaz.stream._
 
 abstract class DBMS
   extends HikariImplicits
@@ -182,6 +183,16 @@ abstract class DBMS
    */
   def initializeConnection(connection: java.sql.Connection): Unit = {
 
+  }
+
+  val JdbcProcess = jdbc.JdbcProcess
+
+  object HasJdbcProcess {
+    val jdbc = JdbcProcess
+  }
+
+  implicit def ProcessToHasJdbcProcess(x: Process.type): HasJdbcProcess.type = {
+    HasJdbcProcess
   }
 
   register(this)

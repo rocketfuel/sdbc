@@ -1,4 +1,4 @@
-package com.rocketfuel.sdbc.scalaz
+package com.rocketfuel.sdbc.h2
 
 import scala.concurrent.duration._
 import scalaz.stream._

@@ -4,11 +4,8 @@ import java.sql.{Date, Time, Timestamp}
 import java.time.temporal.ChronoUnit
 import java.time.{Instant, LocalDate, LocalTime}
 import java.util.UUID
-
 import com.rocketfuel.sdbc.base.jdbc.Updater
-import com.rocketfuel.sdbc.h2.H2._
 import scodec.bits.ByteVector
-
 import scala.reflect.ClassTag
 
 class UpdatersSpec extends H2Suite {

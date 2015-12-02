@@ -6,7 +6,8 @@ libraryDependencies ++= Seq(
   //Connection pooling
   "com.zaxxer" % "HikariCP" % "2.4.2",
   "org.scodec" %% "scodec-bits" % "1.0.11",
-  "com.chuusai" %% "shapeless" % "2.2.5"
+  "com.chuusai" %% "shapeless" % "2.2.5",
+  "org.scalaz.stream" %% "scalaz-stream" % "0.8"
 )
 
 crossScalaVersions := Seq("2.10.5")

@@ -1,7 +1,5 @@
 package com.rocketfuel.sdbc.h2
 
-import com.rocketfuel.sdbc.h2.H2._
-
 class CompositeGetterSpec extends H2Suite {
 
   test("(Int, Int, Int)") {implicit connection =>

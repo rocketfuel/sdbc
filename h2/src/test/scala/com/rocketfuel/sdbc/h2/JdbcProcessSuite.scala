@@ -1,20 +1,23 @@
-package com.rocketfuel.sdbc.scalaz
+package com.rocketfuel.sdbc.h2
 
-import com.rocketfuel.sdbc.h2.{H2Suite, H2}
-import H2._
 import com.zaxxer.hikari.HikariConfig
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.{Outcome, fixture, BeforeAndAfterEach}
 import scalaz.stream._
 
 abstract class JdbcProcessSuite
-  extends H2Suite
-  with BeforeAndAfterEach
-  with BeforeAndAfterAll {
+  extends fixture.FunSuite
+  with BeforeAndAfterEach {
   suite =>
+
+  type FixtureParam = Connection
+
+  override protected def withFixture(test: OneArgTest): Outcome = {
+    pool.withConnection[Outcome]{connection => withFixture(test.toNoArgTest(connection))}
+  }
 
   implicit val pool = {
     val poolConfig = new HikariConfig()
-    poolConfig.setJdbcUrl("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
+    poolConfig.setJdbcUrl("jdbc:h2:mem:stream_test;DB_CLOSE_DELAY=-1")
 
     Pool(poolConfig)
   }
@@ -39,19 +42,15 @@ abstract class JdbcProcessSuite
   val select = Select[Long]("SELECT i FROM tbl")
 
   override protected def beforeEach(): Unit = {
-    withMemConnection(name = "test", dbCloseDelay = None) { implicit connection: Connection =>
+    pool.withConnection[Unit] {implicit connection =>
       Execute("CREATE TABLE tbl (i bigint PRIMARY KEY)").execute()
     }
   }
 
   override protected def afterEach(): Unit = {
-    withMemConnection(name = "test", dbCloseDelay = None) { implicit connection: Connection =>
+    pool.withConnection[Unit] {implicit connection =>
       Execute("DROP TABLE tbl").execute()
     }
-  }
-
-  override protected def afterAll(): Unit = {
-    pool.close()
   }
 
 }

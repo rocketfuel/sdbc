@@ -20,10 +20,10 @@ class CassandraProcessSpec
       val insert: Process[Task, Unit] = {
         val execute = Execute("INSERT INTO spc.tbl (id, x) VALUES (@id, @x)")
         val randomsParameters = Process.emitAll(randoms.zipWithIndex).map[ParameterList](x => Seq("id" -> x._2, "x" -> x._1))
-        randomsParameters.to(Process.datastax.params.execute(execute))
+        randomsParameters.to(Process.cassandra.params.execute(execute))
       }
 
-      val select = Process.datastax.select(Select[Int]("SELECT x FROM spc.tbl"))
+      val select = Process.cassandra.select(Select[Int]("SELECT x FROM spc.tbl"))
 
       val combined = for {
         _ <- insert

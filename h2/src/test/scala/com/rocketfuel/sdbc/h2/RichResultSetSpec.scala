@@ -1,6 +1,5 @@
 package com.rocketfuel.sdbc.h2
 
-import com.rocketfuel.sdbc.h2.H2._
 import org.scalatest.BeforeAndAfterEach
 
 import scala.collection.immutable.Seq

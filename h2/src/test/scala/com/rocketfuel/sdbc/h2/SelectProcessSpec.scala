@@ -1,7 +1,7 @@
-package com.rocketfuel.sdbc.scalaz
+package com.rocketfuel.sdbc.h2
 
-import scalaz.stream._
 import scala.concurrent.duration._
+import scalaz.stream._
 
 class SelectProcessSpec
   extends JdbcProcessSuite {

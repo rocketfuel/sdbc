@@ -3,12 +3,10 @@ package com.rocketfuel.sdbc.cassandra.implementation
 import java.math.BigInteger
 import java.net.InetAddress
 import java.nio.ByteBuffer
-
+import scalaz.stream.Process
 import com.datastax.driver.core
 import com.rocketfuel.sdbc.base.ParameterValueImplicits
-import com.rocketfuel.sdbc.cassandra.{CassandraProcess, implementation}
-
-import scalaz.stream.Process
+import com.rocketfuel.sdbc.cassandra.implementation
 
 private[sdbc] abstract class Cassandra
   extends RowMethods
@@ -41,8 +39,14 @@ private[sdbc] abstract class Cassandra
 
   type Token = core.Token
 
-  implicit class HasDatastax(x: Process.type) {
-    val datastax = CassandraProcess
+  val CassandraProcess = implementation.CassandraProcess
+
+  object HasCassandraProcess {
+    val cassandra = CassandraProcess
+  }
+
+  implicit def ProcessToCassandraProcess(x: Process.type): HasCassandraProcess.type = {
+    HasCassandraProcess
   }
 
   implicit val ParameterGetter: RowGetter[ParameterValue] =

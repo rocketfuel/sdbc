@@ -288,3 +288,5 @@ trait CassandraProcess {
   }
 
 }
+
+object CassandraProcess extends CassandraProcess
