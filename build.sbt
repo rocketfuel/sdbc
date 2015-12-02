@@ -2,13 +2,9 @@ lazy val base = project.in(file("base"))
 
 lazy val cassandra = project.in(file("cassandra")).dependsOn(base % "test->test;compile->compile")
 
-lazy val cassandraScalaz = project.in(file("cassandra.scalaz")).dependsOn(cassandra % "test->test;compile->compile")
-
 lazy val jdbc = project.in(file("jdbc")).dependsOn(base % "test->test;compile->compile")
 
 lazy val h2 = project.in(file("h2")).dependsOn(jdbc % "test->test;compile->compile")
-
-lazy val jdbcScalaz = project.in(file("jdbc.scalaz")).dependsOn(jdbc, h2 % "test->test")
 
 lazy val postgresql = project.in(file("postgresql")).dependsOn(jdbc % "test->test;compile->compile")
 
@@ -24,9 +20,7 @@ lazy val root =
   aggregate(
     base,
     cassandra,
-    cassandraScalaz,
     jdbc,
-    jdbcScalaz,
     h2,
     postgresql,
     sqlserver,

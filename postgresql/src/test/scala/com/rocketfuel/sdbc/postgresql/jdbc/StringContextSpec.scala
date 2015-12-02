@@ -4,8 +4,10 @@ import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.sql.Timestamp
 import java.util.UUID
+import com.rocketfuel.sdbc.PostgreSql
 import PostgreSql._
-import com.rocketfuel.sdbc.postgresql.jdbc.implementation._
+import com.rocketfuel.sdbc.PostgreSql
+import com.rocketfuel.sdbc.postgresql.implementation._
 import org.scalatest.FunSuite
 import scodec.bits.ByteVector
 

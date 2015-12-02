@@ -1,6 +1,8 @@
 package com.rocketfuel.sdbc.postgresql.jdbc
 
+import com.rocketfuel.sdbc.PostgreSql
 import PostgreSql._
+import com.rocketfuel.sdbc.PostgreSql
 
 class EnumerateTypesSpec extends PostgreSqlSuite {
 

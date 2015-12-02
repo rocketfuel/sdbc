@@ -1,5 +1,6 @@
 package com.rocketfuel.sdbc.postgresql.jdbc
 
+import com.rocketfuel.sdbc.PostgreSql
 import com.typesafe.config.{ConfigFactory, Config}
 import com.rocketfuel.sdbc.config.TestingConfig
 import org.scalatest.{BeforeAndAfterAll, FunSuite}

@@ -2,6 +2,7 @@ package com.rocketfuel.sdbc.postgresql.jdbc
 
 import java.sql.{PreparedStatement, ResultSet}
 import java.util.UUID
+import com.rocketfuel.sdbc.PostgreSql
 import org.apache.commons.lang3.time.StopWatch
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.prop.GeneratorDrivenPropertyChecks

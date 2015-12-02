@@ -1,11 +1,6 @@
-You will usually import a package object corresponding to the database you are connecting to and the implementation you want to use.
+You will usually import a package object corresponding to the database you are connecting to.
 
- - [[com.rocketfuel.sdbc.cassandra.datastax]]
- - [[com.rocketfuel.sdbc.h2.jdbc]]
- - [[com.rocketfuel.sdbc.postgresql.jdbc]]
- - [[com.rocketfuel.sdbc.sqlserver.jdbc]]
-
-There is also support for scalaz streaming. Import either of the following packages to add methods to [[http://www.jeffshaw.me/scalaz-stream/0.7.2a/#scalaz.stream.Process$ scalaz.stream.Process]].
-
- - [[com.rocketfuel.sdbc.scalaz.DatastaxProcess]]
- - [[com.rocketfuel.sdbc.scalaz.JdbcProcess]]
+ - [[com.rocketfuel.sdbc.cassandra]]
+ - [[com.rocketfuel.sdbc.h2]]
+ - [[com.rocketfuel.sdbc.postgresql]]
+ - [[com.rocketfuel.sdbc.sqlserver]]

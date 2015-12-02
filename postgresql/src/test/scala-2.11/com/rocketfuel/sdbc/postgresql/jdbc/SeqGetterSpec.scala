@@ -1,5 +1,8 @@
 package com.rocketfuel.sdbc.postgresql.jdbc
 
+import com.rocketfuel.sdbc.PostgreSql
+import com.rocketfuel.sdbc.postgresql.LTree
+
 import scalaz.Scalaz._
 import PostgreSql._
 

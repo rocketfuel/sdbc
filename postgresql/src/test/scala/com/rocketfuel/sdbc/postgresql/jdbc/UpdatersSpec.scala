@@ -3,7 +3,9 @@ package com.rocketfuel.sdbc.postgresql.jdbc
 import java.sql.{Date, Time, Timestamp}
 import java.time._
 import java.util.UUID
+import com.rocketfuel.sdbc.PostgreSql
 import PostgreSql._
+import com.rocketfuel.sdbc.PostgreSql
 import com.rocketfuel.sdbc.base.jdbc.Updater
 import org.apache.commons.lang3.RandomStringUtils
 import org.json4s.JValue

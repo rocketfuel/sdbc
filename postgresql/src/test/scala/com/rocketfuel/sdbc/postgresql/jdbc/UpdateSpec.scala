@@ -1,5 +1,6 @@
 package com.rocketfuel.sdbc.postgresql.jdbc
 
+import com.rocketfuel.sdbc.PostgreSql
 import org.scalatest.FunSuite
 import PostgreSql._
 
