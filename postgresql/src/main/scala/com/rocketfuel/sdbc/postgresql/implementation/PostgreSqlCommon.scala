@@ -1,17 +1,9 @@
 package com.rocketfuel.sdbc.postgresql.implementation
 
-import java.io.{InputStream, Reader}
-import java.sql.PreparedStatement
-import java.util.UUID
 import com.rocketfuel.sdbc.base.CISet
 import com.rocketfuel.sdbc.base.jdbc._
-import com.rocketfuel.sdbc.postgresql.{LTree, Cidr, jdbc}
-import org.json4s.JValue
+import com.rocketfuel.sdbc.postgresql.{LTree, Cidr}
 import org.postgresql.PGConnection
-import org.postgresql.util.PGobject
-import scodec.bits.ByteVector
-
-import scala.xml.Node
 
 private[sdbc] abstract class PostgreSqlCommon
   extends DBMS

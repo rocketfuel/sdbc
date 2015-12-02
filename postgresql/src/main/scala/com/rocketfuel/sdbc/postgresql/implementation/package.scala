@@ -1,4 +1,4 @@
-package com.rocketfuel.sdbc.postgresql.jdbc
+package com.rocketfuel.sdbc.postgresql
 
 import java.time.format.{DateTimeFormatterBuilder, DateTimeFormatter}
 

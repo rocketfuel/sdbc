@@ -7,7 +7,6 @@ import java.time.{Duration => JavaDuration, _}
 import java.util.UUID
 import com.rocketfuel.sdbc.base.jdbc._
 import com.rocketfuel.sdbc.postgresql.{LTree, Cidr}
-import com.rocketfuel.sdbc.postgresql.jdbc.LTree
 import org.json4s.JValue
 import org.postgresql.util.{PGInterval, PGobject}
 import scala.xml.{Node, XML}
