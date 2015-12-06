@@ -4,13 +4,14 @@ import java.sql.PreparedStatement
 import java.time.{LocalTime, OffsetDateTime}
 import java.util.UUID
 
-import com.rocketfuel.sdbc.base.{ToParameter, jdbc}
+import com.rocketfuel.sdbc.base.{ParameterValue, ToParameter, jdbc}
 import com.rocketfuel.sdbc.base.jdbc._
 import com.rocketfuel.sdbc.sqlserver.HierarchyId
 
 import scala.xml.Node
 
 private[sdbc] trait QLocalTimeImplicits {
+  self: ParameterValue =>
   implicit val LocalTimeIsParameter: IsParameter[LocalTime] = new IsParameter[LocalTime] {
     override def set(preparedStatement: PreparedStatement, parameterIndex: Int, parameter: LocalTime): Unit = {
       preparedStatement.setString(parameterIndex, parameter.toString)
@@ -35,6 +36,7 @@ private[sdbc] object QOffsetDateTime extends ToParameter {
 }
 
 private[sdbc] trait QOffsetDateTimeImplicits {
+  self: ParameterValue =>
   implicit val OffsetDateTimeIsParameter: IsParameter[OffsetDateTime] = new IsParameter[OffsetDateTime] {
     override def set(preparedStatement: PreparedStatement, parameterIndex: Int, parameter: OffsetDateTime): Unit = {
       preparedStatement.setString(parameterIndex, offsetDateTimeFormatter.format(parameter))
@@ -53,6 +55,7 @@ private[sdbc] object QUUID extends ToParameter {
 }
 
 private[sdbc] trait QUUIDImplicits {
+  self: ParameterValue =>
   implicit val UUIDIsParameter: IsParameter[UUID] = new IsParameter[UUID] {
     override def set(preparedStatement: PreparedStatement, parameterIndex: Int, parameter: UUID): Unit = {
       preparedStatement.setString(parameterIndex, parameter.toString)
@@ -71,6 +74,7 @@ private[sdbc] object QHierarchyId extends ToParameter {
 }
 
 private[sdbc] trait QHierarchyIdImplicits {
+  self: ParameterValue =>
   implicit val HierarchyIdIsParameter: IsParameter[HierarchyId] = new IsParameter[HierarchyId] {
     override def set(preparedStatement: PreparedStatement, parameterIndex: Int, parameter: HierarchyId): Unit = {
       preparedStatement.setString(parameterIndex, parameter.toString)
@@ -82,13 +86,14 @@ private[sdbc] trait QHierarchyIdImplicits {
   }
 }
 
-private[sdbc] object QXML extends ToParameter with QXMLImplicits {
+private[sdbc] object QXML extends ToParameter {
   override val toParameter: PartialFunction[Any, Any] = {
     case x: Node => x
   }
 }
 
 private[sdbc] trait QXMLImplicits extends jdbc.QXMLImplicits {
+  self: ParameterValue =>
   override implicit val NodeIsParameter: IsParameter[Node] = new IsParameter[Node] {
     override def set(preparedStatement: PreparedStatement, parameterIndex: Int, parameter: Node): Unit = {
       preparedStatement.setString(parameterIndex, parameter.toString)
@@ -121,6 +126,7 @@ private[sdbc] trait Setters
   with QUUIDImplicits
   with QHierarchyIdImplicits
   with QXMLImplicits {
+  self: ParameterValue =>
 
   val toSqlServerParameter =
     QBoolean.toParameter orElse

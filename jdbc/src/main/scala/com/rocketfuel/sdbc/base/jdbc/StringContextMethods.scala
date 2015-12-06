@@ -3,6 +3,7 @@ package com.rocketfuel.sdbc.base.jdbc
 import com.rocketfuel.sdbc.base.CompiledStatement
 
 trait StringContextMethods {
+  self: DBMS =>
 
   implicit class JdbcStringContextMethods(sc: StringContext) {
     private def byNumberName(args: Seq[Any]): Map[String, Option[Any]] = {
@@ -28,7 +29,7 @@ trait StringContextMethods {
       Update(compiled, byNumberName(args))
     }
 
-    def select(args: Any*)(implicit getter: Getter[ParameterValue], parameterSetter: ParameterSetter): Select[ImmutableRow] = {
+    def select(args: Any*)(implicit getter: Getter[Option[ParameterValue]]): Select[ImmutableRow] = {
       sc.checkLengths(args)
       Select[ImmutableRow](compiled, byNumberName(args))
     }
@@ -41,11 +42,11 @@ trait StringContextMethods {
   }
 
   /**
-   * This method is for creating parameters out of values used in
-   * a StringContext.
-   * @param a
-   * @return
-   */
+    * This method is for creating parameters out of values used in
+    * a StringContext.
+    * @param a
+    * @return
+    */
   protected def toParameter(a: Any): Option[Any]
 
 }

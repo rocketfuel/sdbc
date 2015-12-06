@@ -13,8 +13,4 @@ abstract class Update[UnderlyingConnection] extends Batch[UnderlyingConnection] 
     Iterator(update())
   }
 
-  override def option()(implicit connection: UnderlyingConnection): Option[Long] = {
-    Some(update())
-  }
-
 }

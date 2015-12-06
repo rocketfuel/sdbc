@@ -4,254 +4,290 @@ import java.io.{InputStream, Reader}
 import java.lang
 import java.net.URL
 import java.nio.ByteBuffer
-import java.sql.{SQLException, Date, Time, Timestamp}
+import java.sql.{Date, SQLException, Time, Timestamp}
 import java.time._
 import java.util.UUID
 
+import com.rocketfuel.sdbc.base
 import scodec.bits.ByteVector
 
-object Getter {
+trait Getter extends CompositeGetter {
+  self: Row
+    with MutableRow
+    with Index
+    with ResultSetImplicits =>
 
-  def fromValGetter[T <: AnyVal](valGetter: Row => Int => T): Getter[T] = {
-    new Getter[T] {
-      override def apply(row: Row, ix: Index): Option[T] = {
-        val value = valGetter(row)(ix(row))
-        if (row.wasNull) None
-        else Some(value)
-      }
+  /**
+    * This is a type that has a companion object with DBMS-specific implicit getters.
+    * @tparam T
+    */
+  case class Getter[+T](getter: base.Getter[Row, Index.Index, T])
+    extends base.Getter[Row, Index.Index, T] {
+
+    override def apply(row: Row, index: Index.Index): T = {
+      getter(row, index)
     }
+
   }
 
-}
-
-trait Parser[+T] extends Getter[T] {
-
-  override def apply(row: Row, ix: Index): Option[T] = {
-    Option(row.getString(ix(row))).map(parse)
+  implicit def baseGetterToGetter[T](getter: base.Getter[Row, Index.Index, T]): Getter[T] = {
+    Getter[T](getter)
   }
 
-  def parse(asString: String): T
+  def valGetterToGetter[T <: AnyVal](valGetter: (Row, Int) => T): Getter[Option[T]] = {
+    (row: Row, ix: Index.Index) =>
+      val value = valGetter(row, ix(row))
+      if (row.wasNull) None
+      else Some(value)
+  }
+
+  implicit def compositeGetterToGetter[T](implicit compositeGetter: CompositeGetter[T]): Getter[T] = {
+    (v1: Row, v2: Index.Index) =>
+      compositeGetter(v1, v2)
+  }
+
+  trait Parser[+T] extends base.Getter[Row, Index.Index, Option[T]] {
+
+    override def apply(row: Row, index: Index.Index): Option[T] = {
+      Option(row.getString(index(row))).map(parse))
+    }
+
+    def parse(s: String): T
+  }
 
 }
 
 trait LongGetter {
+  self: Getter with Row with Index =>
 
-  implicit val LongGetter =
-    Getter.fromValGetter[Long]{ row => ix => row.getLong(ix) }
+  implicit val LongGetter: Getter[Option[Long]] =
+    valGetterToGetter[Long]((row, ix) => row.getLong(ix))
 
-  implicit val BoxedLongGetter = new Getter[java.lang.Long] {
-    override def apply(row: Row, ix: Index): Option[lang.Long] = {
-      LongGetter(row, ix).map(java.lang.Long.valueOf)
-    }
+  implicit val BoxedLongGetter: Getter[Option[lang.Long]] = {
+    (row: Row, ix: Index.Index) => LongGetter(row, ix).map(lang.Long.valueOf)
   }
 
 }
 
 trait IntGetter {
+  self: Getter with Row with Index =>
 
-  implicit val IntGetter =
-    Getter.fromValGetter[Int]{ row => ix => row.getInt(ix) }
+  implicit val IntGetter: Getter[Option[Int]] =
+    valGetterToGetter[Int]((row, ix) => row.getInt(ix))
 
-  implicit val BoxedIntegerGetter = new Getter[java.lang.Integer] {
-    override def apply(row: Row, ix: Index): Option[lang.Integer] = {
-      IntGetter(row, ix).map(java.lang.Integer.valueOf)
-    }
-  }
+  implicit val BoxedIntegerGetter: Getter[Option[lang.Integer]] =
+    (row: Row, ix: Index.Index) => IntGetter(row, ix).map(lang.Integer.valueOf)
 
 }
 
 trait ShortGetter {
+  self: Getter with Row with Index =>
 
-  implicit val ShortGetter =
-    Getter.fromValGetter[Short]{ row => ix => row.getShort(ix) }
+  implicit val ShortGetter: Getter[Option[Short]] =
+    valGetterToGetter[Short] { (row, ix) => row.getShort(ix) }
 
-  implicit val BoxedShortGetter = new Getter[java.lang.Short] {
-    override def apply(row: Row, ix: Index): Option[lang.Short] = {
-      ShortGetter(row, ix).map(java.lang.Short.valueOf)
-    }
+  implicit val BoxedShortGetter: Getter[Option[lang.Short]] = {
+    (row: Row, ix: Index.Index) =>
+      ShortGetter(row, ix).map(lang.Short.valueOf)
   }
 
 }
 
 trait ByteGetter {
+  self: Getter with Row with Index =>
 
-  implicit val ByteGetter =
-    Getter.fromValGetter[Byte]{ row => ix => row.getByte(ix) }
+  implicit val ByteGetter: Getter[Option[Byte]] =
+    valGetterToGetter[Byte] { (row, ix) => row.getByte(ix) }
 
-  implicit val BoxedByteGetter = new Getter[java.lang.Byte] {
-    override def apply(row: Row, ix: Index): Option[lang.Byte] = {
-      ByteGetter(row, ix).map(java.lang.Byte.valueOf)
-    }
+  implicit val BoxedByteGetter: Getter[Option[lang.Byte]] = {
+    (row: Row, ix: Index.Index) =>
+      ByteGetter(row, ix).map(lang.Byte.valueOf)
   }
 
 }
 
 trait BytesGetter {
+  self: Getter with Row with Index =>
 
-  implicit val ArrayByteGetter =
-  new Getter[Array[Byte]] {
-    override def apply(row: Row, ix: Index): Option[Array[Byte]] = {
+  implicit val ArrayByteGetter: Getter[Option[Array[Byte]]] = {
+    (row: Row, ix: Index.Index) =>
       Option(row.getBytes(ix(row)))
-    }
   }
 
-  implicit val ByteBufferGetter =
-    new Getter[ByteBuffer] {
-      override def apply(row: Row, ix: Index): Option[ByteBuffer] = {
-        ArrayByteGetter(row, ix).map(ByteBuffer.wrap)
-      }
-    }
+  implicit val ByteBufferGetter: Getter[Option[ByteBuffer]] = {
+    (row: Row, ix: Index.Index) =>
+      ArrayByteGetter(row, ix).map(ByteBuffer.wrap)
+  }
 
-  implicit val ByteVectorGetter =
-    new Getter[ByteVector] {
-      override def apply(row: Row, ix: Index): Option[ByteVector] = {
-        ArrayByteGetter(row, ix).map(ByteVector.apply)
+  implicit val ByteVectorGetter: Getter[Option[ByteVector]] = {
+    (row: Row, ix: Index.Index) =>
+      ArrayByteGetter(row, ix).map(ByteVector.apply)
+  }
+
+}
+
+trait SeqGetter {
+  self: BytesGetter
+    with Getter
+    with Row
+    with Index
+    with ResultSetImplicits =>
+
+  implicit def toSeqGetter[T](implicit getter: Getter[T]): Getter[Option[Seq[T]]] = {
+    (row: Row, ix: Index.Index) =>
+      for {
+        a <- Option(row.getArray(ix(row)))
+      } yield {
+        val arrayIterator = a.getResultSet().iterator()
+        val arrayValues = for {
+          arrayRow <- arrayIterator
+        } yield {
+          arrayRow.get[T](1)
+        }
+        arrayValues.toVector
       }
-    }
+  }
+
+  //Override what would be the inferred Seq[Byte] getter, because you can't use ResultSet#getArray
+  //to get the bytes.
+  implicit val SeqByteGetter: Getter[Option[Seq[Byte]]] = {
+    (row: Row, ix: Index.Index) =>
+      ArrayByteGetter(row, ix).map(_.toSeq)
+  }
 
 }
 
 trait FloatGetter {
+  self: Getter with Row with Index =>
 
-  implicit val FloatGetter =
-    Getter.fromValGetter[Float]{ row => ix => row.getFloat(ix) }
+  implicit val FloatGetter: Getter[Option[Float]] =
+    valGetterToGetter[Float] { (row, ix) => row.getFloat(ix) }
 
-  implicit val BoxedFloatGetter = new Getter[java.lang.Float] {
-    override def apply(row: Row, ix: Index): Option[lang.Float] = {
-      FloatGetter(row, ix).map(java.lang.Float.valueOf)
-    }
+  implicit val BoxedFloatGetter: Getter[Option[lang.Float]] = {
+    (row: Row, ix: Index.Index) =>
+      FloatGetter(row, ix).map(lang.Float.valueOf)
   }
 
 }
 
 trait DoubleGetter {
+  self: Getter with Row with Index =>
 
-  implicit val DoubleGetter =
-    Getter.fromValGetter[Double]{ row => ix => row.getDouble(ix) }
+  implicit val DoubleGetter: Getter[Option[Double]] =
+    valGetterToGetter[Double]((row, ix) => row.getDouble(ix))
 
-  implicit val BoxedDoubleGetter = new Getter[java.lang.Double] {
-    override def apply(row: Row, ix: Index): Option[lang.Double] = {
-      DoubleGetter(row, ix).map(java.lang.Double.valueOf)
-    }
-  }
-
+  implicit val BoxedDoubleGetter: Getter[Option[lang.Double]] =
+    (row: Row, ix: Index.Index) =>
+      DoubleGetter(row, ix).map(lang.Double.valueOf)
 }
 
 trait JavaBigDecimalGetter {
+  self: Getter with Row with Index =>
 
-  implicit val JavaBigDecimalGetter = new Getter[java.math.BigDecimal] {
-    override def apply(row: Row, ix: Index): Option[java.math.BigDecimal] = {
-      Option(row.getBigDecimal(ix(row)))
-    }
-  }
+  implicit val JavaBigDecimalGetter: Getter[Option[java.math.BigDecimal]] =
+    (row: Row, ix: Index.Index) => Option(row.getBigDecimal(ix(row)))
 
 }
 
 trait ScalaBigDecimalGetter {
+  self: Getter with Row with Index =>
 
-  implicit val ScalaBigDecimalGetter = new Getter[BigDecimal] {
-    override def apply(row: Row, ix: Index): Option[BigDecimal] = {
+  implicit val ScalaBigDecimalGetter: Getter[Option[BigDecimal]] = {
+    (row: Row, ix: Index.Index) =>
       Option(row.getBigDecimal(ix(row))).map(x => x)
-    }
   }
 
 }
 
 trait TimestampGetter {
+  self: Getter with Row with Index =>
 
-  implicit val TimestampGetter = new Getter[Timestamp] {
-    override def apply(row: Row, ix: Index): Option[Timestamp] = {
+  implicit val TimestampGetter: Getter[Option[Timestamp]] = {
+    (row: Row, ix: Index.Index) =>
       Option(row.getTimestamp(ix(row)))
-    }
   }
 
 }
 
 trait DateGetter {
+  self: Getter with Row with Index =>
 
-  implicit val DateGetter = new Getter[Date] {
-    override def apply(row: Row, ix: Index): Option[Date] = {
+  implicit val DateGetter: Getter[Option[Date]] = {
+    (row: Row, ix: Index.Index) =>
       Option(row.getDate(ix(row)))
-    }
   }
 
 }
 
 trait TimeGetter {
+  self: Getter with Row with Index =>
 
-  implicit val TimeGetter = new Getter[Time] {
-    override def apply(row: Row, ix: Index): Option[Time] = {
+  implicit val TimeGetter: Getter[Option[Time]] = {
+    (row: Row, ix: Index.Index) =>
       Option(row.getTime(ix(row)))
-    }
   }
 
 }
 
 trait LocalDateTimeGetter {
+  self: Getter with Row with Index =>
 
-  implicit val LocalDateTimeGetter = new Getter[LocalDateTime] {
-    override def apply(row: Row, ix: Index): Option[LocalDateTime] = {
+  implicit val LocalDateTimeGetter: Getter[Option[LocalDateTime]] =
+    (row: Row, ix: Index.Index) =>
       Option(row.getTimestamp(ix(row))).map(_.toLocalDateTime)
-    }
-  }
-
 }
 
 trait InstantGetter {
+  self: Getter with Row with Index =>
 
-  implicit val InstantGetter = new Getter[Instant] {
-    override def apply(row: Row, ix: Index): Option[Instant] = {
+  implicit val InstantGetter: Getter[Option[Instant]] =
+    (row: Row, ix: Index.Index) =>
       Option(row.getTimestamp(ix(row))).map(_.toInstant)
-    }
-  }
-
 }
 
 trait LocalDateGetter {
+  self: Getter with Row with Index =>
 
-  implicit val LocalDateGetter = new Getter[LocalDate] {
-    override def apply(row: Row, ix: Index): Option[LocalDate] = {
+  implicit val LocalDateGetter: Getter[Option[LocalDate]] =
+    (row: Row, ix: Index.Index) =>
       Option(row.getDate(ix(row))).map(_.toLocalDate)
-    }
-  }
 
 }
 
 trait LocalTimeGetter {
+  self: Getter with Row with Index =>
 
-  implicit val LocalTimeGetter = new Getter[LocalTime] {
-    override def apply(row: Row, ix: Index): Option[LocalTime] = {
+  implicit val LocalTimeGetter: Getter[Option[LocalTime]] =
+    (row: Row, ix: Index.Index) =>
       Option(row.getTime(ix(row))).map(_.toLocalTime)
-    }
-  }
-
 }
 
 trait BooleanGetter {
+  self: Getter with Row with Index =>
 
-  implicit val BooleanGetter: Getter[Boolean] =
-    Getter.fromValGetter[Boolean]{ row => ix => row.getBoolean(ix) }
+  implicit val BooleanGetter: Getter[Option[Boolean]] =
+    valGetterToGetter[Boolean] { (row, ix) => row.getBoolean(ix) }
 
-  implicit val BoxedBooleanGetter = new Getter[java.lang.Boolean] {
-    override def apply(row: Row, ix: Index): Option[lang.Boolean] = {
-      BooleanGetter(row, ix).map(java.lang.Boolean.valueOf)
-    }
-  }
-
+  implicit val BoxedBooleanGetter: Getter[Option[lang.Boolean]] =
+    (row: Row, ix: Index.Index) =>
+      BooleanGetter(row, ix).map(lang.Boolean.valueOf)
 }
 
 trait StringGetter {
+  self: Getter =>
 
-  implicit val StringGetter = new Parser[String] {
-    override def parse(asString: String): String = asString
-  }
+  implicit val StringGetter: Getter[Option[String]] =
+    new Parser[String] {
+      override def parse(asString: String): String = asString
+    }
 
 }
 
 trait UUIDGetter {
+  self: Getter with Row with Index =>
 
-  implicit val UUIDGetter = new Getter[UUID] {
-    override def apply(row: Row, ix: Index): Option[UUID] = {
+  implicit val UUIDGetter: Getter[Option[UUID]] =
+    (row: Row, ix: Index.Index) =>
       Option(row.getObject(ix(row))).map {
         case u: UUID =>
           u
@@ -260,75 +296,41 @@ trait UUIDGetter {
         case otherwise =>
           throw new SQLException("UUID value expected but not found.")
       }
-    }
-  }
 
 }
 
-//This is left out of the defaults, since no one seems to suppor it.
+//This is left out of the defaults, since no one seems to support it.
 trait URLGetter {
+  self: Getter with Row with Index =>
 
-  implicit val URLGetter = new Getter[URL] {
-    override def apply(row: Row, ix: Index): Option[URL] = {
+  implicit val URLGetter: Getter[Option[URL]] =
+    (row: Row, ix: Index.Index) =>
       Option(row.getURL(ix(row)))
-    }
-  }
-
 }
 
 trait InputStreamGetter {
+  self: Getter with Row with Index =>
 
-  implicit val InputStreamGetter = new Getter[InputStream] {
-    override def apply(row: Row, ix: Index): Option[InputStream] = {
+  implicit val InputStreamGetter: Getter[Option[InputStream]] = {
+    (row: Row, ix: Index.Index) =>
       Option(row.getBinaryStream(ix(row)))
-    }
   }
 
 }
 
 trait ReaderGetter {
+  self: Getter with Row with Index =>
 
-  implicit val ReaderGetter = new Getter[Reader] {
-    override def apply(row: Row, ix: Index): Option[Reader] = {
+  implicit val ReaderGetter: Getter[Option[Reader]] = {
+    (row: Row, ix: Index.Index) =>
       Option(row.getCharacterStream(ix(row)))
-    }
-  }
-
-}
-
-trait SeqGetter {
-  self: BytesGetter =>
-
-  implicit def GetterToSeqOptionGetter[T](implicit getter: Getter[T]): Getter[Seq[Option[T]]] = {
-    (row: Row, ix: Index) =>
-      for {
-        a <- Option(row.getArray(ix(row)))
-      } yield {
-        val arrayIterator = a.getResultSet().iterator()
-        val arrayValues = for {
-          arrayRow <- arrayIterator
-        } yield {
-            arrayRow.get[T](1)
-          }
-        arrayValues.toVector
-      }
-  }
-
-  implicit def GetterToSeqGetter[T](implicit getter: Getter[T]): Getter[Seq[T]] = {
-    (row: Row, ix: Index) =>
-      GetterToSeqOptionGetter(getter)(row, ix).map(_.map(_.get))
-  }
-
-  //Override what would be the inferred Seq[Byte] getter, because you can't use ResultSet#getArray
-  //to get the bytes.
-  implicit val SeqByteGetter = new Getter[Seq[Byte]] {
-    override def apply(row: Row, ix: Index): Option[Seq[Byte]] = {
-      ArrayByteGetter(row, ix).map(_.toSeq)
-    }
   }
 
 }
 
 trait ParameterGetter {
-  implicit val ParameterGetter: Getter[ParameterValue]
+  self: Getter with Row with Index with ParameterValue =>
+
+    implicit val ParameterGetter: Getter[Option[ParameterValue]]
+
 }

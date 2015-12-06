@@ -18,7 +18,12 @@ trait DefaultSetters
   with QTimestampImplicits
   with QReaderImplicits
   with QInputStreamImplicits
-  with QUUIDImplicits {
+  with QUUIDImplicits
+  with QInstantImplicits
+  with QLocalDateImplicits
+  with QLocalTimeImplicits
+  with QLocalDateTimeImplicits {
+  self: ParameterValue =>
 
   val QBoolean = jdbc.QBoolean
 
@@ -70,19 +75,7 @@ trait DefaultSetters
       QString.toParameter orElse
       QReader.toParameter orElse
       QInputStream.toParameter orElse
-      QUUID.toParameter
-
-}
-
-trait Java8DefaultSetters
-  extends DefaultSetters
-  with QInstantImplicits
-  with QLocalDateImplicits
-  with QLocalTimeImplicits
-  with QLocalDateTimeImplicits {
-
-  val toJava8DefaultParameter =
-    toDefaultParameter orElse
+      QUUID.toParameter orElse
       QInstant.toParameter orElse
       QLocalDate.toParameter orElse
       QLocalTime.toParameter orElse

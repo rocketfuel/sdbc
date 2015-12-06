@@ -3,94 +3,43 @@ package com.rocketfuel.sdbc.base.jdbc
 import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.jdbc
 import com.zaxxer.hikari.HikariDataSource
-import scalaz.stream._
 
 abstract class DBMS
   extends HikariImplicits
-  with base.ParameterValueImplicits
+  with ParameterValue
+  with base.CompositeSetter
+  with base.ParameterizedQuery
+  with Batch
+  with Update
+  with Select
+  with SelectForUpdate
+  with Execute
   with UpdaterImplicits
-  with base.BatchableMethods[java.sql.Connection, Batch]
-  with base.UpdatableMethods[java.sql.Connection, Update]
-  with base.SelectableMethods[java.sql.Connection, Select]
-  with base.ExecutableMethods[java.sql.Connection, Execute]
-  with StringContextMethods {
-
-  implicit val ParameterSetter: ParameterSetter
-
-  type CompositeGetter[A] = jdbc.CompositeGetter[A]
-
-  type Index = jdbc.Index
-
-  type Getter[+T] = jdbc.Getter[T]
-
-  type RowConverter[T] = jdbc.RowConverter[T]
-  val RowConverter = jdbc.RowConverter
-
-  type ParameterValue = jdbc.ParameterValue
-  val ParameterValue = jdbc.ParameterValue
+  with StringContextMethods
+  with ResultSetImplicits
+  with JdbcProcess
+  with Getter
+  with Updater
+  with Row
+  with MutableRow
+  with ImmutableRow
+  with UpdatableRow
+  with Index
+  with CompositeGetter
+  with RowConverter {
 
   type Batchable[Key] = base.Batchable[Key, Connection, Batch]
 
-  type Executable[Key] = jdbc.Executable[Key]
+  type Executable[Key] = base.Executable[Key, Connection, Execute]
 
-  type Selectable[Key, Value] = jdbc.Selectable[Key, Value]
+  type Selectable[Key, Value] = base.Selectable[Key, Value, Connection, Select[Value]]
 
-  type Updatable[Key] = jdbc.Updatable[Key]
+  type Updatable[Key] = base.Updatable[Key, Connection, Update]
 
-  type Select[T] = jdbc.Select[T]
+  trait SelectForUpdatable[Key] {
 
-  object Select {
-    def apply[T](
-      queryText: String,
-      hasParameters: Boolean = true
-    )(implicit converter: RowConverter[T]
-    ): Select[T] = {
-      jdbc.Select[T](queryText, hasParameters)
-    }
-  }
+    def select(key: Key): SelectForUpdatable[Key]
 
-  type SelectForUpdate = jdbc.SelectForUpdate
-
-  object SelectForUpdate {
-    def apply(
-      queryText: String,
-      hasParameters: Boolean = true
-    ): SelectForUpdate = {
-      jdbc.SelectForUpdate(queryText, hasParameters)
-    }
-  }
-
-  type Update = jdbc.Update
-
-  object Update {
-    def apply(
-      queryText: String,
-      hasParameters: Boolean = true
-    ): Update = {
-      jdbc.Update(queryText, hasParameters)
-    }
-  }
-
-  type Batch = jdbc.Batch
-
-  object Batch {
-    def apply(
-      queryText: String,
-      hasParameters: Boolean = true
-    ): Batch = {
-      jdbc.Batch(queryText, hasParameters)
-    }
-  }
-
-  type Execute = jdbc.Execute
-
-  object Execute {
-    def apply(
-      queryText: String,
-      hasParameters: Boolean = true
-    ): Execute = {
-      jdbc.Execute(queryText, hasParameters)
-    }
   }
 
   type Pool = jdbc.Pool
@@ -98,14 +47,6 @@ abstract class DBMS
   val Pool = jdbc.Pool
 
   type Connection = jdbc.Connection
-
-  type Row = jdbc.Row
-
-  type MutableRow = jdbc.MutableRow
-
-  type UpdatableRow = jdbc.UpdatableRow
-
-  type ImmutableRow = jdbc.ImmutableRow
 
   implicit def PoolToHikariPool(pool: Pool): HikariDataSource = {
     pool.underlying
@@ -183,16 +124,6 @@ abstract class DBMS
    */
   def initializeConnection(connection: java.sql.Connection): Unit = {
 
-  }
-
-  val JdbcProcess = jdbc.JdbcProcess
-
-  object HasJdbcProcess {
-    val jdbc = JdbcProcess
-  }
-
-  implicit def ProcessToHasJdbcProcess(x: Process.type): HasJdbcProcess.type = {
-    HasJdbcProcess
   }
 
   register(this)

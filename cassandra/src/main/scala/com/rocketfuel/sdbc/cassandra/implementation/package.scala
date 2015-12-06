@@ -14,7 +14,7 @@ package object implementation
 
   type ParameterList = Seq[(String, Option[ParameterValue])]
 
-  type ParameterizedQuery[Self <: ParameterizedQuery[Self]] = base.ParameterizedQuery[Self, core.BoundStatement, Int]
+  type ParameterizedQuery[Self <: ParameterizedQuery[Self, Setters], Setters] = base.ParameterizedQuery[Self, Setters]
 
   type Session = core.Session
 

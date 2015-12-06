@@ -1,77 +1,37 @@
 package com.rocketfuel.sdbc.base
 
-case class ParameterValue(value: Any)
+trait ParameterValue {
 
-trait IsParameter[T, Statement, Index] {
-  def set(preparedStatement: Statement, parameterIndex: Index, parameter: T): Unit
-}
+  type Statement
 
-trait ParameterSetter[Statement, Index] {
+  type Index
 
-  def set(
-    preparedStatement: Statement,
-    parameterIndex: Index,
-    maybeParameter: Option[Any]
-  ): Unit = {
-    maybeParameter match {
-      case None =>
-        setNone(preparedStatement, parameterIndex)
-      case Some(parameter) =>
-        setAny(preparedStatement, parameterIndex, parameter)
+  /**
+    * ParameterValue holds values that ParameterSetter#set knows how to use. It is just
+    * a wrapper for finding the IsParameter instance of a type to make sure that the
+    * dbms knows how to handle it, and then ParameterValue is discarded, and the value is
+    * stored directly in the parameter collection.
+    *
+    * @param value
+    */
+  case class ParameterValue private[sdbc] (value: Any)
+
+  object ParameterValue {
+    def fromIsParameter[T](t: T)(implicit isParameter: IsParameter[T]): ParameterValue = {
+      ParameterValue(t)
     }
   }
 
-  def setNone(
-    preparedStatement: Statement,
-    parameterIndex: Index
-  ): Unit
+  type ParameterList = Seq[(String, Option[ParameterValue])]
 
-  /**
-   *
-   * @param preparedStatement
-   * @param parameterIndex
-   * @param parameter The value to be set.
-   * @param isParameter
-   * @tparam T is a type understood by the DBMS driver.
-   * @return
-   */
-  def setParameter[T](
-    preparedStatement: Statement,
-    parameterIndex: Index,
-    parameter: T
-  )(implicit isParameter: IsParameter[T, Statement, Index]
-  ): Unit = {
-    isParameter.set(preparedStatement, parameterIndex, parameter)
+  trait IsParameter[T] {
+    def set(preparedStatement: Statement, parameterIndex: Index, parameter: T): Unit
   }
 
-  /**
-   * Pattern match to get the IsParameter instance for
-   * a value, and then call setParameter.
-   *
-   * This method is to be implemented on a per-DBMS basis.
-   * @param preparedStatement
-   * @param parameterIndex
-   * @param parameter
-   */
-  def setAny(
-    preparedStatement: Statement,
-    parameterIndex: Index,
-    parameter: Any
-  ): Unit
-}
-
-trait ParameterValueImplicits {
-  implicit def ToOptionParameterValue[T](
-    v: T
-  )(implicit conversion: T => ParameterValue
-  ): Option[ParameterValue] = {
-    Some(conversion(v))
+  implicit class ParameterMethods[T](t: T)(implicit isParameter: IsParameter[T]) {
+    def set(preparedStatement: Statement, parameterIndex: Index): Unit = {
+      isParameter.set(preparedStatement, parameterIndex, t)
+    }
   }
 
-  implicit def OptionToOptionParameterValue[T](
-    v: Option[T]
-  )(implicit conversion: T => ParameterValue
-  ): Option[ParameterValue] = {
-    v.map(conversion)
-  }
 }

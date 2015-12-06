@@ -6,7 +6,7 @@ import java.time.{LocalTime, OffsetDateTime}
 import java.util.UUID
 import com.rocketfuel.sdbc.base.CISet
 import com.rocketfuel.sdbc.base.jdbc._
-import com.rocketfuel.sdbc.sqlserver.HierarchyId
+import com.rocketfuel.sdbc.sqlserver.{implementation, HierarchyId}
 import scodec.bits.ByteVector
 
 import scala.xml.Node
@@ -26,16 +26,16 @@ varbinary, hierarchyid
  */
 private[sdbc] abstract class SqlServer
   extends DBMS
-  with Setters
   with Getters
   with Updaters {
+
+  trait Setters extends implementation.Setters
 
   override def driverClassName = "net.sourceforge.jtds.jdbc.Driver"
   override def dataSourceClassName ="net.sourceforge.jtds.jdbcx.JtdsDataSource"
   override def jdbcSchemes = CISet("jtds:sqlserver")
   override def productName: String = "Microsoft SQL Server"
   override val supportsIsValid = false
-
 
   override implicit val ParameterSetter: ParameterSetter = new ParameterSetter {
     /**

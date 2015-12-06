@@ -1,34 +1,11 @@
 package com.rocketfuel.sdbc.base
 
-import java.sql.PreparedStatement
-import com.rocketfuel.sdbc.base
 import com.zaxxer.hikari.HikariConfig
 
 package object jdbc
-  extends HikariImplicits
-  with ResultSetImplicits
-  with jdbc.Index {
-
-  type ParameterizedQuery[Self <: ParameterizedQuery[Self]] = base.ParameterizedQuery[Self, PreparedStatement, Int]
-
-  type ParameterValue = base.ParameterValue
-  val ParameterValue = base.ParameterValue
-
-  type ParameterList = Seq[(String, Option[ParameterValue])]
-
-  type IsParameter[T] = base.IsParameter[T, PreparedStatement, Int]
-
-  type Getter[+T] = base.Getter[Row, Index, T]
+  extends HikariImplicits {
 
   type Connection = java.sql.Connection
-
-  type Batchable[Key] = base.Batchable[Key, Connection, jdbc.Batch]
-
-  type Executable[Key] = base.Executable[Key, Connection, jdbc.Execute]
-
-  type Selectable[Key, Value] = base.Selectable[Key, Value, Connection, jdbc.Select[Value]]
-
-  type Updatable[Key] = base.Updatable[Key, Connection, jdbc.Update]
 
   private val dataSources: collection.mutable.Map[String, DBMS] = collection.mutable.Map.empty
 
@@ -88,38 +65,5 @@ package object jdbc
     of(r.getStatement)
   }
 
-  private [jdbc] def prepare(
-    queryText: String,
-    parameterValues: Map[String, Option[Any]],
-    parameterPositions: Map[String, Set[Int]]
-  )(implicit connection: Connection,
-    parameterSetter: jdbc.ParameterSetter
-  ): PreparedStatement = {
-    val preparedStatement = connection.prepareStatement(queryText)
-
-    bind(preparedStatement, parameterValues, parameterPositions)
-
-    preparedStatement
-  }
-
-  private [jdbc] def bind(
-    preparedStatement: PreparedStatement,
-    parameterValues: Map[String, Option[Any]],
-    parameterPositions: Map[String, Set[Int]]
-  )(implicit parameterSetter: jdbc.ParameterSetter
-  ): Unit = {
-    for ((key, maybeValue) <- parameterValues) {
-      val setter: Int => Unit = {
-        maybeValue match {
-          case None =>
-            (parameterIndex: Int) => parameterSetter.setNone(preparedStatement, parameterIndex + 1)
-          case Some(value) =>
-            (parameterIndex: Int) => parameterSetter.setAny(preparedStatement, parameterIndex + 1, value)
-        }
-      }
-      val parameterIndices = parameterPositions(key)
-      parameterIndices.foreach(setter)
-    }
-  }
 
 }

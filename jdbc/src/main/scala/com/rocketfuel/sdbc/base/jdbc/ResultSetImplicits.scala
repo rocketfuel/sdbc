@@ -4,6 +4,13 @@ import java.io.Closeable
 import java.sql.ResultSet
 
 trait ResultSetImplicits {
+  self: MutableRow
+    with UpdatableRow
+    with Updater
+    with ParameterValue
+    with Row
+    with Getter
+    with Index =>
 
   implicit class ResultSetToRowIterator(underlying: ResultSet) {
 

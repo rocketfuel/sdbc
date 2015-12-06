@@ -1,6 +1,10 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
+import com.rocketfuel.sdbc.base.CompositeSetter
 import com.rocketfuel.sdbc.cassandra._
+import shapeless.ops.hlist._
+import shapeless.ops.record.Keys
+import shapeless.{LabelledGeneric, HList}
 import scalaz.concurrent.Task
 import scalaz.stream._
 import ProcessUtils._
@@ -26,6 +30,146 @@ trait CassandraProcess {
    */
   def select[T](select: Select[T])(implicit session: Session): Process[Task, T] = {
     runSelect(select)
+  }
+
+  object product {
+    def execute[
+      A,
+      Repr <: HList,
+      MappedRepr <: HList,
+      ReprKeys <: HList
+    ](execute: Execute
+    )(implicit session: Session,
+      genericA: LabelledGeneric.Aux[A, Repr],
+      mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
+      keys: Keys.Aux[Repr, ReprKeys],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, Option[ParameterValue]]
+    ): Sink[Task, A] = {
+      sink.lift[Task, A] {param =>
+        runExecute(execute.onProduct(param))
+      }
+    }
+
+    def select[
+      A,
+      Value,
+      Repr <: HList,
+      MappedRepr <: HList,
+      ReprKeys <: HList
+    ](select: Select[Value]
+    )(implicit session: Session,
+      genericA: LabelledGeneric.Aux[A, Repr],
+      mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
+      keys: Keys.Aux[Repr, ReprKeys],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, Option[ParameterValue]]
+    ): Channel[Task, A, Process[Task, Value]] = {
+      channel.lift[Task, A, Process[Task, Value]] { param =>
+        Task.delay(runSelect[Value](select.onProduct(params)))
+      }
+    }
+
+    def executeWithKeyspace[
+      A,
+      Repr <: HList,
+      MappedRepr <: HList,
+      ReprKeys <: HList
+    ](execute: Execute
+    )(implicit genericA: LabelledGeneric.Aux[A, Repr],
+      mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
+      keys: Keys.Aux[Repr, ReprKeys],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, Option[ParameterValue]]
+    ): Cluster => Sink[Task, (String, A)] = {
+      forClusterWithKeyspaceAux[A, Unit] { param => implicit session =>
+        runExecute(execute.onProduct(param))
+      }
+    }
+
+    def selectWithKeyspace[
+      A,
+      Value,
+      Repr <: HList,
+      MappedRepr <: HList,
+      ReprKeys <: HList
+    ](select: Select[Value]
+    )(implicit genericA: LabelledGeneric.Aux[A, Repr],
+      mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
+      keys: Keys.Aux[Repr, ReprKeys],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, Option[ParameterValue]]
+    ): Cluster => Channel[Task, (String, A), Process[Task, Value]] = {
+      forClusterWithKeyspaceAux[A, Process[Task, Value]] { param => implicit session =>
+        Task.delay(runSelect[Value](select.onProduct(param)))
+      }
+    }
+  }
+
+  object record {
+    def execute[
+      Repr <: HList,
+      MappedRepr <: HList,
+      ReprKeys <: HList
+    ](execute: Execute
+    )(implicit session: Session,
+      mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
+      keys: Keys.Aux[Repr, ReprKeys],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, Option[ParameterValue]]
+    ): Sink[Task, Repr] = {
+      sink.lift[Task, Repr] {param =>
+        runExecute(execute.onRecord(param))
+      }
+    }
+
+    def select[
+      Value,
+      Repr <: HList,
+      MappedRepr <: HList,
+      ReprKeys <: HList
+    ](select: Select[Value]
+    )(implicit session: Session,
+      mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
+      keys: Keys.Aux[Repr, ReprKeys],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, Option[ParameterValue]]
+    ): Channel[Task, Repr, Process[Task, Value]] = {
+      channel.lift[Task, Repr, Process[Task, Value]] { param =>
+        Task.delay(runSelect[Value](select.onRecord(param)))
+      }
+    }
+
+    def executeWithKeyspace[
+      Repr <: HList,
+      MappedRepr <: HList,
+      ReprKeys <: HList
+    ](execute: Execute
+    )(implicit mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
+      keys: Keys.Aux[Repr, ReprKeys],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, Option[ParameterValue]]
+    ): Cluster => Sink[Task, (String, Repr)] = {
+      forClusterWithKeyspaceAux[Repr, Unit] { param => implicit session =>
+        runExecute(execute.onRecord(param))
+      }
+    }
+
+    def selectWithKeyspace[
+      Value,
+      Repr <: HList,
+      MappedRepr <: HList,
+      ReprKeys <: HList
+    ](select: Select[Value]
+    )(implicit mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
+      keys: Keys.Aux[Repr, ReprKeys],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, Option[ParameterValue]]
+    ): Cluster => Channel[Task, (String, Repr), Process[Task, Value]] = {
+      forClusterWithKeyspaceAux[Repr, Process[Task, Value]] { param => implicit session =>
+        Task.delay(runSelect[Value](select.onRecord(param)))
+      }
+    }
   }
 
   object params {
@@ -71,26 +215,6 @@ trait CassandraProcess {
     }
 
     /**
-     * Create a stream from parameter lists, which are independently
-     * added to a query and executed, ignoring the results.
-     *
-     * A session is created for the given keyspace, and is closed when the stream completes.
-     * @param execute
-     * @param keyspace
-     * @param cluster
-     * @return
-     */
-    def execute(
-      execute: Execute,
-      keyspace: Option[String] = None
-    )(cluster: Cluster
-    ): Sink[Task, ParameterList] = {
-      Process.await(connect(cluster, keyspace)) {implicit session =>
-        params.execute(execute).onComplete(Process.eval_(closeSession(session)))
-      }
-    }
-
-    /**
      * Create a stream from keyspace names and parameter lists, which are
      * independently added to a query and executed, ignoring the results.
      *
@@ -105,31 +229,6 @@ trait CassandraProcess {
     ): Cluster => Sink[Task, (String, ParameterList)] = {
       forClusterWithKeyspaceAux[ParameterList, Unit] { params => implicit session =>
         runExecute(execute.on(params: _*))
-      }
-    }
-
-    /**
-     * Create a stream from parameter lists, which are independently
-     * added to a query and executed, to streams of query results.
-     *
-     * Use merge.mergeN to run the queries in parallel, or
-     * .flatMap(identity) to concatenate them.
-     *
-     * A session is created for each keyspace in the source stream,
-     * and they are closed when the stream completes.
-     * @param select
-     * @param keyspace
-     * @param cluster
-     * @tparam Value
-     * @return
-     */
-    def select[Value](
-      select: Select[Value],
-      keyspace: Option[String] = None
-    )(cluster: Cluster
-    ): Channel[Task, ParameterList, Process[Task, Value]] = {
-      Process.await(connect(cluster, keyspace)) {implicit session =>
-        params.select[Value](select).onComplete(Process.eval_(closeSession(session)))
       }
     }
 

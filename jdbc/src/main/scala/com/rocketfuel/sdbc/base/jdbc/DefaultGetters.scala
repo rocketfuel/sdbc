@@ -1,7 +1,8 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 trait DefaultGetters
-  extends BooleanGetter
+  extends Getter
+  with BooleanGetter
   with ByteGetter
   with BytesGetter
   with DateGetter
@@ -18,11 +19,15 @@ trait DefaultGetters
   with TimeGetter
   with TimestampGetter
   with UUIDGetter
-  with ParameterGetter
-
-trait Java8DefaultGetters
-  extends DefaultGetters
   with InstantGetter
   with LocalDateGetter
   with LocalDateTimeGetter
-  with LocalTimeGetter
+  with LocalTimeGetter {
+  self: Row
+    with MutableRow
+    with Index
+    with ResultSetImplicits =>
+
+
+
+}
