@@ -49,7 +49,7 @@ trait Getter extends CompositeGetter {
   trait Parser[+T] extends base.Getter[Row, Index.Index, Option[T]] {
 
     override def apply(row: Row, index: Index.Index): Option[T] = {
-      Option(row.getString(index(row))).map(parse))
+      Option(row.getString(index(row))).map(parse)
     }
 
     def parse(s: String): T
@@ -130,6 +130,7 @@ trait SeqGetter {
   self: BytesGetter
     with Getter
     with Row
+    with MutableRow
     with Index
     with ResultSetImplicits =>
 

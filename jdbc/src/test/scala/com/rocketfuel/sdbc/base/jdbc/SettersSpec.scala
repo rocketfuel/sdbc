@@ -9,8 +9,9 @@ import shapeless.syntax.singleton._
 
 class SettersSpec
   extends FunSuite
-  with DefaultSetters
-  with ParameterValueImplicits {
+  with Update
+  with ParameterValue
+  with DefaultSetters {
 
   implicit val parameterSetter: ParameterSetter = new ParameterSetter {
     def setAny(preparedStatement: PreparedStatement, parameterIndex: Int, parameter: Any): Unit = ???

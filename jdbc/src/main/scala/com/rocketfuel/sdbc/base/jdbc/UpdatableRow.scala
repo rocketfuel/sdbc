@@ -215,6 +215,10 @@ trait UpdatableRow {
 
     def updateObject(columnIndex: String, x: AnyRef, targetSqlType: SQLType, scaleOrLength: Int): Unit = underlying.updateObject(columnIndex + 1, targetSqlType, scaleOrLength)
 
+    def updateNull(columnIndex: Int): Unit = underlying.updateNull(columnIndex + 1)
+
+    def updateNull(columnLabel: String): Unit = underlying.updateNull(columnLabel)
+
   }
 
 }

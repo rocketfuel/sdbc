@@ -6,7 +6,9 @@ import com.rocketfuel.sdbc.base
 
 trait ParameterValue
   extends base.ParameterValue
-  with base.ParameterSetter {
+  with base.ParameterSetter
+  with Index {
+  self: Row =>
 
   override type Index = Int
 
@@ -46,7 +48,7 @@ trait ParameterValue
     }
   }
 
-  override def setNone(preparedStatement: PreparedStatement, parameterIndex: Int): Unit = {
+  override def setNone(preparedStatement: Statement, parameterIndex: Index): Unit = {
     preparedStatement.setNull(parameterIndex, Types.NULL)
   }
 

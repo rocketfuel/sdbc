@@ -1,7 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 import java.io.{InputStream, Reader}
-import java.lang
 import java.net.URL
 import java.nio.ByteBuffer
 import java.sql.{Array => JdbcArray, _}
@@ -17,7 +16,7 @@ object LongToParameter extends ToParameter {
   }
 }
 
-trait LongIsParameter {
+trait LongSetter {
   self: ParameterValue =>
 
   implicit val LongIsParameter: IsParameter[Long] = new IsParameter[Long] {
@@ -32,12 +31,6 @@ trait LongIsParameter {
       )
     }
   }
-
-  implicit val BoxedLongIsParameter: IsParameter[java.lang.Long] = new IsParameter[java.lang.Long] {
-    override def set(preparedStatement: PreparedStatement, parameterIndex: Int, parameter: lang.Long): Unit = {
-      LongIsParameter.set(preparedStatement, parameterIndex, parameter)
-    }
-  }
 }
 
 object IntToParameter extends ToParameter {
@@ -47,7 +40,7 @@ object IntToParameter extends ToParameter {
   }
 }
 
-trait IntIsParameter {
+trait IntSetter {
   self: ParameterValue =>
 
   implicit val IntIsParameter: IsParameter[Int] = new IsParameter[Int] {
@@ -58,10 +51,6 @@ trait IntIsParameter {
       )
     }
   }
-
-  implicit def IntToParameterValue(x: Int): ParameterValue = parameterValue(x)
-
-  implicit def BoxedIntToParameterValue(x: java.lang.Integer): ParameterValue = Int.unbox(x)
 }
 
 object ShortToParameter extends ToParameter {
@@ -71,7 +60,7 @@ object ShortToParameter extends ToParameter {
   }
 }
 
-trait ShortIsParameter {
+trait ShortSetter {
   self: ParameterValue =>
 
   implicit val ShortIsParameter: IsParameter[Short] = new IsParameter[Short] {
@@ -82,10 +71,6 @@ trait ShortIsParameter {
       )
     }
   }
-
-  implicit def ShortToParameterValue(x: Short): ParameterValue = parameterValue(x)
-
-  implicit def BoxedShortToParameterValue(x: java.lang.Short): ParameterValue = Short.unbox(x)
 }
 
 
@@ -96,7 +81,7 @@ object ByteToParameter extends ToParameter {
   }
 }
 
-trait ByteIsParameter {
+trait ByteSetter {
   self: ParameterValue =>
 
   implicit val ByteIsParameter: IsParameter[Byte] = new IsParameter[Byte] {
@@ -107,10 +92,6 @@ trait ByteIsParameter {
       )
     }
   }
-
-  implicit def ByteToParameterValue(x: Byte): ParameterValue = parameterValue(x)
-
-  implicit def BoxedByteToParameterValue(x: java.lang.Byte): ParameterValue = Byte.unbox(x)
 }
 
 object BytesToParameter extends ToParameter {
@@ -121,7 +102,7 @@ object BytesToParameter extends ToParameter {
   }
 }
 
-trait BytesIsParameter {
+trait BytesSetter {
   self: ParameterValue =>
 
   //We're using ByteVectors, since they're much more easily testable than Array[Byte].
@@ -135,11 +116,11 @@ trait BytesIsParameter {
     }
   }
 
-  implicit def ArrayByteToParameterValue(x: Array[Byte]): ParameterValue = parameterValue(ByteVector(x))
+  implicit def ArrayByteToParameterValue(x: Array[Byte]): ParameterValue = ParameterValue(ByteVector(x))
 
-  implicit def ByteBufferToParameterValue(x: ByteBuffer): ParameterValue = parameterValue(ByteVector(x))
+  implicit def ByteBufferToParameterValue(x: ByteBuffer): ParameterValue = ParameterValue(ByteVector(x))
 
-  implicit def ByteVectorToParameterValue(x: ByteVector): ParameterValue = parameterValue(x)
+  implicit def ByteVectorToParameterValue(x: ByteVector): ParameterValue = ParameterValue(x)
 }
 
 object FloatToParameter extends ToParameter {
@@ -149,7 +130,7 @@ object FloatToParameter extends ToParameter {
   }
 }
 
-trait FloatIsParameter {
+trait FloatSetter {
   self: ParameterValue =>
 
   implicit val FloatIsParameter: IsParameter[Float] = new IsParameter[Float] {
@@ -160,10 +141,6 @@ trait FloatIsParameter {
       )
     }
   }
-
-  implicit def FloatToParameterValue(x: Float): ParameterValue = parameterValue(x)
-
-  implicit def BoxedFloatToParameterValue(x: java.lang.Float): ParameterValue = Float.unbox(x)
 }
 
 object DoubleToParameter extends ToParameter {
@@ -173,7 +150,7 @@ object DoubleToParameter extends ToParameter {
   }
 }
 
-trait DoubleIsParameter {
+trait DoubleSetter {
   self: ParameterValue =>
 
   implicit val DoubleIsParameter: IsParameter[Double] = new IsParameter[Double] {
@@ -184,10 +161,6 @@ trait DoubleIsParameter {
       )
     }
   }
-
-  implicit def DoubleToParameterValue(x: Double): ParameterValue = parameterValue(x)
-
-  implicit def BoxedDoubleToParameterValue(x: java.lang.Double): ParameterValue = Double.unbox(x)
 }
 
 object BigDecimalToParameter extends ToParameter {
@@ -197,7 +170,7 @@ object BigDecimalToParameter extends ToParameter {
   }
 }
 
-trait BigDecimalIsParameter {
+trait BigDecimalSetter {
   self: ParameterValue =>
 
   implicit val BigDecimalIsParameter: IsParameter[java.math.BigDecimal] = new IsParameter[java.math.BigDecimal] {
@@ -209,9 +182,8 @@ trait BigDecimalIsParameter {
     }
   }
 
-  implicit def JavaBigDecimalToParameterValue(x: java.math.BigDecimal): ParameterValue = parameterValue(x)
-
-  implicit def ScalaBigDecimalToParameterValue(x: scala.BigDecimal): ParameterValue = x.underlying
+  implicit def ScalaBigDecimalToParameterValue(x: scala.BigDecimal): ParameterValue =
+    ParameterValue(x.underlying)
 }
 
 object TimestampToParameter extends ToParameter {
@@ -220,7 +192,7 @@ object TimestampToParameter extends ToParameter {
   }
 }
 
-trait TimestampIsParameter {
+trait TimestampSetter {
   self: ParameterValue =>
 
   implicit val TimestampIsParameter: IsParameter[Timestamp] = new IsParameter[Timestamp] {
@@ -228,8 +200,6 @@ trait TimestampIsParameter {
       preparedStatement.setTimestamp(parameterIndex, parameter)
     }
   }
-
-  implicit def TimestampToParameterValue(x: Timestamp): ParameterValue = parameterValue(x)
 }
 
 object DateToParameter extends ToParameter {
@@ -239,7 +209,7 @@ object DateToParameter extends ToParameter {
   }
 }
 
-trait DateIsParameter {
+trait DateSetter {
   self: ParameterValue =>
 
   implicit val DateIsParameter: IsParameter[Date] = new IsParameter[Date] {
@@ -248,9 +218,9 @@ trait DateIsParameter {
     }
   }
 
-  implicit def DateToParameterValue(x: Date): ParameterValue = parameterValue(x)
+  implicit def DateToParameterValue(x: Date): ParameterValue = ParameterValue(x)
 
-  implicit def JavaDateToParameterValue(x: java.util.Date): ParameterValue = parameterValue(new Date(x.getTime))
+  implicit def JavaDateToParameterValue(x: java.util.Date): ParameterValue = ParameterValue(new Date(x.getTime))
 }
 
 object TimeToParameter extends ToParameter {
@@ -259,7 +229,7 @@ object TimeToParameter extends ToParameter {
   }
 }
 
-trait TimeIsParameter {
+trait TimeSetter {
   self: ParameterValue =>
 
   implicit val TimeIsParameter: IsParameter[Time] = new IsParameter[Time] {
@@ -268,7 +238,7 @@ trait TimeIsParameter {
     }
   }
 
-  implicit def TimeToParameterValue(x: Time): ParameterValue = parameterValue(x)
+  implicit def TimeToParameterValue(x: Time): ParameterValue = ParameterValue(x)
 }
 
 object BooleanToParameter extends ToParameter {
@@ -279,7 +249,7 @@ object BooleanToParameter extends ToParameter {
 
 }
 
-trait BooleanIsParameter {
+trait BooleanSetter {
   self: ParameterValue =>
 
   implicit val BooleanIsParameter: IsParameter[Boolean] = new IsParameter[Boolean] {
@@ -288,7 +258,7 @@ trait BooleanIsParameter {
     }
   }
 
-  implicit def BooleanToParameterValue(x: Boolean): ParameterValue = parameterValue(x)
+  implicit def BooleanToParameterValue(x: Boolean): ParameterValue = ParameterValue(x)
 
   implicit def BoxedBooleanToParameterValue(x: java.lang.Boolean): ParameterValue = Boolean.unbox(x)
 }
@@ -299,7 +269,7 @@ object StringToParameter extends ToParameter {
   }
 }
 
-trait StringIsParameter {
+trait StringSetter {
   self: ParameterValue =>
 
   implicit val StringIsParameter: IsParameter[String] = new IsParameter[String] {
@@ -308,7 +278,7 @@ trait StringIsParameter {
     }
   }
 
-  implicit def StringToParameterValue(x: String): ParameterValue = parameterValue(x)
+  implicit def StringToParameterValue(x: String): ParameterValue = ParameterValue(x)
 }
 
 object ReaderToParameter extends ToParameter {
@@ -317,7 +287,7 @@ object ReaderToParameter extends ToParameter {
   }
 }
 
-trait ReaderIsParameter {
+trait ReaderSetter {
   self: ParameterValue =>
 
   implicit val ReaderIsParameter: IsParameter[Reader] = new IsParameter[Reader] {
@@ -326,7 +296,7 @@ trait ReaderIsParameter {
     }
   }
 
-  implicit def ReaderToParameterValue(x: Reader): ParameterValue = parameterValue(x)
+  implicit def ReaderToParameterValue(x: Reader): ParameterValue = ParameterValue(x)
 }
 
 object InputStreamToParameter extends ToParameter {
@@ -335,7 +305,7 @@ object InputStreamToParameter extends ToParameter {
   }
 }
 
-trait InputStreamIsParameter {
+trait InputStreamSetter {
   self: ParameterValue =>
 
   implicit val InputStreamIsParameter: IsParameter[InputStream] = new IsParameter[InputStream] {
@@ -344,7 +314,7 @@ trait InputStreamIsParameter {
     }
   }
 
-  implicit def InputStreamToParameterValue(x: InputStream): ParameterValue = parameterValue(x)
+  implicit def InputStreamToParameterValue(x: InputStream): ParameterValue = ParameterValue(x)
 }
 
 object UUIDToParameter extends ToParameter {
@@ -353,7 +323,7 @@ object UUIDToParameter extends ToParameter {
   }
 
 }
-trait UUIDIsParameter {
+trait UUIDSetter {
   self: ParameterValue =>
 
   implicit val UUIDIsParameter: IsParameter[UUID] = new IsParameter[UUID] {
@@ -362,7 +332,7 @@ trait UUIDIsParameter {
     }
   }
 
-  implicit def UUIDToParameterValue(x: UUID): ParameterValue = parameterValue(x)
+  implicit def UUIDToParameterValue(x: UUID): ParameterValue = ParameterValue(x)
 }
 
 //This is left out of the defaults, since no one seems to support it.
@@ -373,7 +343,7 @@ object URLToParameter extends ToParameter {
   }
 }
 
-trait URLIsParameter {
+trait URLSetter {
   self: ParameterValue =>
 
   implicit val URLIsParameter: IsParameter[URL] = new IsParameter[URL] {
@@ -383,21 +353,17 @@ trait URLIsParameter {
   }
 
   implicit def URLToParameterValue(u: URL): ParameterValue = {
-    parameterValue(u)
+    ParameterValue(u)
   }
 }
 
-trait ArrayIsParameter {
+trait ArraySetter {
   self: ParameterValue =>
 
   implicit val ArrayIsParameter: IsParameter[JdbcArray] = new IsParameter[JdbcArray] {
     override def set(preparedStatement: PreparedStatement, parameterIndex: Int, parameter: JdbcArray): Unit = {
       preparedStatement.setArray(parameterIndex, parameter)
     }
-  }
-
-  implicit def JdbcArrayToParameterValue(a: JdbcArray): ParameterValue = {
-    parameterValue(a)
   }
 }
 
@@ -407,7 +373,7 @@ object ArrayToParameter extends ToParameter {
   }
 }
 
-trait XMLIsParameter {
+trait XMLSetter {
   self: ParameterValue =>
 
   implicit val NodeIsParameter: IsParameter[Node] = new IsParameter[Node] {
@@ -418,9 +384,6 @@ trait XMLIsParameter {
     }
   }
 
-  implicit def NodeToParameterValue(a: Node): ParameterValue = {
-    parameterValue(a)
-  }
 }
 
 object XMLToParameter extends ToParameter {
@@ -429,7 +392,7 @@ object XMLToParameter extends ToParameter {
   }
 }
 
-trait SQLXMLIsParameter {
+trait SQLXMLSetter {
   self: ParameterValue =>
 
   implicit val SQLXMLIsParameter: IsParameter[SQLXML] = new IsParameter[SQLXML] {
@@ -438,9 +401,6 @@ trait SQLXMLIsParameter {
     }
   }
 
-  implicit def SQLXMLToParameterValue(a: SQLXML): ParameterValue = {
-    parameterValue(a)
-  }
 }
 
 object SQLXMLToParameter extends ToParameter {
@@ -449,7 +409,7 @@ object SQLXMLToParameter extends ToParameter {
   }
 }
 
-trait BlobIsParameter {
+trait BlobSetter {
   self: ParameterValue =>
 
   implicit val QNodeIsParameter: IsParameter[Blob] = new IsParameter[Blob] {
@@ -458,9 +418,6 @@ trait BlobIsParameter {
     }
   }
 
-  implicit def BlobToParameterValue(a: Blob): ParameterValue = {
-    parameterValue(a)
-  }
 }
 
 object BlobToParameter extends ToParameter {
@@ -477,12 +434,13 @@ object InstantToParameter extends ToParameter {
 
 }
 
-trait InstantIsParameter {
+trait InstantSetter {
   self: ParameterValue =>
 
   implicit def InstantToParameterValue(x: java.time.Instant): ParameterValue = {
-    parameterValue(Timestamp.from(x))
+    ParameterValue(Timestamp.from(x))
   }
+
 }
 
 object LocalDateToParameter extends ToParameter {
@@ -493,12 +451,13 @@ object LocalDateToParameter extends ToParameter {
 
 }
 
-trait LocalDateIsParameter {
+trait LocalDateSetter {
   self: ParameterValue =>
 
   implicit def LocalDateToParameterValue(x: java.time.LocalDate): ParameterValue = {
-    parameterValue(Date.valueOf(x))
+    ParameterValue(Date.valueOf(x))
   }
+
 }
 
 object LocalTimeToParameter extends ToParameter {
@@ -509,12 +468,13 @@ object LocalTimeToParameter extends ToParameter {
 
 }
 
-trait LocalTimeIsParameter {
+trait LocalTimeSetter {
   self: ParameterValue =>
 
   implicit def LocalTimeToParameterValue(x: java.time.LocalTime): ParameterValue = {
-    parameterValue(Time.valueOf(x))
+    ParameterValue(Time.valueOf(x))
   }
+
 }
 
 object LocalDateTimeToParameter extends ToParameter {
@@ -525,10 +485,11 @@ object LocalDateTimeToParameter extends ToParameter {
 
 }
 
-trait LocalDateTimeIsParameter {
+trait LocalDateTimeSetter {
   self: ParameterValue =>
 
   implicit def LocalDateTimeToParameterValue(x: java.time.LocalDateTime): ParameterValue = {
-    parameterValue(Timestamp.valueOf(x))
+    ParameterValue(Timestamp.valueOf(x))
   }
+
 }

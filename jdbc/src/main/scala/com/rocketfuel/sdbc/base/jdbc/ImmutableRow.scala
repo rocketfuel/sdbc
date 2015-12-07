@@ -18,21 +18,17 @@ trait ImmutableRow {
   case class ImmutableRow private[sdbc](
     override val columnTypes: IndexedSeq[String],
     override val columnNames: IndexedSeq[String],
-    parameters: IndexedSeq[Option[Any]],
+    override val asIntMap: IndexedSeq[Option[Any]],
     override val getMetaData: ResultSetMetaData,
     override val getRow: Int
   ) extends Row {
-
-    override def asIntMap(implicit getter: Getter[Option[ParameterValue]]): IndexedSeq[Option[Any]] = {
-      parameters
-    }
 
     private var _wasNull = false
 
     override def wasNull: Boolean = _wasNull
 
     private def setWasNull(columnIndex: Int): Option[Any] = {
-      val parameter = parameters(columnIndex)
+      val parameter = asIntMap(columnIndex)
       _wasNull = parameter.isEmpty
       parameter
     }
@@ -171,11 +167,11 @@ trait ImmutableRow {
   }
 
   object ImmutableRow {
-    implicit def apply(row: Row)(implicit getter: Getter[Option[ParameterValue]]): ImmutableRow = {
+    implicit def apply(row: Row): ImmutableRow = {
       ImmutableRow(
         columnTypes = row.columnTypes,
         columnNames = row.columnNames,
-        parameters = row.asIntMap,
+        asIntMap = row.asIntMap,
         getMetaData = row.getMetaData,
         getRow = row.getRow
       )

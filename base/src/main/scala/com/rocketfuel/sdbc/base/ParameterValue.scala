@@ -20,17 +20,27 @@ trait ParameterValue {
     def fromIsParameter[T](t: T)(implicit isParameter: IsParameter[T]): ParameterValue = {
       ParameterValue(t)
     }
+
+    def fromConvertableToIsParameter[
+      T,
+      U
+    ](t: T
+    )(implicit isParameter: IsParameter[U],
+      conversion: T => U
+    ): ParameterValue = {
+      ParameterValue(conversion(t))
+    }
   }
 
   type ParameterList = Seq[(String, Option[ParameterValue])]
 
   trait IsParameter[T] {
-    def set(preparedStatement: Statement, parameterIndex: Index, parameter: T): Unit
+    def set(preparedStatement: Statement, parameterIndex: Int, parameter: T): Unit
   }
 
-  implicit class ParameterMethods[T](t: T)(implicit isParameter: IsParameter[T]) {
-    def set(preparedStatement: Statement, parameterIndex: Index): Unit = {
-      isParameter.set(preparedStatement, parameterIndex, t)
+  implicit class StatementMethods(statement: Statement) {
+    def set[T](parameterIndex: Int, parameterValue: T)(implicit isParameter: IsParameter[T]): Unit = {
+      isParameter.set(statement, parameterIndex, parameterValue)
     }
   }
 

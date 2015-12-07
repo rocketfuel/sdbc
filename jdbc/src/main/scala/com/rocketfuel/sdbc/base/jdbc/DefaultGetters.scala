@@ -28,6 +28,4 @@ trait DefaultGetters
     with Index
     with ResultSetImplicits =>
 
-
-
 }

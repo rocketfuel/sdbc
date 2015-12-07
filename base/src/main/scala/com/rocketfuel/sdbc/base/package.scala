@@ -27,4 +27,19 @@ package object base {
     }
   }
 
+  def unbox(v: AnyRef): Any = {
+    import java.lang
+    v match {
+      case b: lang.Boolean => b.booleanValue()
+      case b: lang.Byte => b.byteValue()
+      case c: lang.Character => c.charValue()
+      case s: lang.Short => s.shortValue()
+      case i: lang.Integer => i.intValue()
+      case l: lang.Long => l.longValue()
+      case f: lang.Float => f.floatValue()
+      case d: lang.Double => d.doubleValue()
+      case otherwise => otherwise
+    }
+  }
+
 }

@@ -3,82 +3,50 @@ package com.rocketfuel.sdbc.base.jdbc
 import com.rocketfuel.sdbc.base.jdbc
 
 trait DefaultSetters
-  extends QBooleanImplicits
-  with QByteImplicits
-  with QBytesImplicits
-  with QDateImplicits
-  with QBigDecimalImplicits
-  with QDoubleImplicits
-  with QFloatImplicits
-  with QIntImplicits
-  with QLongImplicits
-  with QShortImplicits
-  with QStringImplicits
-  with QTimeImplicits
-  with QTimestampImplicits
-  with QReaderImplicits
-  with QInputStreamImplicits
-  with QUUIDImplicits
-  with QInstantImplicits
-  with QLocalDateImplicits
-  with QLocalTimeImplicits
-  with QLocalDateTimeImplicits {
+  extends BooleanSetter
+  with ByteSetter
+  with BytesSetter
+  with DateSetter
+  with BigDecimalSetter
+  with DoubleSetter
+  with FloatSetter
+  with IntSetter
+  with LongSetter
+  with ShortSetter
+  with StringSetter
+  with TimeSetter
+  with TimestampSetter
+  with ReaderSetter
+  with InputStreamSetter
+  with UUIDSetter
+  with InstantSetter
+  with LocalDateSetter
+  with LocalTimeSetter
+  with LocalDateTimeSetter {
   self: ParameterValue =>
 
-  val QBoolean = jdbc.QBoolean
-
-  val QByte = jdbc.QByte
-
-  val QBytes = jdbc.QBytes
-
-  val QDate = jdbc.QDate
-
-  val QBigDecimal = jdbc.QBigDecimal
-
-  val QDouble = jdbc.QDouble
-
-  val QFloat = jdbc.QFloat
-
-  val QInt = jdbc.QInt
-
-  val QLong = jdbc.QLong
-
-  val QShort = jdbc.QShort
-
-  val QString = jdbc.QString
-
-  val QTime = jdbc.QTime
-
-  val QTimestamp = jdbc.QTimestamp
-
-  val QReader = jdbc.QReader
-
-  val QInputStream = jdbc.QInputStream
-
-  val QUUID = jdbc.QUUID
-
   val toDefaultParameter: PartialFunction[Any, Any] =
-    QBoolean.toParameter orElse
-      QByte.toParameter orElse
-      QBytes.toParameter orElse
+    BooleanToParameter.toParameter orElse
+      ByteToParameter.toParameter orElse
+      BytesToParameter.toParameter orElse
       //Timestamp must come before Date, or else all Timestamps become Dates.
-      QTimestamp.toParameter orElse
+      TimestampToParameter.toParameter orElse
       //Time must come before Date, or else all Times become Dates.
-      QTime.toParameter orElse
-      QDate.toParameter orElse
-      QBigDecimal.toParameter orElse
-      QDouble.toParameter orElse
-      QFloat.toParameter orElse
-      QInt.toParameter orElse
-      QLong.toParameter orElse
-      QShort.toParameter orElse
-      QString.toParameter orElse
-      QReader.toParameter orElse
-      QInputStream.toParameter orElse
-      QUUID.toParameter orElse
-      QInstant.toParameter orElse
-      QLocalDate.toParameter orElse
-      QLocalTime.toParameter orElse
-      QLocalDateTime.toParameter
+      TimeToParameter.toParameter orElse
+      DateToParameter.toParameter orElse
+      BigDecimalToParameter.toParameter orElse
+      DoubleToParameter.toParameter orElse
+      FloatToParameter.toParameter orElse
+      IntToParameter.toParameter orElse
+      LongToParameter.toParameter orElse
+      ShortToParameter.toParameter orElse
+      StringToParameter.toParameter orElse
+      ReaderToParameter.toParameter orElse
+      InputStreamToParameter.toParameter orElse
+      UUIDToParameter.toParameter orElse
+      InstantToParameter.toParameter orElse
+      LocalDateToParameter.toParameter orElse
+      LocalTimeToParameter.toParameter orElse
+      LocalDateTimeToParameter.toParameter
 
 }

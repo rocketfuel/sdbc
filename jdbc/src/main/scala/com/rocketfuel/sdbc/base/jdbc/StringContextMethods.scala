@@ -1,52 +1,55 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 import com.rocketfuel.sdbc.base.CompiledStatement
+import shapeless._
 
 trait StringContextMethods {
   self: DBMS =>
 
   implicit class JdbcStringContextMethods(sc: StringContext) {
-    private def byNumberName(args: Seq[Any]): Map[String, Option[Any]] = {
-      val argNames = 0.until(sc.parts.size - 1).map(_.toString)
-      val compiled = argNames.zip(args.map(toParameter)).toMap
-      compiled
+
+    private def compiled = CompiledStatement(sc)
+
+    object batch extends ProductArgs {
+      def applyProduct[A <: HList](a: A)(implicit setter: CompositeSetter[A]): Batch = {
+        val parameterValues = setter(a)
+
+        Batch(compiled, Map.empty, Seq.empty).addBatch(parameterValues: _*)
+      }
     }
 
-    private val compiled = CompiledStatement(sc)
+    object execute extends ProductArgs {
+      def applyProduct[A <: HList](a: A)(implicit setter: CompositeSetter[A]): Execute = {
+        val parameterValues = setter(a)
 
-    def batch(args: Any*)(implicit parameterSetter: ParameterSetter): Batch = {
-      sc.checkLengths(args)
-      Batch(compiled, Map.empty, Seq(byNumberName(args)))
+        Execute(compiled, Map.empty[String, Option[Any]]).on(parameterValues: _*)
+      }
     }
 
-    def execute(args: Any*)(implicit parameterSetter: ParameterSetter): Execute = {
-      sc.checkLengths(args)
-      Execute(compiled, byNumberName(args))
+    object update extends ProductArgs {
+      def applyProduct[A <: HList](a: A)(implicit setter: CompositeSetter[A]): Update = {
+        val parameterValues = setter(a)
+
+        Update(compiled, Map.empty[String, Option[Any]]).on(parameterValues: _*)
+      }
     }
 
-    def update(args: Any*)(implicit parameterSetter: ParameterSetter): Update = {
-      sc.checkLengths(args)
-      Update(compiled, byNumberName(args))
+    object select extends ProductArgs {
+      def applyProduct[A <: HList](a: A)(implicit setter: CompositeSetter[A]): Select[ImmutableRow] = {
+        val parameterValues = setter(a)
+
+        Select[ImmutableRow](compiled, Map.empty[String, Option[Any]]).on(parameterValues: _*)
+      }
     }
 
-    def select(args: Any*)(implicit getter: Getter[Option[ParameterValue]]): Select[ImmutableRow] = {
-      sc.checkLengths(args)
-      Select[ImmutableRow](compiled, byNumberName(args))
+    object selectForUpdate extends ProductArgs {
+      def applyProduct[A <: HList](a: A)(implicit setter: CompositeSetter[A]): SelectForUpdate = {
+        val parameterValues = setter(a)
+
+        SelectForUpdate(compiled, Map.empty[String, Option[Any]]).on(parameterValues: _*)
+      }
     }
 
-    def selectForUpdate(args: Any*)(implicit parameterSetter: ParameterSetter): SelectForUpdate = {
-      sc.checkLengths(args)
-      val argsByName = byNumberName(args)
-      SelectForUpdate(compiled, argsByName)
-    }
   }
-
-  /**
-    * This method is for creating parameters out of values used in
-    * a StringContext.
-    * @param a
-    * @return
-    */
-  protected def toParameter(a: Any): Option[Any]
 
 }

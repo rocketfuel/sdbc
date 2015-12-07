@@ -32,7 +32,7 @@ trait ParameterSetter {
     */
   def setParameter[T](
     preparedStatement: Statement,
-    parameterIndex: Index,
+    parameterIndex: Int,
     parameter: T
   )(implicit isParameter: IsParameter[T]
   ): Unit = {

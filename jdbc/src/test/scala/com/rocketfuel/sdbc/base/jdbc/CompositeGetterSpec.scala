@@ -22,24 +22,6 @@ class CompositeGetterSpec
   with Updater
   with DefaultGetters {
 
-  case class ConcreteGetter[T]()
-
-  object ConcreteGetter extends ConcreteGetterCompanion {
-    override implicit def toConcreteGetter[T](getter: BaseGetter[T]): ConcreteGetter[T] = ConcreteGetter[T]()
-
-    implicit val intGetter: ConcreteGetter[Int] = ConcreteGetter[Int]()
-
-    implicit val stringGetter: ConcreteGetter[String] = ConcreteGetter[String]()
-  }
-
-  override implicit def concreteGetterToGetter[T](implicit getter: ConcreteGetter[T]): Getter[T] = {
-    new Getter[T] {
-      override def apply(v1: Row, v2: Index.Index): T = {
-        ???
-      }
-    }
-  }
-
   case class Woozle(a: (String, Int), b: Int :: String :: HNil, c: Boolean)
 
   test("CompositeGetter[Int]") {

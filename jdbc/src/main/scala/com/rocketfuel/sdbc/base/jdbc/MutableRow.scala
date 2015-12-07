@@ -6,6 +6,7 @@ import java.net.URL
 import java.sql.{Array => JdbcArray, _}
 import java.util
 import java.util.Calendar
+import com.rocketfuel.sdbc.base.unbox
 
 trait MutableRow {
   self: ParameterValue
@@ -61,9 +62,9 @@ trait MutableRow {
       }
     }
 
-    override def asIntMap(implicit getter: Getter[Option[ParameterValue]]): IndexedSeq[Option[Any]] = {
+    override def asIntMap: IndexedSeq[Option[Any]] = {
       IndexedSeq.tabulate(underlying.getMetaData.getColumnCount) { ix =>
-        getter(this, ix).map(_.value)
+        Option(getObject(ix + 1)).map(unbox)
       }
     }
 

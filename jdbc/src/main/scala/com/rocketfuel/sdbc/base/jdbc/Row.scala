@@ -24,7 +24,7 @@ trait Row {
 
     lazy val columnIndexes = CIMap(columnNames.zipWithIndex: _*)
 
-    def asStringMap(implicit getter: Getter[Option[ParameterValue]]): Map[String, Option[Any]] = {
+    def asStringMap: Map[String, Option[Any]] = {
       asIntMap.zipWithIndex.map {
         case (value, ix) =>
           val columnName = columnNames(ix)
@@ -32,7 +32,7 @@ trait Row {
       }.toMap
     }
 
-    def asIntMap(implicit getter: Getter[Option[ParameterValue]]): IndexedSeq[Option[Any]]
+    def asIntMap: IndexedSeq[Option[Any]]
 
     /**
       * The index of the row in the result set.

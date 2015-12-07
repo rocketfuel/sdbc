@@ -87,9 +87,9 @@ trait Batch {
           for (index <- parameterPositions(name)) {
             maybeValue match {
               case None =>
-                parameterSetter.setNone(prepared, index + 1)
+                setNone(prepared, index + 1)
               case Some(value) =>
-                parameterSetter.setAny(prepared, index + 1, value)
+                setAny(prepared, index + 1, value)
             }
           }
         }
