@@ -12,7 +12,7 @@ package object implementation
   type ParameterValue = base.ParameterValue
   val ParameterValue = base.ParameterValue
 
-  type ParameterList = Seq[(String, Option[ParameterValue])]
+  type ParameterList = Seq[(String, ParameterValue)]
 
   type ParameterizedQuery[Self <: ParameterizedQuery[Self, Setters], Setters] = base.ParameterizedQuery[Self, Setters]
 

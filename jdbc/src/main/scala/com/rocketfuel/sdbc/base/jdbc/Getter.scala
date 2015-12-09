@@ -21,32 +21,35 @@ trait Getter extends CompositeGetter {
     * This is a type that has a companion object with DBMS-specific implicit getters.
     * @tparam T
     */
-  case class Getter[+T](getter: base.Getter[Row, Index.Index, T])
+  case class Getter[+T] private[sdbc] (getter: base.Getter[Row, Index.Index, T])
     extends base.Getter[Row, Index.Index, T] {
 
-    override def apply(row: Row, index: Index.Index): T = {
+    override def apply(row: Row, index: Index.Index): Option[T] = {
       getter(row, index)
     }
 
   }
 
-  implicit def baseGetterToGetter[T](getter: base.Getter[Row, Index.Index, T]): Getter[T] = {
-    Getter[T](getter)
+  object Getter {
+    def apply[T](implicit getter: Getter[T]): Getter[T] = getter
+
+    implicit def ofFunction[T](getter: base.Getter[Row, Index.Index, T]): Getter[T] = {
+      Getter[T](getter)
+    }
+
+    def ofParser[T](parser: String => T)(implicit stringGetter: Getter[String]): Getter[T] = {
+      Getter((row: Row, index: Index.Index) => stringGetter.getter(row, index).map(parser))
+    }
+
+    def ofVal[T <: AnyVal](valGetter: (Row, Int) => T): Getter[T] = {
+      (row: Row, ix: Index.Index) =>
+        val value = valGetter(row, ix(row))
+        if (row.wasNull) None
+        else Some(value)
+    }
   }
 
-  def valGetterToGetter[T <: AnyVal](valGetter: (Row, Int) => T): Getter[Option[T]] = {
-    (row: Row, ix: Index.Index) =>
-      val value = valGetter(row, ix(row))
-      if (row.wasNull) None
-      else Some(value)
-  }
-
-  implicit def compositeGetterToGetter[T](implicit compositeGetter: CompositeGetter[T]): Getter[T] = {
-    (v1: Row, v2: Index.Index) =>
-      compositeGetter(v1, v2)
-  }
-
-  trait Parser[+T] extends base.Getter[Row, Index.Index, Option[T]] {
+  trait Parser[+T] extends base.Getter[Row, Index.Index, T] {
 
     override def apply(row: Row, index: Index.Index): Option[T] = {
       Option(row.getString(index(row))).map(parse)
@@ -60,10 +63,10 @@ trait Getter extends CompositeGetter {
 trait LongGetter {
   self: Getter with Row with Index =>
 
-  implicit val LongGetter: Getter[Option[Long]] =
-    valGetterToGetter[Long]((row, ix) => row.getLong(ix))
+  implicit val LongGetter: Getter[Long] =
+    Getter.ofVal[Long]((row, ix) => row.getLong(ix))
 
-  implicit val BoxedLongGetter: Getter[Option[lang.Long]] = {
+  implicit val BoxedLongGetter: Getter[lang.Long] = {
     (row: Row, ix: Index.Index) => LongGetter(row, ix).map(lang.Long.valueOf)
   }
 
@@ -72,10 +75,10 @@ trait LongGetter {
 trait IntGetter {
   self: Getter with Row with Index =>
 
-  implicit val IntGetter: Getter[Option[Int]] =
-    valGetterToGetter[Int]((row, ix) => row.getInt(ix))
+  implicit val IntGetter: Getter[Int] =
+    Getter.ofVal[Int]((row, ix) => row.getInt(ix))
 
-  implicit val BoxedIntegerGetter: Getter[Option[lang.Integer]] =
+  implicit val BoxedIntegerGetter: Getter[lang.Integer] =
     (row: Row, ix: Index.Index) => IntGetter(row, ix).map(lang.Integer.valueOf)
 
 }
@@ -83,10 +86,10 @@ trait IntGetter {
 trait ShortGetter {
   self: Getter with Row with Index =>
 
-  implicit val ShortGetter: Getter[Option[Short]] =
-    valGetterToGetter[Short] { (row, ix) => row.getShort(ix) }
+  implicit val ShortGetter: Getter[Short] =
+    Getter.ofVal[Short] { (row, ix) => row.getShort(ix) }
 
-  implicit val BoxedShortGetter: Getter[Option[lang.Short]] = {
+  implicit val BoxedShortGetter: Getter[lang.Short] = {
     (row: Row, ix: Index.Index) =>
       ShortGetter(row, ix).map(lang.Short.valueOf)
   }
@@ -96,10 +99,10 @@ trait ShortGetter {
 trait ByteGetter {
   self: Getter with Row with Index =>
 
-  implicit val ByteGetter: Getter[Option[Byte]] =
-    valGetterToGetter[Byte] { (row, ix) => row.getByte(ix) }
+  implicit val ByteGetter: Getter[Byte] =
+    Getter.ofVal[Byte] { (row, ix) => row.getByte(ix) }
 
-  implicit val BoxedByteGetter: Getter[Option[lang.Byte]] = {
+  implicit val BoxedByteGetter: Getter[lang.Byte] = {
     (row: Row, ix: Index.Index) =>
       ByteGetter(row, ix).map(lang.Byte.valueOf)
   }
@@ -109,17 +112,17 @@ trait ByteGetter {
 trait BytesGetter {
   self: Getter with Row with Index =>
 
-  implicit val ArrayByteGetter: Getter[Option[Array[Byte]]] = {
+  implicit val ArrayByteGetter: Getter[Array[Byte]] = {
     (row: Row, ix: Index.Index) =>
       Option(row.getBytes(ix(row)))
   }
 
-  implicit val ByteBufferGetter: Getter[Option[ByteBuffer]] = {
+  implicit val ByteBufferGetter: Getter[ByteBuffer] = {
     (row: Row, ix: Index.Index) =>
       ArrayByteGetter(row, ix).map(ByteBuffer.wrap)
   }
 
-  implicit val ByteVectorGetter: Getter[Option[ByteVector]] = {
+  implicit val ByteVectorGetter: Getter[ByteVector] = {
     (row: Row, ix: Index.Index) =>
       ArrayByteGetter(row, ix).map(ByteVector.apply)
   }
@@ -134,7 +137,7 @@ trait SeqGetter {
     with Index
     with ResultSetImplicits =>
 
-  implicit def toSeqGetter[T](implicit getter: Getter[T]): Getter[Option[Seq[T]]] = {
+  implicit def toSeqGetter[T](implicit getter: Getter[T]): Getter[Seq[T]] = {
     (row: Row, ix: Index.Index) =>
       for {
         a <- Option(row.getArray(ix(row)))
@@ -143,7 +146,7 @@ trait SeqGetter {
         val arrayValues = for {
           arrayRow <- arrayIterator
         } yield {
-          arrayRow.get[T](1)
+          arrayRow.get[T](1).get
         }
         arrayValues.toVector
       }
@@ -151,7 +154,7 @@ trait SeqGetter {
 
   //Override what would be the inferred Seq[Byte] getter, because you can't use ResultSet#getArray
   //to get the bytes.
-  implicit val SeqByteGetter: Getter[Option[Seq[Byte]]] = {
+  implicit val SeqByteGetter: Getter[Seq[Byte]] = {
     (row: Row, ix: Index.Index) =>
       ArrayByteGetter(row, ix).map(_.toSeq)
   }
@@ -161,10 +164,10 @@ trait SeqGetter {
 trait FloatGetter {
   self: Getter with Row with Index =>
 
-  implicit val FloatGetter: Getter[Option[Float]] =
-    valGetterToGetter[Float] { (row, ix) => row.getFloat(ix) }
+  implicit val FloatGetter: Getter[Float] =
+    Getter.ofVal[Float] { (row, ix) => row.getFloat(ix) }
 
-  implicit val BoxedFloatGetter: Getter[Option[lang.Float]] = {
+  implicit val BoxedFloatGetter: Getter[lang.Float] = {
     (row: Row, ix: Index.Index) =>
       FloatGetter(row, ix).map(lang.Float.valueOf)
   }
@@ -174,10 +177,10 @@ trait FloatGetter {
 trait DoubleGetter {
   self: Getter with Row with Index =>
 
-  implicit val DoubleGetter: Getter[Option[Double]] =
-    valGetterToGetter[Double]((row, ix) => row.getDouble(ix))
+  implicit val DoubleGetter: Getter[Double] =
+    Getter.ofVal[Double]((row, ix) => row.getDouble(ix))
 
-  implicit val BoxedDoubleGetter: Getter[Option[lang.Double]] =
+  implicit val BoxedDoubleGetter: Getter[lang.Double] =
     (row: Row, ix: Index.Index) =>
       DoubleGetter(row, ix).map(lang.Double.valueOf)
 }
@@ -185,7 +188,7 @@ trait DoubleGetter {
 trait JavaBigDecimalGetter {
   self: Getter with Row with Index =>
 
-  implicit val JavaBigDecimalGetter: Getter[Option[java.math.BigDecimal]] =
+  implicit val JavaBigDecimalGetter: Getter[java.math.BigDecimal] =
     (row: Row, ix: Index.Index) => Option(row.getBigDecimal(ix(row)))
 
 }
@@ -193,9 +196,9 @@ trait JavaBigDecimalGetter {
 trait ScalaBigDecimalGetter {
   self: Getter with Row with Index =>
 
-  implicit val ScalaBigDecimalGetter: Getter[Option[BigDecimal]] = {
+  implicit val ScalaBigDecimalGetter: Getter[BigDecimal] = {
     (row: Row, ix: Index.Index) =>
-      Option(row.getBigDecimal(ix(row))).map(x => x)
+      Option[BigDecimal](row.getBigDecimal(ix(row)))
   }
 
 }
@@ -203,7 +206,7 @@ trait ScalaBigDecimalGetter {
 trait TimestampGetter {
   self: Getter with Row with Index =>
 
-  implicit val TimestampGetter: Getter[Option[Timestamp]] = {
+  implicit val TimestampGetter: Getter[Timestamp] = {
     (row: Row, ix: Index.Index) =>
       Option(row.getTimestamp(ix(row)))
   }
@@ -213,7 +216,7 @@ trait TimestampGetter {
 trait DateGetter {
   self: Getter with Row with Index =>
 
-  implicit val DateGetter: Getter[Option[Date]] = {
+  implicit val DateGetter: Getter[Date] = {
     (row: Row, ix: Index.Index) =>
       Option(row.getDate(ix(row)))
   }
@@ -223,7 +226,7 @@ trait DateGetter {
 trait TimeGetter {
   self: Getter with Row with Index =>
 
-  implicit val TimeGetter: Getter[Option[Time]] = {
+  implicit val TimeGetter: Getter[Time] = {
     (row: Row, ix: Index.Index) =>
       Option(row.getTime(ix(row)))
   }
@@ -233,7 +236,7 @@ trait TimeGetter {
 trait LocalDateTimeGetter {
   self: Getter with Row with Index =>
 
-  implicit val LocalDateTimeGetter: Getter[Option[LocalDateTime]] =
+  implicit val LocalDateTimeGetter: Getter[LocalDateTime] =
     (row: Row, ix: Index.Index) =>
       Option(row.getTimestamp(ix(row))).map(_.toLocalDateTime)
 }
@@ -241,7 +244,7 @@ trait LocalDateTimeGetter {
 trait InstantGetter {
   self: Getter with Row with Index =>
 
-  implicit val InstantGetter: Getter[Option[Instant]] =
+  implicit val InstantGetter: Getter[Instant] =
     (row: Row, ix: Index.Index) =>
       Option(row.getTimestamp(ix(row))).map(_.toInstant)
 }
@@ -249,7 +252,7 @@ trait InstantGetter {
 trait LocalDateGetter {
   self: Getter with Row with Index =>
 
-  implicit val LocalDateGetter: Getter[Option[LocalDate]] =
+  implicit val LocalDateGetter: Getter[LocalDate] =
     (row: Row, ix: Index.Index) =>
       Option(row.getDate(ix(row))).map(_.toLocalDate)
 
@@ -258,7 +261,7 @@ trait LocalDateGetter {
 trait LocalTimeGetter {
   self: Getter with Row with Index =>
 
-  implicit val LocalTimeGetter: Getter[Option[LocalTime]] =
+  implicit val LocalTimeGetter: Getter[LocalTime] =
     (row: Row, ix: Index.Index) =>
       Option(row.getTime(ix(row))).map(_.toLocalTime)
 }
@@ -266,28 +269,27 @@ trait LocalTimeGetter {
 trait BooleanGetter {
   self: Getter with Row with Index =>
 
-  implicit val BooleanGetter: Getter[Option[Boolean]] =
-    valGetterToGetter[Boolean] { (row, ix) => row.getBoolean(ix) }
+  implicit val BooleanGetter: Getter[Boolean] =
+    Getter.ofVal[Boolean] { (row, ix) => row.getBoolean(ix) }
 
-  implicit val BoxedBooleanGetter: Getter[Option[lang.Boolean]] =
+  implicit val BoxedBooleanGetter: Getter[lang.Boolean] =
     (row: Row, ix: Index.Index) =>
       BooleanGetter(row, ix).map(lang.Boolean.valueOf)
 }
 
 trait StringGetter {
-  self: Getter =>
+  self: Getter with Row with Index =>
 
-  implicit val StringGetter: Getter[Option[String]] =
-    new Parser[String] {
-      override def parse(asString: String): String = asString
-    }
+  implicit val StringGetter: Getter[String] =
+    (row: Row, index: Index.Index) =>
+      Option(row.getString(index(row)))
 
 }
 
 trait UUIDGetter {
   self: Getter with Row with Index =>
 
-  implicit val UUIDGetter: Getter[Option[UUID]] =
+  implicit val UUIDGetter: Getter[UUID] =
     (row: Row, ix: Index.Index) =>
       Option(row.getObject(ix(row))).map {
         case u: UUID =>
@@ -304,7 +306,7 @@ trait UUIDGetter {
 trait URLGetter {
   self: Getter with Row with Index =>
 
-  implicit val URLGetter: Getter[Option[URL]] =
+  implicit val URLGetter: Getter[URL] =
     (row: Row, ix: Index.Index) =>
       Option(row.getURL(ix(row)))
 }
@@ -312,7 +314,7 @@ trait URLGetter {
 trait InputStreamGetter {
   self: Getter with Row with Index =>
 
-  implicit val InputStreamGetter: Getter[Option[InputStream]] = {
+  implicit val InputStreamGetter: Getter[InputStream] = {
     (row: Row, ix: Index.Index) =>
       Option(row.getBinaryStream(ix(row)))
   }
@@ -322,7 +324,7 @@ trait InputStreamGetter {
 trait ReaderGetter {
   self: Getter with Row with Index =>
 
-  implicit val ReaderGetter: Getter[Option[Reader]] = {
+  implicit val ReaderGetter: Getter[Reader] = {
     (row: Row, ix: Index.Index) =>
       Option(row.getCharacterStream(ix(row)))
   }
@@ -332,6 +334,6 @@ trait ReaderGetter {
 trait ParameterGetter {
   self: Getter with Row with Index with ParameterValue =>
 
-    implicit val ParameterGetter: Getter[Option[ParameterValue]]
+    implicit val ParameterGetter: Getter[ParameterValue]
 
 }

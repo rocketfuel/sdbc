@@ -12,7 +12,7 @@ import scala.xml.Node
 
 private[sdbc] trait QLocalTimeImplicits {
   self: ParameterValue =>
-  implicit val LocalTimeIsParameter: IsParameter[LocalTime] = new IsParameter[LocalTime] {
+  implicit val LocalTimeIsParameter: Parameter[LocalTime] = new Parameter[LocalTime] {
     override def set(preparedStatement: PreparedStatement, parameterIndex: Int, parameter: LocalTime): Unit = {
       preparedStatement.setString(parameterIndex, parameter.toString)
     }
@@ -37,7 +37,7 @@ private[sdbc] object QOffsetDateTime extends ToParameter {
 
 private[sdbc] trait QOffsetDateTimeImplicits {
   self: ParameterValue =>
-  implicit val OffsetDateTimeIsParameter: IsParameter[OffsetDateTime] = new IsParameter[OffsetDateTime] {
+  implicit val OffsetDateTimeIsParameter: Parameter[OffsetDateTime] = new Parameter[OffsetDateTime] {
     override def set(preparedStatement: PreparedStatement, parameterIndex: Int, parameter: OffsetDateTime): Unit = {
       preparedStatement.setString(parameterIndex, offsetDateTimeFormatter.format(parameter))
     }
@@ -56,7 +56,7 @@ private[sdbc] object QUUID extends ToParameter {
 
 private[sdbc] trait QUUIDImplicits {
   self: ParameterValue =>
-  implicit val UUIDIsParameter: IsParameter[UUID] = new IsParameter[UUID] {
+  implicit val UUIDIsParameter: Parameter[UUID] = new Parameter[UUID] {
     override def set(preparedStatement: PreparedStatement, parameterIndex: Int, parameter: UUID): Unit = {
       preparedStatement.setString(parameterIndex, parameter.toString)
     }
@@ -75,7 +75,7 @@ private[sdbc] object QHierarchyId extends ToParameter {
 
 private[sdbc] trait QHierarchyIdImplicits {
   self: ParameterValue =>
-  implicit val HierarchyIdIsParameter: IsParameter[HierarchyId] = new IsParameter[HierarchyId] {
+  implicit val HierarchyIdIsParameter: Parameter[HierarchyId] = new Parameter[HierarchyId] {
     override def set(preparedStatement: PreparedStatement, parameterIndex: Int, parameter: HierarchyId): Unit = {
       preparedStatement.setString(parameterIndex, parameter.toString)
     }
@@ -94,7 +94,7 @@ private[sdbc] object QXML extends ToParameter {
 
 private[sdbc] trait QXMLImplicits extends jdbc.QXMLImplicits {
   self: ParameterValue =>
-  override implicit val NodeIsParameter: IsParameter[Node] = new IsParameter[Node] {
+  override implicit val NodeIsParameter: Parameter[Node] = new Parameter[Node] {
     override def set(preparedStatement: PreparedStatement, parameterIndex: Int, parameter: Node): Unit = {
       preparedStatement.setString(parameterIndex, parameter.toString)
     }

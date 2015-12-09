@@ -42,7 +42,7 @@ trait Row {
 
     def getMetaData: ResultSetMetaData
 
-    def get[T](columnIndex: Index.Index)(implicit getter: Getter[T]): T = {
+    def get[T](columnIndex: Index.Index)(implicit getter: CompositeGetter[T]): Option[T] = {
       getter(this, columnIndex)
     }
 

@@ -68,7 +68,7 @@ trait MutableRow {
       }
     }
 
-    def asImmutable(implicit getter: Getter[Option[ParameterValue]]): ImmutableRow = {
+    def asImmutable(implicit getter: Getter[ParameterValue]): ImmutableRow = {
       ImmutableRow(this)
     }
 

@@ -67,7 +67,7 @@ object Select {
   ): Select[T] = {
     Select[T](
       statement = CompiledStatement(queryText, hasParameters),
-      parameterValues = Map.empty[String, Option[ParameterValue]],
+      parameterValues = Map.empty[String, ParameterValue],
       queryOptions
     )
   }

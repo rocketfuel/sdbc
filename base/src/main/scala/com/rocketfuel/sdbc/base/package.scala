@@ -11,7 +11,7 @@ package object base {
    * Getters provide a uniform interface for any value that might be stored
    * in a row, when indexed by something.
    */
-  type Getter[-Row, -Index, +T] = (Row, Index) => T
+  type Getter[-Row, -Index, +T] = (Row, Index) => Option[T]
 
   def box(v: Any): AnyRef = {
     v match {

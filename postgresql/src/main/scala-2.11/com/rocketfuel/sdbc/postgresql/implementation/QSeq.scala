@@ -4,7 +4,7 @@ import java.sql.Connection
 import com.rocketfuel.sdbc.base._
 
 private[sdbc] case class QSeq[T](
-  value: Seq[Option[ParameterValue]],
+  value: Seq[ParameterValue],
   typeName:  String
 ) {
   def asJavaArray: Array[AnyRef] = {

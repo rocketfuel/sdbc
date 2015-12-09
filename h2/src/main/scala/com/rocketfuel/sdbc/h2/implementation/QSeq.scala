@@ -4,7 +4,7 @@ import com.rocketfuel.sdbc.base.{ToParameter, ParameterValue, box}
 
 
 private[sdbc] case class QSeq(
-  value: Seq[Option[ParameterValue]]
+  value: Seq[ParameterValue]
 ) {
   def asJavaArray: Array[AnyRef] = {
     QSeq.toJavaArray(this)

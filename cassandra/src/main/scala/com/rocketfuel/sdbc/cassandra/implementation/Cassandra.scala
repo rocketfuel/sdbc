@@ -51,7 +51,7 @@ private[sdbc] abstract class Cassandra
 
   implicit val ParameterGetter: RowGetter[ParameterValue] =
     new RowGetter[ParameterValue] {
-      override def apply(row: Row, ix: Index): Option[ParameterValue] = {
+      override def apply(row: Row, ix: Index): ParameterValue = {
 
         Option(row.getObject(ix(row))).flatMap {
           case map: java.util.Map[_, _] =>

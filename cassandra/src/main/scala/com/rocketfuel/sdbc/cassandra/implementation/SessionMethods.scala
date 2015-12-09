@@ -9,7 +9,7 @@ private[sdbc] trait SessionMethods {
   implicit class SessionMethods(pool: Session) {
     def iterator[T](
       queryText: String,
-      parameters: (String, Option[ParameterValue])*
+      parameters: (String, ParameterValue)*
     )(implicit converter: CRow => T
     ): Iterator[T] = {
       Select[T](queryText).on(parameters: _*).iterator()(pool)
@@ -17,7 +17,7 @@ private[sdbc] trait SessionMethods {
 
     def option[T](
       queryText: String,
-      parameters: (String, Option[ParameterValue])*
+      parameters: (String, ParameterValue)*
     )(implicit converter: CRow => T
     ): Option[T] = {
       Select[T](queryText).on(parameters: _*).option()(pool)

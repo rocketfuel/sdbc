@@ -1,8 +1,9 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 import shapeless.ops.hlist._
-import shapeless.ops.record.Keys
-import shapeless.{LabelledGeneric, HList}
+import shapeless.ops.nat.ToInt
+import shapeless.ops.record.{MapValues, Keys}
+import shapeless.{Nat, LabelledGeneric, HList}
 import scalaz.concurrent.Task
 import scalaz.stream._
 
@@ -89,17 +90,17 @@ trait JdbcProcess {
     object product {
 
       def batch[
-      A,
-      Repr <: HList,
-      MappedRepr <: HList,
-      ReprKeys <: HList
+        A,
+        Repr <: HList,
+        MappedRepr <: HList,
+        ReprKeys <: HList
       ](batch: Batch
       )(implicit pool: Pool,
         genericA: LabelledGeneric.Aux[A, Repr],
-        mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
         keys: Keys.Aux[Repr, ReprKeys],
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
         ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, Option[ParameterValue]]
+        vtl: ToList[MappedRepr, ParameterValue]
       ): Channel[Task, Traversable[A], Seq[Long]] = {
         withConnection[Traversable[A], Seq[Long]] { batches => implicit connection =>
           Task.delay(batches.foldLeft(batch) { case (b, param) => b.addProductBatch(param) }.seq())
@@ -107,17 +108,17 @@ trait JdbcProcess {
       }
 
       def execute[
-      A,
-      Repr <: HList,
-      MappedRepr <: HList,
-      ReprKeys <: HList
+        A,
+        Repr <: HList,
+        MappedRepr <: HList,
+        ReprKeys <: HList
       ](execute: Execute
       )(implicit pool: Pool,
         genericA: LabelledGeneric.Aux[A, Repr],
-        mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
         keys: Keys.Aux[Repr, ReprKeys],
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
         ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, Option[ParameterValue]]
+        vtl: ToList[MappedRepr, ParameterValue]
       ): Sink[Task, A] = {
         withConnection[A, Unit] { param => implicit connection =>
           Task.delay(execute.onProduct(params).execute())
@@ -125,18 +126,18 @@ trait JdbcProcess {
       }
 
       def select[
-      A,
-      Value,
-      Repr <: HList,
-      MappedRepr <: HList,
-      ReprKeys <: HList
+        A,
+        Value,
+        Repr <: HList,
+        MappedRepr <: HList,
+        ReprKeys <: HList
       ](select: Select[Value]
       )(implicit pool: Pool,
         genericA: LabelledGeneric.Aux[A, Repr],
-        mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
         keys: Keys.Aux[Repr, ReprKeys],
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
         ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, Option[ParameterValue]]
+        vtl: ToList[MappedRepr, ParameterValue]
       ): Channel[Task, A, Process[Task, Value]] = {
         channel.lift[Task, A, Process[Task, Value]] { param =>
           Task.delay {
@@ -148,17 +149,17 @@ trait JdbcProcess {
       }
 
       def update[
-      A,
-      Repr <: HList,
-      MappedRepr <: HList,
-      ReprKeys <: HList
+        A,
+        Repr <: HList,
+        MappedRepr <: HList,
+        ReprKeys <: HList
       ](update: Update
       )(implicit pool: Pool,
         genericA: LabelledGeneric.Aux[A, Repr],
-        mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
         keys: Keys.Aux[Repr, ReprKeys],
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
         ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, Option[ParameterValue]]
+        vtl: ToList[MappedRepr, ParameterValue]
       ): Channel[Task, A, Long] = {
         withConnection[A, Long] { param => implicit connection =>
           Task.delay(update.onProduct(param).update())
@@ -170,15 +171,15 @@ trait JdbcProcess {
     object record {
 
       def batch[
-      Repr <: HList,
-      MappedRepr <: HList,
-      ReprKeys <: HList
+        Repr <: HList,
+        MappedRepr <: HList,
+        ReprKeys <: HList
       ](batch: Batch
       )(implicit pool: Pool,
-        mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
         keys: Keys.Aux[Repr, ReprKeys],
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
         ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, Option[ParameterValue]]
+        vtl: ToList[MappedRepr, ParameterValue]
       ): Channel[Task, Traversable[Repr], Seq[Long]] = {
         withConnection[Traversable[Repr], Seq[Long]] { batches => implicit connection =>
           Task.delay(batches.foldLeft(batch) { case (b, param) => b.addRecordBatch(param) }.seq())
@@ -186,32 +187,32 @@ trait JdbcProcess {
       }
 
       def execute[
-      Repr <: HList,
-      MappedRepr <: HList,
-      ReprKeys <: HList
+        Repr <: HList,
+        MappedRepr <: HList,
+        ReprKeys <: HList
       ](execute: Execute
       )(implicit pool: Pool,
-        mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
         keys: Keys.Aux[Repr, ReprKeys],
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
         ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, Option[ParameterValue]]
+        vtl: ToList[MappedRepr, ParameterValue]
       ): Sink[Task, Repr] = {
         withConnection[Repr, Unit] { param => implicit connection =>
-          Task.delay(execute.onRecord[Repr, MappedRepr, ReprKeys](param).execute())
+          Task.delay(execute.onRecord[Repr, ReprKeys, MappedRepr](param).execute())
         }
       }
 
       def select[
-      Value,
-      Repr <: HList,
-      MappedRepr <: HList,
-      ReprKeys <: HList
+        Value,
+        Repr <: HList,
+        MappedRepr <: HList,
+        ReprKeys <: HList
       ](select: Select[Value]
       )(implicit pool: Pool,
-        mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
         keys: Keys.Aux[Repr, ReprKeys],
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
         ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, Option[ParameterValue]]
+        vtl: ToList[MappedRepr, ParameterValue]
       ): Channel[Task, Repr, Process[Task, Value]] = {
         channel.lift[Task, Repr, Process[Task, Value]] { param =>
           Task.delay {
@@ -223,15 +224,15 @@ trait JdbcProcess {
       }
 
       def update[
-      Repr <: HList,
-      MappedRepr <: HList,
-      ReprKeys <: HList
+        Repr <: HList,
+        MappedRepr <: HList,
+        ReprKeys <: HList
       ](update: Update
       )(implicit pool: Pool,
-        mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
         keys: Keys.Aux[Repr, ReprKeys],
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
         ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, Option[ParameterValue]]
+        vtl: ToList[MappedRepr, ParameterValue]
       ): Channel[Task, Repr, Long] = {
         withConnection[Repr, Long] { param => implicit connection =>
           Task.delay(update.onRecord(param).update())

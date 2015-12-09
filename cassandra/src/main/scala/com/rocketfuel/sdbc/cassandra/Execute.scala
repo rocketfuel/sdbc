@@ -48,7 +48,7 @@ object Execute {
   ): Execute = {
     Execute(
       statement = CompiledStatement(queryText, hasParameters),
-      parameterValues = Map.empty[String, Option[ParameterValue]],
+      parameterValues = Map.empty[String, ParameterValue],
       queryOptions
     )
   }

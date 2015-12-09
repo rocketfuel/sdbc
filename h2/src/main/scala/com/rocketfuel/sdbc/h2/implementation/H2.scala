@@ -12,7 +12,7 @@ import scodec.bits.ByteVector
 private[sdbc] abstract class H2
   extends DBMS
   with Getters
-  with Setters
+  with Parameters
   with Updaters
   with SerializedParameter
   with SeqParameter {

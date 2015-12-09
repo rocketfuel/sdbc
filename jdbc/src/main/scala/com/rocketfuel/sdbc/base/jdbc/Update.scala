@@ -5,7 +5,6 @@ import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
 
 trait Update {
   self: ParameterValue
-    with base.CompositeSetter
     with base.ParameterizedQuery =>
 
   case class Update private[jdbc](

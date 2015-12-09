@@ -28,7 +28,7 @@ class SeqGetterSpec
   testSelect[Seq[Byte]]("SELECT E'\\\\x010203'::bytea", SeqGetterSpec.oneTwoThree.map(_.toByte).some)
 
   {
-    val expected: Seq[Option[ParameterValue]] =
+    val expected: Seq[ParameterValue] =
       Seq(SeqGetterSpec.oneTwoThree, SeqGetterSpec.fourFiveSix).map(p => Some[ParameterValue](p))
 
     testSelect[ParameterValue]("SELECT '{{1,2,3},{4,5,6}}'::int[][] --as ParameterValue", ParameterValue(QSeq[Int](expected, "int4")).some)

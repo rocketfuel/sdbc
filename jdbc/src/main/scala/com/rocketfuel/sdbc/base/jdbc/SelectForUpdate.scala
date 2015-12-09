@@ -6,7 +6,6 @@ import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
 
 trait SelectForUpdate {
   self: ParameterValue
-    with base.CompositeSetter
     with base.ParameterizedQuery
     with UpdatableRow
     with Updater

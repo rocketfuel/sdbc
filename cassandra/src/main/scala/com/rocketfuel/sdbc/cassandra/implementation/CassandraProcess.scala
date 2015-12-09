@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
-import com.rocketfuel.sdbc.base.CompositeSetter
+import com.rocketfuel.sdbc.base.CompositeParameter
 import com.rocketfuel.sdbc.cassandra._
 import shapeless.ops.hlist._
 import shapeless.ops.record.Keys
@@ -44,7 +44,7 @@ trait CassandraProcess {
       mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
       keys: Keys.Aux[Repr, ReprKeys],
       ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, Option[ParameterValue]]
+      vtl: ToList[MappedRepr, ParameterValue]
     ): Sink[Task, A] = {
       sink.lift[Task, A] {param =>
         runExecute(execute.onProduct(param))
@@ -63,7 +63,7 @@ trait CassandraProcess {
       mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
       keys: Keys.Aux[Repr, ReprKeys],
       ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, Option[ParameterValue]]
+      vtl: ToList[MappedRepr, ParameterValue]
     ): Channel[Task, A, Process[Task, Value]] = {
       channel.lift[Task, A, Process[Task, Value]] { param =>
         Task.delay(runSelect[Value](select.onProduct(params)))
@@ -80,7 +80,7 @@ trait CassandraProcess {
       mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
       keys: Keys.Aux[Repr, ReprKeys],
       ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, Option[ParameterValue]]
+      vtl: ToList[MappedRepr, ParameterValue]
     ): Cluster => Sink[Task, (String, A)] = {
       forClusterWithKeyspaceAux[A, Unit] { param => implicit session =>
         runExecute(execute.onProduct(param))
@@ -98,7 +98,7 @@ trait CassandraProcess {
       mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
       keys: Keys.Aux[Repr, ReprKeys],
       ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, Option[ParameterValue]]
+      vtl: ToList[MappedRepr, ParameterValue]
     ): Cluster => Channel[Task, (String, A), Process[Task, Value]] = {
       forClusterWithKeyspaceAux[A, Process[Task, Value]] { param => implicit session =>
         Task.delay(runSelect[Value](select.onProduct(param)))
@@ -116,7 +116,7 @@ trait CassandraProcess {
       mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
       keys: Keys.Aux[Repr, ReprKeys],
       ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, Option[ParameterValue]]
+      vtl: ToList[MappedRepr, ParameterValue]
     ): Sink[Task, Repr] = {
       sink.lift[Task, Repr] {param =>
         runExecute(execute.onRecord(param))
@@ -133,7 +133,7 @@ trait CassandraProcess {
       mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
       keys: Keys.Aux[Repr, ReprKeys],
       ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, Option[ParameterValue]]
+      vtl: ToList[MappedRepr, ParameterValue]
     ): Channel[Task, Repr, Process[Task, Value]] = {
       channel.lift[Task, Repr, Process[Task, Value]] { param =>
         Task.delay(runSelect[Value](select.onRecord(param)))
@@ -148,7 +148,7 @@ trait CassandraProcess {
     )(implicit mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
       keys: Keys.Aux[Repr, ReprKeys],
       ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, Option[ParameterValue]]
+      vtl: ToList[MappedRepr, ParameterValue]
     ): Cluster => Sink[Task, (String, Repr)] = {
       forClusterWithKeyspaceAux[Repr, Unit] { param => implicit session =>
         runExecute(execute.onRecord(param))
@@ -164,7 +164,7 @@ trait CassandraProcess {
     )(implicit mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
       keys: Keys.Aux[Repr, ReprKeys],
       ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, Option[ParameterValue]]
+      vtl: ToList[MappedRepr, ParameterValue]
     ): Cluster => Channel[Task, (String, Repr), Process[Task, Value]] = {
       forClusterWithKeyspaceAux[Repr, Process[Task, Value]] { param => implicit session =>
         Task.delay(runSelect[Value](select.onRecord(param)))
@@ -187,7 +187,7 @@ trait CassandraProcess {
       execute: Execute
     )(implicit session: Session
     ): Sink[Task, ParameterList] = {
-      sink.lift[Task, Seq[(String, Option[ParameterValue])]] { params =>
+      sink.lift[Task, Seq[(String, ParameterValue)]] { params =>
         runExecute(execute.on(params: _*))
       }
     }
@@ -209,7 +209,7 @@ trait CassandraProcess {
       select: Select[Value]
     )(implicit session: Session
     ): Channel[Task, ParameterList, Process[Task, Value]] = {
-      channel.lift[Task, Seq[(String, Option[ParameterValue])], Process[Task, Value]] { params =>
+      channel.lift[Task, Seq[(String, ParameterValue)], Process[Task, Value]] { params =>
         Task.delay(runSelect[Value](select.on(params: _*)))
       }
     }

@@ -33,10 +33,9 @@ trait RowConverter {
     ): RowConverter[A] =
       new RowConverter[A] {
         override def apply(row: Row): A = {
-          converter(row, 0)
+          converter(row, 0).get
         }
       }
   }
-
 
 }

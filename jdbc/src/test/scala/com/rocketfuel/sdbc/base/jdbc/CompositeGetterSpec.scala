@@ -1,30 +1,20 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.jdbc
 import org.scalatest.FunSuite
 import shapeless._
-import shapeless.record._
+import TestDbms._
+import shapeless.record.Record
 
 /**
  * Test cases taken from https://github.com/tpolecat/doobie/blob/c8a273c365edf5a583621fbfd77a49297986d82f/core/src/test/scala/doobie/util/composite.scala
  */
 class CompositeGetterSpec
-  extends FunSuite
-  with Getter
-  with CompositeGetter
-  with Row
-  with MutableRow
-  with ImmutableRow
-  with UpdatableRow
-  with ParameterValue
-  with Index
-  with ResultSetImplicits
-  with Updater
-  with DefaultGetters {
+  extends FunSuite {
 
   case class Woozle(a: (String, Int), b: Int :: String :: HNil, c: Boolean)
 
   test("CompositeGetter[Int]") {
+    CompositeGetter[Int]
     assertCompiles("CompositeGetter[Int]")
   }
 
@@ -52,12 +42,12 @@ class CompositeGetterSpec
     assertCompiles("CompositeGetter[(Int, Woozle :: Woozle :: String :: HNil)]")
   }
 
-//  test("shapeless record") {
-//    type DL = (Int, String)
-//    type A = Record.`'foo -> Int, 'bar -> String, 'baz -> DL, 'quz -> Woozle`.T
-//
-//    CompositeGetter[A]
-//    CompositeGetter[(A, A)]
-//  }
+  test("shapeless record") {
+    type DL = (Int, String)
+    type A = Record.`'foo -> Int, 'bar -> String, 'baz -> DL, 'quz -> Woozle`.T
+
+    assertCompiles("CompositeGetter[A]")
+    assertCompiles("CompositeGetter[(A, A)]")
+  }
 
 }

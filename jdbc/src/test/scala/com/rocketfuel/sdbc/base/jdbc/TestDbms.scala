@@ -1,11 +1,22 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-/**
-  * Created by jshaw on 12/4/15.
-  */
-object TestDbms extends DBMS
-  with DefaultSetters
+import com.rocketfuel.sdbc.base.CISet
+
+class TestDbms extends DBMS
+  with DefaultParameters
   with DefaultGetters
   with DefaultUpdaters {
 
+  override def dataSourceClassName: String = classOf[TestDataSource].getCanonicalName
+
+  override def driverClassName: String = classOf[TestDriver].getCanonicalName
+
+  override def supportsIsValid: Boolean = false
+
+  override def productName: String = "test"
+
+  override def jdbcSchemes: Set[String] = CISet("test")
+
 }
+
+object TestDbms extends TestDbms

@@ -1,12 +1,21 @@
 package com.rocketfuel.sdbc.base
 
 import shapeless._
+import shapeless.record._
+import shapeless.ops.record._
 import shapeless.ops.hlist._
-import shapeless.ops.record.Keys
 
 trait ParameterizedQuery {
-  self: ParameterValue
-    with CompositeSetter =>
+  self: ParameterValue =>
+
+  object ToParameterValue extends Poly {
+    implicit def fromValue[A](implicit parameter: Parameter[A]) = {
+      use {
+        (value: A) =>
+          ParameterValue[A](value)
+      }
+    }
+  }
 
   /**
     * Given a query with named parameters beginning with '@',
@@ -46,10 +55,10 @@ trait ParameterizedQuery {
 
     private def setParameter(
       parameterValues: Map[String, Option[Any]],
-      nameValuePair: (String, Option[ParameterValue])
+      nameValuePair: (String, ParameterValue)
     ): Map[String, Option[Any]] = {
       if (parameterPositions.contains(nameValuePair._1)) {
-        val stripped = nameValuePair._2.map(p => p.value)
+        val stripped = nameValuePair._2.value
         parameterValues + (nameValuePair._1 -> stripped)
       } else {
         throw new IllegalArgumentException(s"${nameValuePair._1} is not a parameter in the query.")
@@ -61,7 +70,7 @@ trait ParameterizedQuery {
       parameterValues: Map[String, Option[Any]]
     ): Self
 
-    def on(parameterValues: (String, Option[ParameterValue])*): Self = {
+    def on(parameterValues: (String, ParameterValue)*): Self = {
       val newValues = setParameters(parameterValues: _*)
       subclassConstructor(statement, newValues)
     }
@@ -69,17 +78,17 @@ trait ParameterizedQuery {
     protected def productParameters[
       A,
       Repr <: HList,
-      MappedRepr <: HList,
-      ReprKeys <: HList
+      ReprKeys <: HList,
+      MappedRepr <: HList
     ](t: A
     )(implicit genericA: LabelledGeneric.Aux[A, Repr],
-      mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
       keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
       ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, Option[ParameterValue]]
-    ): Seq[(String, Option[ParameterValue])] = {
-      val setter = CompositeSetter.fromGeneric[A, Repr, MappedRepr, ReprKeys]
-      setter(t)
+      vtl: ToList[MappedRepr, ParameterValue]
+    ): ParameterList = {
+      val asGeneric = genericA.to(t)
+      recordParameters(asGeneric)
     }
 
     def onProduct[
@@ -89,10 +98,10 @@ trait ParameterizedQuery {
       ReprKeys <: HList
     ](t: A
     )(implicit genericA: LabelledGeneric.Aux[A, Repr],
-      mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
       keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
       ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, Option[ParameterValue]]
+      vtl: ToList[MappedRepr, ParameterValue]
     ): Self = {
       val newValues = setParameters(productParameters(t): _*)
       subclassConstructor(statement, newValues)
@@ -100,33 +109,33 @@ trait ParameterizedQuery {
 
     protected def recordParameters[
       Repr <: HList,
-      MappedRepr <: HList,
-      ReprKeys <: HList
+      ReprKeys <: HList,
+      MappedRepr <: HList
     ](t: Repr
-    )(implicit mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
-      keys: Keys.Aux[Repr, ReprKeys],
+    )(implicit keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
       ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, Option[ParameterValue]]
-    ): Seq[(String, Option[ParameterValue])] = {
-      val setter = CompositeSetter.fromRecord[Repr, MappedRepr, ReprKeys]
-      setter(t)
+      vtl: ToList[MappedRepr, ParameterValue]
+    ): ParameterList = {
+      val mapped = t.mapValues(ToParameterValue)
+      t.keys.toList.map(_.name) zip mapped.toList
     }
 
     def onRecord[
       Repr <: HList,
-      MappedRepr <: HList,
-      ReprKeys <: HList
+      ReprKeys <: HList,
+      MappedRepr <: HList
     ](t: Repr
-    )(implicit mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
-      keys: Keys.Aux[Repr, ReprKeys],
+    )(implicit keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
       ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, Option[ParameterValue]]
+      vtl: ToList[MappedRepr, ParameterValue]
     ): Self = {
       val newValues = setParameters(recordParameters(t): _*)
       subclassConstructor(statement, newValues)
     }
 
-    protected def setParameters(nameValuePairs: (String, Option[ParameterValue])*): Map[String, Option[Any]] = {
+    protected def setParameters(nameValuePairs: (String, ParameterValue)*): Map[String, Option[Any]] = {
       nameValuePairs.foldLeft(parameterValues)(setParameter)
     }
 

@@ -7,7 +7,6 @@ import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
 
 trait Select {
   self: ParameterValue
-    with base.CompositeSetter
     with base.ParameterizedQuery
     with RowConverter
     with MutableRow

@@ -5,9 +5,8 @@ import com.rocketfuel.sdbc.base.jdbc
 import com.zaxxer.hikari.HikariDataSource
 
 abstract class DBMS
-  extends HikariImplicits
-  with ParameterValue
-  with base.CompositeSetter
+  extends ParameterValue
+  with HikariImplicits
   with base.ParameterizedQuery
   with Batch
   with Update
@@ -46,8 +45,6 @@ abstract class DBMS
 
   val Pool = jdbc.Pool
 
-  type Connection = jdbc.Connection
-
   implicit def PoolToHikariPool(pool: Pool): HikariDataSource = {
     pool.underlying
   }
@@ -56,7 +53,7 @@ abstract class DBMS
 
     def iterator[T](
       queryText: String,
-      parameters: (String, Option[ParameterValue])*
+      parameters: (String, ParameterValue)*
     )(implicit converter: RowConverter[T]
     ): Iterator[T] = {
       Select[T](queryText).on(parameters: _*).iterator()(connection)
@@ -64,14 +61,14 @@ abstract class DBMS
 
     def iteratorForUpdate(
       queryText: String,
-      parameters: (String, Option[ParameterValue])*
+      parameters: (String, ParameterValue)*
     ): Iterator[UpdatableRow] = {
       SelectForUpdate(queryText).on(parameters: _*).iterator()(connection)
     }
 
     def option[T](
       queryText: String,
-      parameters: (String, Option[ParameterValue])*
+      parameters: (String, ParameterValue)*
     )(implicit converter: RowConverter[T]
     ): Option[T] = {
       Select[T](queryText).on(parameters: _*).option()(connection)
@@ -79,14 +76,14 @@ abstract class DBMS
 
     def update(
       queryText: String,
-      parameterValues: (String, Option[ParameterValue])*
+      parameterValues: (String, ParameterValue)*
     ): Long = {
       Update(queryText).on(parameterValues: _*).update()(connection)
     }
 
     def execute(
       queryText: String,
-      parameterValues: (String, Option[ParameterValue])*
+      parameterValues: (String, ParameterValue)*
     ): Unit = {
       Execute(queryText).on(parameterValues: _*).execute()(connection)
     }

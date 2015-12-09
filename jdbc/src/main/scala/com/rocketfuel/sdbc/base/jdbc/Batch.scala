@@ -3,12 +3,12 @@ package com.rocketfuel.sdbc.base.jdbc
 import java.sql.{SQLFeatureNotSupportedException, PreparedStatement}
 import com.rocketfuel.sdbc.base
 import shapeless.ops.hlist._
-import shapeless.ops.record.Keys
-import shapeless.{LabelledGeneric, HList}
+import shapeless.ops.nat.ToInt
+import shapeless.ops.record.{MapValues, Keys}
+import shapeless.{Nat, LabelledGeneric, HList}
 
 trait Batch {
   self: ParameterValue
-    with base.CompositeSetter
     with base.ParameterizedQuery =>
 
   /**
@@ -30,7 +30,7 @@ trait Batch {
   with ParameterizedQuery[Batch]
   with base.Logging {
 
-    def addBatch(parameterValues: (String, Option[ParameterValue])*): Batch = {
+    def addBatch(parameterValues: (String, ParameterValue)*): Batch = {
       val newBatch = setParameters(parameterValues: _*)
 
       Batch(
@@ -43,14 +43,14 @@ trait Batch {
     def addProductBatch[
       A,
       Repr <: HList,
-      MappedRepr <: HList,
-      ReprKeys <: HList
+      ReprKeys <: HList,
+      MappedRepr <: HList
     ](param: A
     )(implicit genericA: LabelledGeneric.Aux[A, Repr],
-      mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
       keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
       ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, Option[ParameterValue]]
+      vtl: ToList[MappedRepr, ParameterValue]
     ): Batch = {
       val newBatch = setParameters(productParameters(param): _*)
 
@@ -66,10 +66,10 @@ trait Batch {
       MappedRepr <: HList,
       ReprKeys <: HList
     ](param: Repr
-    )(implicit mapper: Mapper.Aux[CompositeSetter.ToParameterValue.type, Repr, MappedRepr],
-      keys: Keys.Aux[Repr, ReprKeys],
+    )(implicit keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
       ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, Option[ParameterValue]]
+      vtl: ToList[MappedRepr, ParameterValue]
     ): Batch = {
       val newBatch = setParameters(recordParameters(param): _*)
 
@@ -89,7 +89,7 @@ trait Batch {
               case None =>
                 setNone(prepared, index + 1)
               case Some(value) =>
-                setAny(prepared, index + 1, value)
+                setSome(prepared, index + 1, value)
             }
           }
         }

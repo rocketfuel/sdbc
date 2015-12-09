@@ -15,8 +15,6 @@ trait CompositeGetter {
     */
   trait CompositeGetter[A] extends base.Getter[Row, Index.Index, A] {
 
-    def apply(row: Row, ix: Index.Index): A
-
     val length: Int
 
   }
@@ -29,7 +27,7 @@ trait CompositeGetter {
 
     implicit def fromGetter[A](implicit g: Getter[A]): CompositeGetter[A] =
       new CompositeGetter[A] {
-        override def apply(v1: Row, v2: Index.Index): A = {
+        override def apply(v1: Row, v2: Index.Index): Option[A] = {
           g(v1, v2)
         }
 
@@ -41,8 +39,13 @@ trait CompositeGetter {
       T: CompositeGetter[T]
     ): CompositeGetter[FieldType[K, H] :: T] =
       new CompositeGetter[FieldType[K, H] :: T] {
-        override def apply(row: Row, ix: Index.Index): FieldType[K, H] :: T = {
-          field[K](H(row, ix)) :: T(row, ix + H.length)
+        override def apply(row: Row, ix: Index.Index): Option[FieldType[K, H] :: T] = {
+          for {
+            head <- H(row, ix)
+            tail <- T(row, ix + H.length)
+          } yield {
+            field[K](head) :: tail
+          }
         }
 
         override val length: Int = H.length + T.length
@@ -56,17 +59,23 @@ trait CompositeGetter {
       T: CompositeGetter[T]
     ): CompositeGetter[H :: T] =
       new CompositeGetter[H :: T] {
-        override def apply(row: Row, ix: Index.Index): ::[H, T] = {
-          H(row, ix) :: T(row, ix + H.length)
+        override def apply(row: Row, ix: Index.Index): Option[H :: T] = {
+          for {
+            head <- H(row, ix)
+            tail <- T(row, ix + H.length)
+          } yield {
+            head :: tail
+          }
         }
 
         override val length: Int = H.length + T.length
       }
 
-    implicit def emptyProduct: CompositeGetter[HNil] =
+    implicit val emptyProduct: CompositeGetter[HNil] =
       new CompositeGetter[HNil] {
-        override def apply(row: Row, ix: Index.Index): HNil = {
-          HNil: HNil
+
+        override def apply(v1: Row, v2: Index.Index): Option[HNil] = {
+          Some(HNil)
         }
 
         override val length: Int = 0
@@ -77,8 +86,8 @@ trait CompositeGetter {
       G: Lazy[CompositeGetter[G]]
     ): CompositeGetter[F] =
       new CompositeGetter[F] {
-        override def apply(row: Row, ix: Index.Index): F = {
-          gen.from(G.value(row, ix))
+        override def apply(row: Row, ix: Index.Index): Option[F] = {
+          G.value(row, ix).map(gen.from)
         }
 
         override val length: Int = G.value.length

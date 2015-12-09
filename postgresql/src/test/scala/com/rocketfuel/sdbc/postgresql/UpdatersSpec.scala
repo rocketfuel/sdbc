@@ -20,7 +20,7 @@ class UpdatersSpec
   )(after: T
   )(implicit ctag: ClassTag[T],
     updater: Updater[T],
-    setter: T => Option[ParameterValue],
+    setter: T => ParameterValue,
     converter: CompositeGetter[T]
   ): Unit = {
     test(s"Update ${ctag.runtimeClass.getName}") {implicit connection =>

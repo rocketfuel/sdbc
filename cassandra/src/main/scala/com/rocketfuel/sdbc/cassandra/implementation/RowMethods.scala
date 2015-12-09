@@ -11,12 +11,12 @@ private[sdbc] trait RowMethods {
       getter(underlying, ix)
     }
 
-    def getParameters(implicit getter: RowGetter[ParameterValue]): IndexedSeq[Option[ParameterValue]] = {
+    def getParameters(implicit getter: RowGetter[ParameterValue]): IndexedSeq[ParameterValue] = {
       IndexedSeq.tabulate(underlying.getColumnDefinitions.size())(ix => get[ParameterValue](ix))
     }
 
-    def getParametersByName(implicit getter: RowGetter[ParameterValue]): Map[String, Option[ParameterValue]] = {
-      getParameters.zipWithIndex.foldLeft(Map.empty[String, Option[ParameterValue]]) {
+    def getParametersByName(implicit getter: RowGetter[ParameterValue]): Map[String, ParameterValue] = {
+      getParameters.zipWithIndex.foldLeft(Map.empty[String, ParameterValue]) {
         case (accum, (value, ix)) =>
           accum + (underlying.getColumnDefinitions.getName(ix) -> value)
       }
