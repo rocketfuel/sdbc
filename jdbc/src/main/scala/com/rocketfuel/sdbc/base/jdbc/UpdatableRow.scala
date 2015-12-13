@@ -10,8 +10,7 @@ trait UpdatableRow {
     with Updater
     with Row
     with ImmutableRow
-    with Getter
-    with Index =>
+    with Getter =>
 
   class UpdatableRow private[sdbc](
     override protected[sdbc] val underlying: ResultSet

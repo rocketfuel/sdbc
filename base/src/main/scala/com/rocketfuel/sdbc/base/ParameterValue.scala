@@ -8,12 +8,12 @@ trait ParameterValue {
 
   def prepareStatement(statement: String, connection: Connection): Statement
 
-  type Index
+  type ParameterIndex
 
   protected def prepare(
     queryText: String,
     parameterValues: Map[String, Option[Any]],
-    parameterPositions: Map[String, Set[Index]]
+    parameterPositions: Map[String, Set[ParameterIndex]]
   )(implicit connection: Connection
   ): Statement = {
     val preparedStatement = prepareStatement(queryText, connection)
@@ -26,7 +26,7 @@ trait ParameterValue {
   protected def bind(
     preparedStatement: Statement,
     parameterValues: Map[String, Option[Any]],
-    parameterPositions: Map[String, Set[Index]]
+    parameterPositions: Map[String, Set[ParameterIndex]]
   ): Unit = {
     parameterValues.foldLeft(preparedStatement) {
       case (accum, (key, maybeValue)) =>
@@ -40,7 +40,7 @@ trait ParameterValue {
 
   private def set(
     preparedStatement: Statement,
-    parameterIndex: Index,
+    parameterIndex: ParameterIndex,
     maybeParameter: Option[Any]
   ): Statement = {
     maybeParameter match {
@@ -53,11 +53,11 @@ trait ParameterValue {
 
   protected def setNone(
     preparedStatement: Statement,
-    parameterIndex: Index
+    parameterIndex: ParameterIndex
   ): Statement
 
   //null and the assignment in addSetSome is a hack to work around trait initialization order problems
-  private var setSomeBuilder: PartialFunction[Any, (Statement, Index) => Statement] = null
+  private var setSomeBuilder: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = null
 
   protected def addSetSome(f: PartialFunction[Any, (Statement, Index) => Statement]): Unit = {
     if (setSomeBuilder == null) setSomeBuilder = PartialFunction.empty
@@ -93,10 +93,6 @@ trait ParameterValue {
     }
 
     def unapply(p: ParameterValue): Option[Any] = p.value
-
-    implicit def asOption(p: ParameterValue): Option[Any] = {
-      p.value
-    }
   }
 
   type ParameterList = Seq[(String, ParameterValue)]

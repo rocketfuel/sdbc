@@ -5,7 +5,7 @@ trait DefaultParameters
   with ByteParameter
   with BytesParameter
   with DateParameter
-  with JavaBigDecimalParameter
+  with BigDecimalParameter
   with DoubleParameter
   with FloatParameter
   with IntParameter

@@ -9,26 +9,27 @@ import com.rocketfuel.sdbc.sqlserver.HierarchyId
 import scala.xml.Node
 
 private[sdbc] trait Updaters
-  extends AnyRefUpdater
-  with LongUpdater
+  extends LongUpdater
   with IntUpdater
   with ShortUpdater
   with ByteUpdater
   with BytesUpdater
   with DoubleUpdater
   with FloatUpdater
-  with JavaBigDecimalUpdater
-  with ScalaBigDecimalUpdater
   with TimestampUpdater
   with DateUpdater
   with TimeUpdater
   with BooleanUpdater
   with StringUpdater
   with InputStreamUpdater
-  with UpdateReader
+  with ReaderUpdater
   with LocalDateTimeUpdater
   with InstantUpdater
   with LocalDateUpdater {
+  self: Updater
+    with UpdatableRow
+    with ParameterValue
+    with MutableRow=>
 
   implicit val LocalTimeUpdater = new Updater[LocalTime] {
     override def update(row: UpdatableRow, columnIndex: Int, x: LocalTime): Unit = {

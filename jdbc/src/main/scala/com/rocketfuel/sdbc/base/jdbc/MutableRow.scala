@@ -12,8 +12,7 @@ trait MutableRow {
   self: ParameterValue
     with Row
     with ImmutableRow
-    with Getter
-    with Index =>
+    with Getter =>
 
   /**
     * A class which wraps the read-only parts of a JDBC `ResultSet`.

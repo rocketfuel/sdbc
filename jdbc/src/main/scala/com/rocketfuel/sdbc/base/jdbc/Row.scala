@@ -1,17 +1,26 @@
 package com.rocketfuel.sdbc.base.jdbc
 
+import com.rocketfuel.sdbc.base
 import java.io.{Reader, InputStream}
 import java.math.BigDecimal
 import java.net.URL
 import java.sql.{Array => JdbcArray, _}
 import com.rocketfuel.sdbc.base.CIMap
 
-trait Row {
+trait Row extends base.Index {
   self: Getter
     with CompositeGetter
     with MutableRow
-    with Index
     with ParameterValue =>
+
+  override protected def getColumnCount(row: Row): Int =
+    row.getMetaData.getColumnCount
+
+  override protected def getColumnIndex(row: Row, columnName: String): Int =
+    row.columnIndexes(columnName)
+
+  override protected def containsColumn(row: Row, columnName: String): Boolean =
+    row.columnIndexes.contains(columnName)
 
   abstract class Row {
 
@@ -42,7 +51,7 @@ trait Row {
 
     def getMetaData: ResultSetMetaData
 
-    def get[T](columnIndex: Index.Index)(implicit getter: CompositeGetter[T]): Option[T] = {
+    def get[T](columnIndex: Index)(implicit getter: CompositeGetter[T]): Option[T] = {
       getter(this, columnIndex)
     }
 

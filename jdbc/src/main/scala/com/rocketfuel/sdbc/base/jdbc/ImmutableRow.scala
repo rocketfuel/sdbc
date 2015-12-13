@@ -12,8 +12,7 @@ trait ImmutableRow {
     with Getter
     with CompositeGetter
     with Row
-    with MutableRow
-    with Index =>
+    with MutableRow =>
 
   case class ImmutableRow private[sdbc](
     override val columnTypes: IndexedSeq[String],

@@ -6,14 +6,13 @@ import shapeless.labelled._
 
 trait CompositeGetter {
   self: Getter
-    with Row
-    with Index =>
+    with Row =>
 
   /**
     * Like doobie's Composite, but only the getter part.
     * @tparam A
     */
-  trait CompositeGetter[A] extends base.Getter[Row, Index.Index, A] {
+  trait CompositeGetter[A] extends base.Getter[Row, Index, A] {
 
     val length: Int
 
@@ -27,7 +26,7 @@ trait CompositeGetter {
 
     implicit def fromGetter[A](implicit g: Getter[A]): CompositeGetter[A] =
       new CompositeGetter[A] {
-        override def apply(v1: Row, v2: Index.Index): Option[A] = {
+        override def apply(v1: Row, v2: Index): Option[A] = {
           g(v1, v2)
         }
 
@@ -39,7 +38,7 @@ trait CompositeGetter {
       T: CompositeGetter[T]
     ): CompositeGetter[FieldType[K, H] :: T] =
       new CompositeGetter[FieldType[K, H] :: T] {
-        override def apply(row: Row, ix: Index.Index): Option[FieldType[K, H] :: T] = {
+        override def apply(row: Row, ix: Index): Option[FieldType[K, H] :: T] = {
           for {
             head <- H(row, ix)
             tail <- T(row, ix + H.length)
@@ -59,7 +58,7 @@ trait CompositeGetter {
       T: CompositeGetter[T]
     ): CompositeGetter[H :: T] =
       new CompositeGetter[H :: T] {
-        override def apply(row: Row, ix: Index.Index): Option[H :: T] = {
+        override def apply(row: Row, ix: Index): Option[H :: T] = {
           for {
             head <- H(row, ix)
             tail <- T(row, ix + H.length)
@@ -74,7 +73,7 @@ trait CompositeGetter {
     implicit val emptyProduct: CompositeGetter[HNil] =
       new CompositeGetter[HNil] {
 
-        override def apply(v1: Row, v2: Index.Index): Option[HNil] = {
+        override def apply(v1: Row, v2: Index): Option[HNil] = {
           Some(HNil)
         }
 
@@ -86,7 +85,7 @@ trait CompositeGetter {
       G: Lazy[CompositeGetter[G]]
     ): CompositeGetter[F] =
       new CompositeGetter[F] {
-        override def apply(row: Row, ix: Index.Index): Option[F] = {
+        override def apply(row: Row, ix: Index): Option[F] = {
           G.value(row, ix).map(gen.from)
         }
 

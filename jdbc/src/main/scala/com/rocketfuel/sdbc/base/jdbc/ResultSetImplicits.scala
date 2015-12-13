@@ -9,8 +9,7 @@ trait ResultSetImplicits {
     with Updater
     with ParameterValue
     with Row
-    with Getter
-    with Index =>
+    with Getter =>
 
   implicit class ResultSetToRowIterator(underlying: ResultSet) {
 

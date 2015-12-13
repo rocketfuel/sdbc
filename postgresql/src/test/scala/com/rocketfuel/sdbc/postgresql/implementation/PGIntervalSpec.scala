@@ -17,7 +17,7 @@ class PGIntervalSpec extends FunSuite with IntervalImplicits {
   val asDuration: Duration = asPg
 
   test("PGInterval created from string equals PGInterval created from parts") {
-    assert(asPg.getValue == asPgParts.getValue)
+    assertResult(asPgParts.getValue)(asPg.getValue)
   }
 
   test("Duration converted from PGInterval equals Duration") {
@@ -40,11 +40,11 @@ class PGIntervalSpec extends FunSuite with IntervalImplicits {
   test("PGInterval <-> Duration conversion is commutative.") {
     val asPg2: PGInterval = asDuration
 
-    assert(asPg.getYears == asPg2.getYears)
-    assert(asPg.getMonths == asPg2.getMonths)
-    assert(asPg.getDays == asPg2.getDays)
-    assert(asPg.getHours == asPg2.getHours)
-    assert(asPg.getMinutes == asPg2.getMinutes)
+    assertResult(asPg.getYears)(asPg2.getYears)
+    assertResult(asPg.getMonths)(asPg2.getMonths)
+    assertResult(asPg.getDays)(asPg2.getDays)
+    assertResult(asPg.getHours)(asPg2.getHours)
+    assertResult(asPg.getMinutes)(asPg2.getMinutes)
     assert((asPg.getSeconds - asPg2.getSeconds).abs < 0.00001,
       "The difference between the seconds should be non-zero to allow for rounding."
     )

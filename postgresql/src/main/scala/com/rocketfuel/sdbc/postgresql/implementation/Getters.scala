@@ -34,41 +34,40 @@ private[sdbc] trait Getters
   with InstantGetter
   with LocalDateGetter
   with LocalDateTimeGetter {
-  self: PGTimestampTzImplicits
+  self: Getter
+    with Row
+    with PGTimestampTzImplicits
     with PGTimeTzImplicits
     with IntervalImplicits
     with PGInetAddressImplicits
     with PGJsonImplicits =>
 
-  implicit val LTreeGetter = new Getter[LTree] {
-    override def apply(row: Row, ix: Index): Option[LTree] = {
+  implicit val LTreeGetter: Getter[LTree] =
+    (row: Row, ix: Index) => {
       Option(row.getObject(ix(row))).map {
         case l: LTree => l
         case _ => throw new SQLException("column does not contain an ltree")
       }
     }
-  }
 
-  implicit val PGIntervalGetter = new Getter[PGInterval] {
-    override def apply(row: Row, ix: Index): Option[PGInterval] = {
+  implicit val PGIntervalGetter: Getter[LTree] =
+    (row: Row, ix: Index) => {
       Option(row.getObject(ix(row))).map {
         case p: PGInterval => p
         case _ => throw new SQLException("column does not contain an interval")
       }
     }
-  }
 
-  implicit val CidrGetter = new Getter[Cidr] {
-    override def apply(row: Row, ix: Index): Option[Cidr] = {
+  implicit val CIdrGetter: Getter[Cidr] =
+    (row: Row, ix: Index) => {
       Option(row.getObject(ix(row))).map {
         case p: Cidr => p
         case _ => throw new SQLException("column does not contain a cidr")
       }
     }
-  }
 
-  private def IsPGobjectGetter[T](implicit converter: PGobject => T): Getter[T] = new Getter[T] {
-    override def apply(row: Row, ix: Index): Option[T] = {
+  private def IsPGobjectGetter[T](implicit converter: PGobject => T): Getter[T] =
+    (row: Row, ix: Index) => {
       val shouldBePgValue = Option(row.getObject(ix(row)))
       shouldBePgValue.map {
         case p: PGobject =>
@@ -77,7 +76,6 @@ private[sdbc] trait Getters
           throw new SQLException("column does not contain a PGobject")
       }
     }
-  }
 
   implicit val ScalaDurationGetter = IsPGobjectGetter[ScalaDuration]
 
@@ -87,8 +85,8 @@ private[sdbc] trait Getters
 
   implicit val InetAddressGetter = IsPGobjectGetter[InetAddress]
 
-  implicit val OffsetTimeGetter = new Getter[OffsetTime] {
-    override def apply(row: Row, ix: Index): Option[OffsetTime] = {
+  implicit val OffsetTimeGetter: Getter[OffsetTime] =
+    (row: Row, ix: Index) => {
       for {
         asString <- Option(row.getString(ix(row)))
       } yield {
@@ -96,7 +94,6 @@ private[sdbc] trait Getters
         OffsetTime.from(parsed)
       }
     }
-  }
 
   implicit val OffsetDateTimeGetter = new Getter[OffsetDateTime] {
     override def apply(row: Row, ix: Index): Option[OffsetDateTime] = {

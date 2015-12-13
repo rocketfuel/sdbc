@@ -38,36 +38,6 @@ private[sdbc] trait Setters
   with PGJsonImplicits
   with QMapImplicits {
 
-  val toPostgresqlParameter: PartialFunction[Any, Any] =
-    QBoolean.toParameter orElse
-      QBytes.toParameter orElse
-      //Timestamp must come before Date, or else all Timestamps become Dates.
-      QTimestamp.toParameter orElse
-      //Time must come before Date, or else all Times become Dates.
-      QTime.toParameter orElse
-      QDate.toParameter orElse
-      QBigDecimal.toParameter orElse
-      QDouble.toParameter orElse
-      QFloat.toParameter orElse
-      QInt.toParameter orElse
-      QLong.toParameter orElse
-      QShort.toParameter orElse
-      QString.toParameter orElse
-      QReader.toParameter orElse
-      QInputStream.toParameter orElse
-      QUUID.toParameter orElse
-      QInstant.toParameter orElse
-      QLocalDate.toParameter orElse
-      PGLocalTime.toParameter orElse
-      QLocalDateTime.toParameter orElse
-      QXML.toParameter orElse
-      QSQLXML.toParameter orElse
-      QBlob.toParameter orElse
-      QPGObject.toParameter orElse
-      QMap.toParameter orElse
-      PGTimeTz.toParameter orElse
-      PGTimestampTz.toParameter orElse
-      PGJson.toParameter
 
 }
 

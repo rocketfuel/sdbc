@@ -36,14 +36,4 @@ private[sdbc] abstract class PostgreSqlCommon
     pgConnection.addDataType("time", classOf[PGLocalTime])
   }
 
-  override def toParameter(a: Any): Option[Any] = {
-    a match {
-      case null | None =>
-        None
-      case Some(a) =>
-        Some(toParameter(a)).flatten
-      case _ =>
-        Some(toPostgresqlParameter(a))
-    }
-  }
 }

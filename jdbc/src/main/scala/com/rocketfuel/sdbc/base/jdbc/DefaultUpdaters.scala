@@ -20,7 +20,7 @@ trait DefaultUpdaters
   with LocalDateTimeUpdater
   with InstantUpdater
   with LocalDateUpdater
-  with LocalTimeUpdater{
+  with LocalTimeUpdater {
   self: Updater
     with UpdatableRow
     with ParameterValue

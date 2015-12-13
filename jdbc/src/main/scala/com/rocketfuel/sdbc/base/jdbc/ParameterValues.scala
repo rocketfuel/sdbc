@@ -21,9 +21,9 @@ trait LongParameter {
       case l: Long => l
       case l: lang.Long => l.longValue()
     }
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case l: Long =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setLong(ix, l)
           statement
     }
@@ -41,9 +41,9 @@ trait IntParameter {
       case l: Int => l
       case l: lang.Integer => l.intValue()
     }
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case l: Int =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setInt(ix, l)
           statement
     }
@@ -61,9 +61,9 @@ trait ShortParameter {
       case l: Short => l
       case l: lang.Short => l.shortValue()
     }
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case l: Short =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setShort(ix, l)
           statement
     }
@@ -81,9 +81,9 @@ trait ByteParameter {
       case l: Byte => l
       case l: lang.Byte => l.byteValue()
     }
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case l: Byte =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setByte(ix, l)
           statement
     }
@@ -107,9 +107,9 @@ trait BytesParameter {
       case b: ByteBuffer => ByteVector(b)
     }
 
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case v: ByteVector =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           val array = v.toArray
           statement.setBytes(ix, array)
           statement
@@ -129,9 +129,9 @@ trait FloatParameter {
       case l: Float => l
       case l: lang.Float => l.floatValue()
     }
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case l: Float =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setFloat(ix, l)
           statement
     }
@@ -149,9 +149,9 @@ trait DoubleParameter {
       case l: Double => l
       case l: lang.Double => l.doubleValue()
     }
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case l: Double =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setDouble(ix, l)
           statement
     }
@@ -159,7 +159,7 @@ trait DoubleParameter {
 
 }
 
-trait JavaBigDecimalParameter {
+trait BigDecimalParameter {
   self: ParameterValue =>
 
   implicit object BigDecimalParameter
@@ -169,9 +169,9 @@ trait JavaBigDecimalParameter {
       case l: BigDecimal => l.underlying
       case l: java.math.BigDecimal => l
     }
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case l: java.math.BigDecimal =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setBigDecimal(ix, l)
           statement
     }
@@ -193,9 +193,9 @@ trait TimestampParameter {
       case i: Instant => Timestamp.from(i)
       case i: LocalDateTime => Timestamp.valueOf(i)
     }
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case i: Timestamp =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setTimestamp(ix, i)
           statement
     }
@@ -215,9 +215,9 @@ trait DateParameter {
       case l: java.time.LocalDate =>
         java.sql.Date.valueOf(l)
     }
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case i: JdbcDate =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setDate(ix, i)
           statement
     }
@@ -237,9 +237,9 @@ trait TimeParameter {
       case l: java.time.LocalTime =>
         java.sql.Time.valueOf(l)
     }
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case i: Time =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setTime(ix, i)
           statement
     }
@@ -259,9 +259,9 @@ trait BooleanParameter {
       case l: lang.Boolean => l.booleanValue()
     }
 
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case l: Boolean =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setBoolean(ix, l)
           statement
     }
@@ -280,9 +280,9 @@ trait StringParameter {
       case l: String => l
     }
 
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case l: String =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setString(ix, l)
           statement
     }
@@ -301,9 +301,9 @@ trait ReaderParameter {
       case l: Reader => l
     }
 
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case l: Reader =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setCharacterStream(ix, l)
           statement
     }
@@ -322,9 +322,9 @@ trait InputStreamParameter {
       case l: InputStream => l
     }
 
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case l: InputStream =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setBinaryStream(ix, l)
           statement
     }
@@ -343,9 +343,9 @@ trait UUIDParameter {
       case l: UUID => l
     }
 
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case l: UUID =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setObject(ix, l)
           statement
     }
@@ -365,9 +365,9 @@ trait URLParameter {
       case l: URL => l
     }
 
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case l: URL =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setURL(ix, l)
           statement
     }
@@ -386,9 +386,9 @@ trait ArrayParameter {
       case l: JdbcArray => l
     }
 
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case l: JdbcArray =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setArray(ix, l)
           statement
     }
@@ -409,15 +409,15 @@ trait XMLParameter {
       case s: SQLXML => s
     }
 
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case l: Node =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           val sqlxml = statement.getConnection.createSQLXML()
           sqlxml.setString(l.toString)
           statement.setSQLXML(ix, sqlxml)
           statement
       case sqlxml: SQLXML =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setSQLXML(ix, sqlxml)
           statement
     }
@@ -436,9 +436,9 @@ trait BlobParameter {
       case b: Blob => b
     }
 
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] = {
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
       case b: Blob =>
-        (statement: Statement, ix: Index) =>
+        (statement: Statement, ix: ParameterIndex) =>
           statement.setBlob(ix, b)
           statement
     }
@@ -459,7 +459,7 @@ trait OffsetDateTimeAsTimestampParameter {
         Timestamp.from(l.toInstant)
     }
 
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] =
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] =
       PartialFunction.empty
   }
 
@@ -480,7 +480,7 @@ trait OffsetDateTimeAsStringParameter {
         formatted
     }
 
-    override val setParameter: PartialFunction[Any, (Statement, Index) => Statement] =
+    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] =
       PartialFunction.empty
 
   }

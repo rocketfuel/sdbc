@@ -5,7 +5,6 @@ import scala.annotation.implicitNotFound
 trait RowConverter {
   self: CompositeGetter
     with Row
-    with Index
     with Getter
     with MutableRow =>
 

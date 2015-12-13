@@ -23,7 +23,6 @@ abstract class DBMS
   with MutableRow
   with ImmutableRow
   with UpdatableRow
-  with Index
   with CompositeGetter
   with RowConverter {
 

@@ -25,7 +25,6 @@ trait DefaultGetters
   with LocalTimeGetter {
   self: Row
     with MutableRow
-    with Index
     with ResultSetImplicits =>
 
 }

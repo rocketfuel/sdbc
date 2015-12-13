@@ -1,6 +1,8 @@
 package com.rocketfuel.sdbc.base
 
-trait Index[Row] {
+trait Index {
+
+  type Row
 
   protected def getColumnCount(row: Row): Int
 

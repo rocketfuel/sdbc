@@ -4,11 +4,10 @@ import java.sql.{Types, PreparedStatement}
 import com.rocketfuel.sdbc.base
 
 trait ParameterValue
-  extends base.ParameterValue
-  with Index {
+  extends base.ParameterValue {
   self: Row =>
 
-  override type Index = Int
+  override type ParameterIndex = Int
 
   override type Statement = PreparedStatement
 
@@ -18,7 +17,7 @@ trait ParameterValue
     connection.prepareStatement(statement)
   }
 
-  override def setNone(preparedStatement: Statement, parameterIndex: Index): PreparedStatement = {
+  override def setNone(preparedStatement: Statement, parameterIndex: ParameterIndex): PreparedStatement = {
     preparedStatement.setNull(parameterIndex, Types.NULL)
     preparedStatement
   }
