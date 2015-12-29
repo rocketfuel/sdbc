@@ -7,7 +7,6 @@ import com.zaxxer.hikari.HikariDataSource
 abstract class DBMS
   extends ParameterValue
   with HikariImplicits
-  with base.ParameterizedQuery
   with Batch
   with Update
   with Select

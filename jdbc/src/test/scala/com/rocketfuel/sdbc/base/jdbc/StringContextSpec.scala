@@ -21,7 +21,7 @@ class StringContextSpec
     assertResult("?")(s.queryText)
     assertResult("@`0`")(s.originalQueryText)
     assertResult(1)(s.parameterValues.size)
-    assertResult(3.some)(s.parameterValues.head._2)
+    assertResult(ParameterValue.of(3))(s.parameterValues.head._2)
   }
 
   test("${i}hi is replaced with ?hi") {
@@ -31,7 +31,7 @@ class StringContextSpec
     assertResult("?hi")(s.queryText)
     assertResult("@`0`hi")(s.originalQueryText)
     assertResult(1)(s.parameterValues.size)
-    assertResult(3.some)(s.parameterValues.head._2)
+    assertResult(ParameterValue.of(3))(s.parameterValues.head._2)
   }
 
   test("hi$i is replaced with hi?") {
@@ -41,7 +41,7 @@ class StringContextSpec
     assertResult("hi?")(s.queryText)
     assertResult("hi@`0`")(s.originalQueryText)
     assertResult(1)(s.parameterValues.size)
-    assertResult(3.some)(s.parameterValues.head._2)
+    assertResult(ParameterValue.of(3))(s.parameterValues.head._2)
   }
 
   test("hi${i}hi is replaced with hi?hi") {
@@ -51,7 +51,7 @@ class StringContextSpec
     assertResult("hi?hi")(s.queryText)
     assertResult("hi@`0`hi")(s.originalQueryText)
     assertResult(1)(s.parameterValues.size)
-    assertResult(3.some)(s.parameterValues.head._2)
+    assertResult(ParameterValue.of(3))(s.parameterValues.head._2)
   }
 
   test("$i$i$i is replaced with ???") {
@@ -64,14 +64,14 @@ class StringContextSpec
     assertResult("???")(s.queryText)
     assertResult("@`0`@`1`@`2`")(s.originalQueryText)
     assertResult(3)(s.parameterValues.size)
-    assertResult(Map("0" -> i.some, "1" -> j.some, "2" -> k.some))(s.parameterValues)
+    assertResult(Map[String, TestDbms.ParameterValue]("0" -> i, "1" -> j, "2" -> k))(s.parameterValues)
   }
 
   test("Execute interpolation works") {
     val i = 3
     val s = execute"$i"
 
-    assertResult(Map("0" -> Some(i)))(s.parameterValues)
+    assertResult(Map("0" -> ParameterValue.of(i)))(s.parameterValues)
   }
 
 }

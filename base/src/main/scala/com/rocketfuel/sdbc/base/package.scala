@@ -24,6 +24,7 @@ package object base {
       case l: Long => Long.box(l)
       case f: Float => Float.box(f)
       case d: Double => Double.box(d)
+      case null => null
     }
   }
 

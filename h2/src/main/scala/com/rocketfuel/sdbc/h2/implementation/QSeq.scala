@@ -1,7 +1,6 @@
 package com.rocketfuel.sdbc.h2.implementation
 
-import com.rocketfuel.sdbc.base.{ToParameter, ParameterValue, box}
-
+import com.rocketfuel.sdbc.base.{ParameterValue, box}
 
 private[sdbc] case class QSeq(
   value: Seq[ParameterValue]

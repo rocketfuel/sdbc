@@ -5,12 +5,7 @@ import java.math.BigDecimal
 import java.sql.{Array => JdbcArray, _}
 
 trait UpdatableRow {
-  self: ParameterValue
-    with MutableRow
-    with Updater
-    with Row
-    with ImmutableRow
-    with Getter =>
+  self: DBMS =>
 
   class UpdatableRow private[sdbc](
     override protected[sdbc] val underlying: ResultSet

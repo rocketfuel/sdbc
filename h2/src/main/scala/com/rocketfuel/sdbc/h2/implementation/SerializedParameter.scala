@@ -5,24 +5,14 @@ import com.rocketfuel.sdbc.h2.Serialized
 import java.sql.Types
 
 private[sdbc] trait SerializedParameter {
-  self: ParameterValue
-    with Updater
-    with UpdatableRow
-    with ParameterValue
-    with MutableRow
-    with Row
-    with Getter =>
+  self: H2 =>
 
   implicit object SerializedParameter
-    extends PrimaryParameter[Serialized] {
-    override val toParameter: PartialFunction[Any, Any] = {
-      case s: Serialized => s
-    }
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case Serialized(value) =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setObject(ix, value, Types.JAVA_OBJECT)
-          statement
+    extends Parameter[Serialized] {
+    override val set: (Serialized) => (Statement, Int) => Statement = {
+      value => (statement, index) =>
+        statement.setObject(index, value.value, Types.JAVA_OBJECT)
+        statement
     }
   }
 

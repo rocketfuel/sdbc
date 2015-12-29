@@ -21,8 +21,12 @@ class DefaultSettersSpec
     assertCompiles("val _: TestDbms.ParameterValue = BigDecimal(1).underlying")
   }
 
-  test("Row#get works") {
-    assertCompiles("val row: TestDbms.Row = ???; val _ = row.get[String](???)")
+  test("Row#apply works") {
+    assertCompiles("val row: TestDbms.Row = ???; val _ = row[String](???)")
+  }
+
+  test("Row#apply works for optional value") {
+    assertCompiles("val row: TestDbms.Row = ???; val _ = row[Option[String]](???)")
   }
 
 }

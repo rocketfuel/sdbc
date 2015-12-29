@@ -4,12 +4,11 @@ import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
 
 trait Update {
-  self: ParameterValue
-    with base.ParameterizedQuery =>
+  self: DBMS =>
 
   case class Update private[jdbc](
     statement: CompiledStatement,
-    parameterValues: Map[String, Option[Any]]
+    parameterValues: Map[String, ParameterValue]
   ) extends base.Update[Connection]
   with ParameterizedQuery[Update]
   with Logging {
@@ -29,7 +28,7 @@ trait Update {
 
     override protected def subclassConstructor(
       statement: CompiledStatement,
-      parameterValues: Map[String, Option[Any]]
+      parameterValues: Map[String, ParameterValue]
     ): Update = {
       Update(statement, parameterValues)
     }
@@ -42,7 +41,7 @@ trait Update {
     ): Update = {
       Update(
         statement = CompiledStatement(queryText, hasParameters),
-        parameterValues = Map.empty[String, Option[Any]]
+        parameterValues = Map.empty[String, ParameterValue]
       )
     }
   }

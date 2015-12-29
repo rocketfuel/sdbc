@@ -9,10 +9,7 @@ import java.util.Calendar
 import com.rocketfuel.sdbc.base.unbox
 
 trait MutableRow {
-  self: ParameterValue
-    with Row
-    with ImmutableRow
-    with Getter =>
+  self: DBMS =>
 
   /**
     * A class which wraps the read-only parts of a JDBC `ResultSet`.

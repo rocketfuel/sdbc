@@ -52,7 +52,7 @@ trait StringContextMethods {
       ): Execute = {
         val parameterValues = toParameterValues(a)
 
-        Execute(compiled, Map.empty[String, Option[Any]]).on(parameterValues: _*)
+        Execute(compiled, Map.empty[String, ParameterValue]).on(parameterValues: _*)
       }
     }
 
@@ -66,7 +66,7 @@ trait StringContextMethods {
       ): Update = {
         val parameterValues = toParameterValues(a)
 
-        Update(compiled, Map.empty[String, Option[Any]]).on(parameterValues: _*)
+        Update(compiled, Map.empty[String, ParameterValue]).on(parameterValues: _*)
       }
     }
 
@@ -80,7 +80,7 @@ trait StringContextMethods {
       ): Select[ImmutableRow] = {
         val parameterValues = toParameterValues(a)
 
-        Select[ImmutableRow](compiled, Map.empty[String, Option[Any]]).on(parameterValues: _*)
+        Select[ImmutableRow](compiled, Map.empty[String, ParameterValue]).on(parameterValues: _*)
       }
     }
 
@@ -94,7 +94,7 @@ trait StringContextMethods {
       ): SelectForUpdate = {
         val parameterValues = toParameterValues(a)
 
-        SelectForUpdate(compiled, Map.empty[String, Option[Any]]).on(parameterValues: _*)
+        SelectForUpdate(compiled, Map.empty[String, ParameterValue]).on(parameterValues: _*)
       }
     }
 

@@ -3,10 +3,7 @@ package com.rocketfuel.sdbc.base.jdbc
 import scala.annotation.implicitNotFound
 
 trait RowConverter {
-  self: CompositeGetter
-    with Row
-    with Getter
-    with MutableRow =>
+  self: DBMS =>
 
   @implicitNotFound("Import a DBMS or define a function from Row to A.")
   trait RowConverter[A] extends Function[Row, A]
@@ -32,7 +29,7 @@ trait RowConverter {
     ): RowConverter[A] =
       new RowConverter[A] {
         override def apply(row: Row): A = {
-          converter(row, 0).get
+          converter(row, 0)
         }
       }
   }

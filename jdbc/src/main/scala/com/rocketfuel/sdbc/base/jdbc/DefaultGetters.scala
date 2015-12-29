@@ -23,8 +23,6 @@ trait DefaultGetters
   with LocalDateGetter
   with LocalDateTimeGetter
   with LocalTimeGetter {
-  self: Row
-    with MutableRow
-    with ResultSetImplicits =>
+  self: DBMS =>
 
 }

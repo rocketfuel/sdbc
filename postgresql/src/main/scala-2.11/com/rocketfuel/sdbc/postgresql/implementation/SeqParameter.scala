@@ -87,7 +87,7 @@ private[sdbc] trait SeqParameter {
   implicit def SetterToSeqOptionUpdater[T](implicit conversion: T => ParameterValue, ttag: TypeTag[T]): Updater[Seq[Option[T]]] = {
     new Updater[Seq[Option[T]]] {
       override def update(row: UpdatableRow, columnIndex: Int, x: Seq[Option[T]]): Unit = {
-        val asParameterValue: ParameterValue = x
+        val asParameterValue: ParameterValue[_] = x
         val ParameterValue(q: QSeq[_]) = asParameterValue
         row.updateArray(columnIndex, q.asJdbcArray(row.getStatement.getConnection))
       }

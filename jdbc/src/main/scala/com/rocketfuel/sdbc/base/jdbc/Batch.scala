@@ -3,13 +3,11 @@ package com.rocketfuel.sdbc.base.jdbc
 import java.sql.{SQLFeatureNotSupportedException, PreparedStatement}
 import com.rocketfuel.sdbc.base
 import shapeless.ops.hlist._
-import shapeless.ops.nat.ToInt
 import shapeless.ops.record.{MapValues, Keys}
-import shapeless.{Nat, LabelledGeneric, HList}
+import shapeless.{LabelledGeneric, HList}
 
 trait Batch {
-  self: ParameterValue
-    with base.ParameterizedQuery =>
+  self: DBMS =>
 
   /**
     * Create and run a batch using a statement and a sequence of parameters.
@@ -24,8 +22,8 @@ trait Batch {
     */
   case class Batch private[jdbc](
     statement: base.CompiledStatement,
-    parameterValues: Map[String, Option[Any]],
-    parameterValueBatches: Seq[Map[String, Option[Any]]]
+    parameterValues: Map[String, ParameterValue],
+    parameterValueBatches: Seq[Map[String, ParameterValue]]
   ) extends base.Batch[Connection]
   with ParameterizedQuery[Batch]
   with base.Logging {
@@ -80,19 +78,10 @@ trait Batch {
       )
     }
 
-    protected def prepare()(implicit connection: Connection): PreparedStatement = {
-      val prepared = connection.prepareStatement(queryText)
+    protected def prepareBatches()(implicit connection: Connection): PreparedStatement = {
+      val prepared = prepareStatement(queryText)
       for (batch <- parameterValueBatches) {
-        for ((name, maybeValue) <- batch) {
-          for (index <- parameterPositions(name)) {
-            maybeValue match {
-              case None =>
-                setNone(prepared, index + 1)
-              case Some(value) =>
-                setSome(prepared, index + 1, value)
-            }
-          }
-        }
+        bind(prepared, batch, parameterPositions)
         prepared.addBatch()
       }
       prepared
@@ -100,7 +89,7 @@ trait Batch {
 
     def seq()(implicit connection: Connection): IndexedSeq[Long] = {
       logger.debug( s"""Batching "$originalQueryText".""")
-      val prepared = prepare()
+      val prepared = prepareBatches()
       val result = try {
         prepared.executeLargeBatch()
       } catch {
@@ -127,7 +116,7 @@ trait Batch {
 
     override protected def subclassConstructor(
       statement: base.CompiledStatement,
-      parameterValues: Map[String, Option[Any]]
+      parameterValues: Map[String, ParameterValue]
     ): Batch = {
       Batch(statement, parameterValues, Vector.empty)
     }
@@ -140,8 +129,8 @@ trait Batch {
     ): Batch = {
       Batch(
         statement = base.CompiledStatement(queryText, hasParameters),
-        parameterValues = Map.empty[String, Option[Any]],
-        parameterValueBatches = Vector.empty[Map[String, Option[Any]]]
+        parameterValues = Map.empty[String, ParameterValue],
+        parameterValueBatches = Vector.empty[Map[String, ParameterValue]]
       )
     }
   }

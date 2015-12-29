@@ -11,13 +11,12 @@ import java.util.UUID
 import com.rocketfuel.sdbc.base
 import scodec.bits.ByteVector
 
-trait Getter extends CompositeGetter {
-  self: Row
-    with MutableRow
-    with ResultSetImplicits =>
+trait Getter {
+  self: DBMS =>
 
   /**
-    * This is a type that has a companion object with DBMS-specific implicit getters.
+    * This is a DBMS specific type that creates getters from implicit methods
+    * in its scope. The getter methods should go in the DBMS object.
     * @tparam T
     */
   case class Getter[+T] private[sdbc] (getter: base.Getter[Row, Index, T])
@@ -60,7 +59,7 @@ trait Getter extends CompositeGetter {
 }
 
 trait LongGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val LongGetter: Getter[Long] =
     Getter.ofVal[Long]((row, ix) => row.getLong(ix))
@@ -72,7 +71,7 @@ trait LongGetter {
 }
 
 trait IntGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val IntGetter: Getter[Int] =
     Getter.ofVal[Int]((row, ix) => row.getInt(ix))
@@ -83,7 +82,7 @@ trait IntGetter {
 }
 
 trait ShortGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val ShortGetter: Getter[Short] =
     Getter.ofVal[Short] { (row, ix) => row.getShort(ix) }
@@ -96,7 +95,7 @@ trait ShortGetter {
 }
 
 trait ByteGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val ByteGetter: Getter[Byte] =
     Getter.ofVal[Byte] { (row, ix) => row.getByte(ix) }
@@ -109,7 +108,7 @@ trait ByteGetter {
 }
 
 trait BytesGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val ArrayByteGetter: Getter[Array[Byte]] = {
     (row: Row, ix: Index) =>
@@ -129,13 +128,10 @@ trait BytesGetter {
 }
 
 trait SeqGetter {
-  self: BytesGetter
-    with Getter
-    with Row
-    with MutableRow
-    with ResultSetImplicits =>
+  self: DBMS
+    with BytesGetter =>
 
-  implicit def toSeqGetter[T](implicit getter: Getter[T]): Getter[Seq[T]] = {
+  implicit def toSeqGetter[T](implicit getter: CompositeGetter[T]): Getter[Seq[T]] = {
     (row: Row, ix: Index) =>
       for {
         a <- Option(row.getArray(ix(row)))
@@ -144,7 +140,7 @@ trait SeqGetter {
         val arrayValues = for {
           arrayRow <- arrayIterator
         } yield {
-          arrayRow.get[T](1).get
+          arrayRow[T](1)
         }
         arrayValues.toVector
       }
@@ -160,7 +156,7 @@ trait SeqGetter {
 }
 
 trait FloatGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val FloatGetter: Getter[Float] =
     Getter.ofVal[Float] { (row, ix) => row.getFloat(ix) }
@@ -173,7 +169,7 @@ trait FloatGetter {
 }
 
 trait DoubleGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val DoubleGetter: Getter[Double] =
     Getter.ofVal[Double]((row, ix) => row.getDouble(ix))
@@ -184,7 +180,7 @@ trait DoubleGetter {
 }
 
 trait JavaBigDecimalGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val JavaBigDecimalGetter: Getter[java.math.BigDecimal] =
     (row: Row, ix: Index) => Option(row.getBigDecimal(ix(row)))
@@ -192,7 +188,7 @@ trait JavaBigDecimalGetter {
 }
 
 trait ScalaBigDecimalGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val ScalaBigDecimalGetter: Getter[BigDecimal] = {
     (row: Row, ix: Index) =>
@@ -202,7 +198,7 @@ trait ScalaBigDecimalGetter {
 }
 
 trait TimestampGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val TimestampGetter: Getter[Timestamp] = {
     (row: Row, ix: Index) =>
@@ -212,7 +208,7 @@ trait TimestampGetter {
 }
 
 trait DateGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val DateGetter: Getter[Date] = {
     (row: Row, ix: Index) =>
@@ -222,7 +218,7 @@ trait DateGetter {
 }
 
 trait TimeGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val TimeGetter: Getter[Time] = {
     (row: Row, ix: Index) =>
@@ -232,7 +228,7 @@ trait TimeGetter {
 }
 
 trait LocalDateTimeGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val LocalDateTimeGetter: Getter[LocalDateTime] =
     (row: Row, ix: Index) =>
@@ -240,7 +236,7 @@ trait LocalDateTimeGetter {
 }
 
 trait InstantGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val InstantGetter: Getter[Instant] =
     (row: Row, ix: Index) =>
@@ -248,7 +244,7 @@ trait InstantGetter {
 }
 
 trait LocalDateGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val LocalDateGetter: Getter[LocalDate] =
     (row: Row, ix: Index) =>
@@ -257,7 +253,7 @@ trait LocalDateGetter {
 }
 
 trait LocalTimeGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val LocalTimeGetter: Getter[LocalTime] =
     (row: Row, ix: Index) =>
@@ -265,7 +261,7 @@ trait LocalTimeGetter {
 }
 
 trait BooleanGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val BooleanGetter: Getter[Boolean] =
     Getter.ofVal[Boolean] { (row, ix) => row.getBoolean(ix) }
@@ -276,7 +272,7 @@ trait BooleanGetter {
 }
 
 trait StringGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val StringGetter: Getter[String] =
     (row: Row, index: Index) =>
@@ -285,7 +281,7 @@ trait StringGetter {
 }
 
 trait UUIDGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val UUIDGetter: Getter[UUID] =
     (row: Row, ix: Index) =>
@@ -302,7 +298,7 @@ trait UUIDGetter {
 
 //This is left out of the defaults, since no one seems to support it.
 trait URLGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val URLGetter: Getter[URL] =
     (row: Row, ix: Index) =>
@@ -310,7 +306,7 @@ trait URLGetter {
 }
 
 trait InputStreamGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val InputStreamGetter: Getter[InputStream] = {
     (row: Row, ix: Index) =>
@@ -320,7 +316,7 @@ trait InputStreamGetter {
 }
 
 trait ReaderGetter {
-  self: Getter with Row =>
+  self: DBMS =>
 
   implicit val ReaderGetter: Getter[Reader] = {
     (row: Row, ix: Index) =>

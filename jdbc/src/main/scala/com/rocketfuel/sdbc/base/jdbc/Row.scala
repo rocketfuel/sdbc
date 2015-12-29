@@ -8,10 +8,7 @@ import java.sql.{Array => JdbcArray, _}
 import com.rocketfuel.sdbc.base.CIMap
 
 trait Row extends base.Index {
-  self: Getter
-    with CompositeGetter
-    with MutableRow
-    with ParameterValue =>
+  self: DBMS =>
 
   override protected def getColumnCount(row: Row): Int =
     row.getMetaData.getColumnCount
@@ -23,9 +20,6 @@ trait Row extends base.Index {
     row.columnIndexes.contains(columnName)
 
   abstract class Row {
-
-    //TODO: Use ProductTypeclass from shapeless to get HList support, and therefore also tuples and case classes
-    //Tip from tpolecat
 
     def columnTypes: IndexedSeq[String]
 
@@ -51,7 +45,7 @@ trait Row extends base.Index {
 
     def getMetaData: ResultSetMetaData
 
-    def get[T](columnIndex: Index)(implicit getter: CompositeGetter[T]): Option[T] = {
+    def apply[T](columnIndex: Index)(implicit getter: CompositeGetter[T]): T = {
       getter(this, columnIndex)
     }
 

@@ -5,16 +5,11 @@ import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
 
 trait SelectForUpdate {
-  self: ParameterValue
-    with base.ParameterizedQuery
-    with UpdatableRow
-    with Updater
-    with MutableRow
-    with ResultSetImplicits =>
+  self: DBMS =>
 
   case class SelectForUpdate private[sdbc](
     statement: CompiledStatement,
-    parameterValues: Map[String, Option[Any]]
+    parameterValues: Map[String, ParameterValue]
   ) extends base.Select[Connection, UpdatableRow]
   with ParameterizedQuery[SelectForUpdate]
   with Logging {
@@ -33,7 +28,7 @@ trait SelectForUpdate {
 
     override protected def subclassConstructor(
       statement: CompiledStatement,
-      parameterValues: Map[String, Option[Any]]
+      parameterValues: Map[String, ParameterValue]
     ): SelectForUpdate = {
       SelectForUpdate(
         statement,
@@ -49,7 +44,7 @@ trait SelectForUpdate {
     ): SelectForUpdate = {
       SelectForUpdate(
         statement = CompiledStatement(queryText, hasParameters),
-        parameterValues = Map.empty[String, Option[Any]]
+        parameterValues = Map.empty[String, ParameterValue]
       )
     }
   }

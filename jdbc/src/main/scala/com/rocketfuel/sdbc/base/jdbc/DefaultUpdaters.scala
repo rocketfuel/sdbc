@@ -21,9 +21,6 @@ trait DefaultUpdaters
   with InstantUpdater
   with LocalDateUpdater
   with LocalTimeUpdater {
-  self: Updater
-    with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+  self: DBMS =>
 
 }

@@ -4,12 +4,11 @@ import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
 
 trait Execute {
-  self: ParameterValue
-    with base.ParameterizedQuery =>
+  self: DBMS =>
 
   case class Execute private[jdbc](
     statement: CompiledStatement,
-    parameterValues: Map[String, Option[Any]]
+    parameterValues: Map[String, ParameterValue]
   ) extends base.Execute[Connection]
   with ParameterizedQuery[Execute]
   with Logging {
@@ -28,7 +27,7 @@ trait Execute {
 
     override protected def subclassConstructor(
       statement: CompiledStatement,
-      parameterValues: Map[String, Option[Any]]
+      parameterValues: Map[String, ParameterValue]
     ): Execute = {
       Execute(statement, parameterValues)
     }
@@ -41,7 +40,7 @@ trait Execute {
     ): Execute = {
       Execute(
         statement = CompiledStatement(queryText, hasParameters),
-        parameterValues = Map.empty[String, Option[Any]]
+        parameterValues = Map.empty[String, ParameterValue]
       )
     }
   }

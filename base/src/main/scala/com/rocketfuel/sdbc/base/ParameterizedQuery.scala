@@ -12,7 +12,14 @@ trait ParameterizedQuery {
     implicit def fromValue[A](implicit parameter: Parameter[A]) = {
       use {
         (value: A) =>
-          ParameterValue[A](value)
+          ParameterValue.of[A](value)
+      }
+    }
+
+    implicit def fromOptionalValue[A](implicit parameter: Parameter[A]) = {
+      use {
+        (value: Option[A]) =>
+          ParameterValue.ofOption[A](value)
       }
     }
   }
@@ -41,7 +48,7 @@ trait ParameterizedQuery {
 
     def statement: CompiledStatement
 
-    def parameterValues: Map[String, Option[Any]]
+    def parameterValues: Map[String, ParameterValue]
 
     /**
       * The query text with name parameters replaced with positional parameters.
@@ -54,12 +61,11 @@ trait ParameterizedQuery {
     def parameterPositions: Map[String, Set[Int]] = statement.parameterPositions
 
     private def setParameter(
-      parameterValues: Map[String, Option[Any]],
+      parameterValues: Map[String, ParameterValue],
       nameValuePair: (String, ParameterValue)
-    ): Map[String, Option[Any]] = {
+    ): Map[String, ParameterValue] = {
       if (parameterPositions.contains(nameValuePair._1)) {
-        val stripped = nameValuePair._2.value
-        parameterValues + (nameValuePair._1 -> stripped)
+        parameterValues + nameValuePair
       } else {
         throw new IllegalArgumentException(s"${nameValuePair._1} is not a parameter in the query.")
       }
@@ -67,7 +73,7 @@ trait ParameterizedQuery {
 
     protected def subclassConstructor(
       statement: CompiledStatement,
-      parameterValues: Map[String, Option[Any]]
+      parameterValues: Map[String, ParameterValue]
     ): Self
 
     def on(parameterValues: (String, ParameterValue)*): Self = {
@@ -135,7 +141,7 @@ trait ParameterizedQuery {
       subclassConstructor(statement, newValues)
     }
 
-    protected def setParameters(nameValuePairs: (String, ParameterValue)*): Map[String, Option[Any]] = {
+    protected def setParameters(nameValuePairs: (String, ParameterValue)*): Map[String, ParameterValue] = {
       nameValuePairs.foldLeft(parameterValues)(setParameter)
     }
 

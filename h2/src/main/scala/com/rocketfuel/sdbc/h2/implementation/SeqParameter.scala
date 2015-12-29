@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.h2.implementation
 
 import java.sql.PreparedStatement
-
+import reflect.runtime.universe.TypeTag
 import com.rocketfuel.sdbc.base.jdbc._
 
 /**
@@ -10,23 +10,20 @@ import com.rocketfuel.sdbc.base.jdbc._
  * H2's jdbc driver does not support ResultSet#updateArray, so there are no updaters.
  */
 private[sdbc] trait SeqParameter extends SeqGetter {
-  self: ParameterValue
-    with Updater
-    with UpdatableRow
-    with ParameterValue
-    with MutableRow
-    with Row
-    with Getter =>
+  self: H2 =>
+
+  def typeName[T](implicit tpe: TypeTag): String = {
+
+  }
 
   implicit def SeqOptionParameter[T](implicit
     conversion: T => ParameterValue
-  ): PrimaryParameter[Seq[Option[T]]] =
-    new PrimaryParameter[Seq[Option[T]]] {
-      override val toParameter: PartialFunction[Any, Any] = {
-        PartialFunction.empty
-      }
-      override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-
+  ): Parameter[Seq[Option[T]]] =
+    new Parameter[Seq[Option[T]]] {
+      override val set: (Seq[Option[T]]) => (PreparedStatement, Int) => PreparedStatement = {
+        seq => (statement, index) =>
+          val seqParameter = seq.map(_.map(conversion))
+          val array = statement.getConnection.createArrayOf()
       }
     }
 
@@ -42,12 +39,6 @@ private[sdbc] trait SeqParameter extends SeqGetter {
   )(implicit conversion: T => ParameterValue
   ): ParameterValue = {
     v.map(Some.apply)
-  }
-
-  implicit val QSeqIsParameter: IsParameter[QSeq] = new IsParameter[QSeq] {
-    override def set(preparedStatement: PreparedStatement, parameterIndex: Int, parameter: QSeq): Unit = {
-      preparedStatement.setObject(parameterIndex, parameter.asJavaArray)
-    }
   }
 
 }

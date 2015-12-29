@@ -31,7 +31,7 @@ trait Updater {
         override def update(row: UpdatableRow, columnIndex: Int, x: Option[T]): Unit = {
           x match {
             case None =>
-              row.updateObject(columnIndex, null)
+              row.updateNull(columnIndex)
             case Some(value) =>
               updater.update(row, columnIndex, value)
           }

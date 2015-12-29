@@ -6,22 +6,18 @@ import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
 
 trait Select {
-  self: ParameterValue
-    with base.ParameterizedQuery
-    with RowConverter
-    with MutableRow
-    with ResultSetImplicits =>
+  self: DBMS =>
 
   case class Select[T] private[jdbc](
     override val statement: CompiledStatement,
-    override val parameterValues: Map[String, Option[Any]]
+    override val parameterValues: Map[String, ParameterValue]
   )(implicit val converter: RowConverter[T]
   ) extends base.Select[Connection, T]
   with ParameterizedQuery[Select[T]]
   with Logging {
 
     private def executeQuery()(implicit connection: Connection): ResultSet = {
-      logger.debug( s"""Selecting "$originalQueryText" with parameters $parameterValues.""")
+      logger.debug(s"""Selecting "$originalQueryText" with parameters $parameterValues.""")
       val prepared = prepare(
         queryText = queryText,
         parameterValues = parameterValues,
@@ -70,7 +66,7 @@ trait Select {
 
     override protected def subclassConstructor(
       statement: CompiledStatement,
-      parameterValues: Map[String, Option[Any]]
+      parameterValues: Map[String, ParameterValue]
     ): Select[T] = {
       Select[T](
         statement,
@@ -88,7 +84,7 @@ trait Select {
     ): Select[T] = {
       Select[T](
         statement = CompiledStatement(queryText, hasParameters),
-        parameterValues = Map.empty[String, Option[Any]]
+        parameterValues = Map.empty[String, ParameterValue]
       )
     }
 

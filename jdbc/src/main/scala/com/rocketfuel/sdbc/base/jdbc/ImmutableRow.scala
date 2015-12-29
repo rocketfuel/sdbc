@@ -7,12 +7,7 @@ import java.sql.{Array => JdbcArray, _}
 import com.rocketfuel.sdbc.base
 
 trait ImmutableRow {
-  self: ParameterValue
-    with Row
-    with Getter
-    with CompositeGetter
-    with Row
-    with MutableRow =>
+  self: DBMS =>
 
   case class ImmutableRow private[sdbc](
     override val columnTypes: IndexedSeq[String],

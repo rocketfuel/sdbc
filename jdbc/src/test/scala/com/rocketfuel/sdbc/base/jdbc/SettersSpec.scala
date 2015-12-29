@@ -17,7 +17,7 @@ class SettersSpec
   test("set a pair, and its values are correct") {
     val withParams = q.on("hi" -> 3)
 
-    assertResult(Map("hi" -> 3.some))(withParams.parameterValues)
+    assertResult(Map("hi" -> TestDbms.ParameterValue.of(3)))(withParams.parameterValues)
   }
 
   test("set a record") {
@@ -31,7 +31,10 @@ class SettersSpec
 
     val withParams = q.onRecord(params)
 
-    assertResult(Map("hi" -> params.head.some, "bye" -> params(1).some))(withParams.parameterValues)
+    assertResult(Map(
+      "hi" -> TestDbms.ParameterValue.of(3),
+      "bye" -> TestDbms.ParameterValue.of(4))
+    )(withParams.parameterValues)
   }
 
   test("set a product") {
@@ -49,7 +52,10 @@ class SettersSpec
 
     val withParams = q.onProduct(param)
 
-    assertResult(Map("hi" -> param.hi.some, "bye" -> param.bye.some))(withParams.parameterValues)
+    assertResult(Map(
+      "hi" -> TestDbms.ParameterValue.of(param.hi),
+      "bye" -> TestDbms.ParameterValue.of(param.bye))
+    )(withParams.parameterValues)
   }
 
 }

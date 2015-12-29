@@ -4,10 +4,10 @@ import java.io.{InputStream, Reader}
 import java.lang
 import java.net.URL
 import java.nio.ByteBuffer
-import java.sql.{Array => JdbcArray, Date => JdbcDate, _}
+import java.sql.{Date => JdbcDate, Array => _, _}
 import java.time._
 import java.time.format.DateTimeFormatter
-import java.util.UUID
+import java.util.{Date, UUID}
 import scala.xml.Node
 import scodec.bits.ByteVector
 
@@ -15,19 +15,16 @@ trait LongParameter {
   self: ParameterValue =>
 
   implicit object LongParameter
-    extends PrimaryParameter[Long]
-    with SecondaryParameter[lang.Long] {
-    override val toParameter: PartialFunction[Any, Any] = {
-      case l: Long => l
-      case l: lang.Long => l.longValue()
-    }
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case l: Long =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setLong(ix, l)
-          statement
+    extends Parameter[Long] {
+    override val set: Long => (Statement, Int) => Statement = {
+      (value) => (statement, parameterIndex) =>
+      statement.setLong(parameterIndex, value)
+      statement
     }
   }
+
+  implicit object BoxedLongParameter
+    extends SecondaryParameter[lang.Long, Long]
 
 }
 
@@ -35,19 +32,16 @@ trait IntParameter {
   self: ParameterValue =>
 
   implicit object IntParameter
-    extends PrimaryParameter[Int]
-    with SecondaryParameter[lang.Integer] {
-    override val toParameter: PartialFunction[Any, Any] = {
-      case l: Int => l
-      case l: lang.Integer => l.intValue()
-    }
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case l: Int =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setInt(ix, l)
-          statement
+    extends Parameter[Int] {
+    override val set: Int => (Statement, Int) => Statement = {
+      (value) => (statement, parameterIndex) =>
+        statement.setInt(parameterIndex, value)
+        statement
     }
   }
+
+  implicit object BoxedIntParameter
+    extends SecondaryParameter[Integer, Int]
 
 }
 
@@ -55,19 +49,16 @@ trait ShortParameter {
   self: ParameterValue =>
 
   implicit object ShortParameter
-    extends PrimaryParameter[Short]
-    with SecondaryParameter[lang.Short] {
-    override val toParameter: PartialFunction[Any, Any] = {
-      case l: Short => l
-      case l: lang.Short => l.shortValue()
-    }
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case l: Short =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setShort(ix, l)
-          statement
+    extends Parameter[Short] {
+    override val set: Short => (Statement, Int) => Statement = {
+      (value) => (statement, parameterIndex) =>
+      statement.setShort(parameterIndex, value)
+      statement
     }
   }
+
+  implicit object BoxedShortParameter
+    extends SecondaryParameter[lang.Short, Short]
 
 }
 
@@ -75,19 +66,16 @@ trait ByteParameter {
   self: ParameterValue =>
 
   implicit object ByteParameter
-    extends PrimaryParameter[Byte]
-    with SecondaryParameter[lang.Byte] {
-    override val toParameter: PartialFunction[Any, Any] = {
-      case l: Byte => l
-      case l: lang.Byte => l.byteValue()
-    }
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case l: Byte =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setByte(ix, l)
-          statement
+    extends Parameter[Byte] {
+    override val set: Byte => (Statement, Int) => Statement = {
+      (value) => (statement, parameterIndex) =>
+      statement.setByte(parameterIndex, value)
+      statement
     }
   }
+
+  implicit object BoxedByteParameter
+    extends SecondaryParameter[lang.Byte, Byte]
 
 }
 
@@ -95,27 +83,21 @@ trait BytesParameter {
   self: ParameterValue =>
 
   //We're using ByteVectors, since they're much more easily testable than Array[Byte].
-  //IE equality actually works.
-  implicit object ByteVectorParameter
-    extends PrimaryParameter[ByteVector]
-    with SecondaryParameter[Array[Byte]]
-    with TertiaryParameter[ByteBuffer] {
-
-    override val toParameter: PartialFunction[Any, Any] = {
-      case v: ByteVector => v
-      case a: Array[Byte] => ByteVector(a)
-      case b: ByteBuffer => ByteVector(b)
+  //IE equality actually works. Also, they're immutable.
+  implicit object ByteVectorParameter extends Parameter[ByteVector] {
+    override val set: ByteVector => (Statement, Int) => Statement = {
+      (value) => (statement, parameterIndex) =>
+      val arrayValue = value.toArray
+      statement.setBytes(parameterIndex, arrayValue)
+      statement
     }
-
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case v: ByteVector =>
-        (statement: Statement, ix: ParameterIndex) =>
-          val array = v.toArray
-          statement.setBytes(ix, array)
-          statement
-    }
-
   }
+
+  implicit object ByteBufferParameter
+    extends SecondaryParameter[ByteBuffer, ByteVector]()(ByteVectorParameter, (b: ByteBuffer) => ByteVector(b))
+
+  implicit object ArrayByteParameter
+    extends SecondaryParameter[Array[Byte], ByteVector]()(ByteVectorParameter, (b: Array[Byte]) => ByteVector(b))
 
 }
 
@@ -123,19 +105,16 @@ trait FloatParameter {
   self: ParameterValue =>
 
   implicit object FloatParameter
-    extends PrimaryParameter[Float]
-    with SecondaryParameter[lang.Float] {
-    override val toParameter: PartialFunction[Any, Any] = {
-      case l: Float => l
-      case l: lang.Float => l.floatValue()
-    }
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case l: Float =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setFloat(ix, l)
-          statement
+    extends Parameter[Float] {
+    override val set: Float => (Statement, Int) => Statement = {
+      (value) => (statement, parameterIndex) =>
+      statement.setFloat(parameterIndex, value)
+      statement
     }
   }
+
+  implicit object BoxedFloatParameter
+    extends SecondaryParameter[lang.Float, Float]
 
 }
 
@@ -143,39 +122,33 @@ trait DoubleParameter {
   self: ParameterValue =>
 
   implicit object DoubleParameter
-    extends PrimaryParameter[Double]
-    with SecondaryParameter[lang.Double] {
-    override val toParameter: PartialFunction[Any, Any] = {
-      case l: Double => l
-      case l: lang.Double => l.doubleValue()
-    }
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case l: Double =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setDouble(ix, l)
-          statement
+    extends Parameter[Double] {
+    override val set: Double => (Statement, Int) => Statement = {
+      (value) => (statement, parameterIndex) =>
+      statement.setDouble(parameterIndex, value)
+      statement
     }
   }
+
+  implicit object BoxedDoubleParameter
+    extends SecondaryParameter[lang.Double, Double]
 
 }
 
 trait BigDecimalParameter {
   self: ParameterValue =>
 
-  implicit object BigDecimalParameter
-    extends PrimaryParameter[BigDecimal]
-    with SecondaryParameter[java.math.BigDecimal] {
-    override val toParameter: PartialFunction[Any, Any] = {
-      case l: BigDecimal => l.underlying
-      case l: java.math.BigDecimal => l
-    }
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case l: java.math.BigDecimal =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setBigDecimal(ix, l)
-          statement
+  implicit object JavaBigDecimalParameter
+    extends Parameter[java.math.BigDecimal] {
+    override val set: java.math.BigDecimal => (Statement, Int) => Statement = {
+      (value) => (statement, parameterIndex) =>
+      statement.setBigDecimal(parameterIndex, value)
+      statement
     }
   }
+
+  implicit object BigDecimalParameter
+    extends SecondaryParameter[BigDecimal, java.math.BigDecimal]()(JavaBigDecimalParameter, _.underlying())
 
 }
 
@@ -183,67 +156,54 @@ trait TimestampParameter {
   self: ParameterValue =>
 
   implicit object TimestampParameter
-    extends PrimaryParameter[Timestamp]
-    with SecondaryParameter[java.util.Date]
-    with TertiaryParameter[Instant]
-    with QuaternaryParameter[LocalDateTime] {
-    override val toParameter: PartialFunction[Any, Any] = {
-      case i: Timestamp => i
-      case i: java.util.Date => new Timestamp(i.getTime)
-      case i: Instant => Timestamp.from(i)
-      case i: LocalDateTime => Timestamp.valueOf(i)
-    }
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case i: Timestamp =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setTimestamp(ix, i)
-          statement
+    extends Parameter[Timestamp] {
+    override val set: Timestamp => (Statement, Int) => Statement = {
+      (value) => (statement, parameterIndex) =>
+        statement.setTimestamp(parameterIndex, value)
+        statement
     }
   }
+
+  implicit object JavaDateParameter
+    extends SecondaryParameter[Date, Timestamp]()(TimestampParameter, date => new Timestamp(date.getTime))
+
+  implicit object InstantParameter
+    extends SecondaryParameter[Instant, Timestamp]()(TimestampParameter, Timestamp.from)
+
+  implicit object LocalDateTimeParameter
+    extends SecondaryParameter[LocalDateTime, Timestamp]()(TimestampParameter, Timestamp.valueOf)
 
 }
 
 trait DateParameter {
   self: ParameterValue =>
 
-  implicit object DateParameter
-    extends PrimaryParameter[JdbcDate]
-    with SecondaryParameter[LocalDate] {
-
-    override val toParameter: PartialFunction[Any, Any] = {
-      case d: JdbcDate => d
-      case l: java.time.LocalDate =>
-        java.sql.Date.valueOf(l)
+  implicit object JdbcDateParameter extends Parameter[JdbcDate] {
+    override val set: JdbcDate => (Statement, Int) => Statement = {
+      (value) => (statement, parameterIndex) =>
+      statement.setDate(parameterIndex, value)
+      statement
     }
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case i: JdbcDate =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setDate(ix, i)
-          statement
-    }
-
   }
+
+  implicit object LocalDateParameter
+    extends SecondaryParameter[LocalDate, JdbcDate]()(JdbcDateParameter, JdbcDate.valueOf)
 
 }
 
 trait TimeParameter {
   self: ParameterValue =>
 
-  implicit object TimeParameter
-    extends PrimaryParameter[java.sql.Time]
-    with SecondaryParameter[LocalTime] {
-    override val toParameter: PartialFunction[Any, Any] = {
-      case d: java.sql.Time => d
-      case l: java.time.LocalTime =>
-        java.sql.Time.valueOf(l)
-    }
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case i: Time =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setTime(ix, i)
-          statement
+  implicit object TimeParameter extends Parameter[Time] {
+    override val set: Time => (Statement, Int) => Statement = {
+      (value) => (statement, parameterIndex) =>
+      statement.setTime(parameterIndex, value)
+      statement
     }
   }
+
+  implicit object LocalTimeParameter
+    extends SecondaryParameter[LocalTime, Time]()(TimeParameter, Time.valueOf)
 
 }
 
@@ -251,22 +211,16 @@ trait BooleanParameter {
   self: ParameterValue =>
 
   implicit object BooleanParameter
-    extends PrimaryParameter[Boolean]
-    with SecondaryParameter[lang.Boolean] {
-
-    override val toParameter: PartialFunction[Any, Any] = {
-      case l: Boolean => l
-      case l: lang.Boolean => l.booleanValue()
+    extends Parameter[Boolean] {
+    override val set: Boolean => (Statement, Int) => Statement = {
+      (value) => (statement, parameterIndex) =>
+      statement.setBoolean(parameterIndex, value)
+      statement
     }
-
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case l: Boolean =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setBoolean(ix, l)
-          statement
-    }
-
   }
+
+  implicit object BoxedBooleanParameter
+    extends SecondaryParameter[lang.Boolean, Boolean]
 
 }
 
@@ -274,19 +228,12 @@ trait StringParameter {
   self: ParameterValue =>
 
   implicit object StringParameter
-    extends PrimaryParameter[String] {
-
-    override val toParameter: PartialFunction[Any, Any] = {
-      case l: String => l
+    extends Parameter[String] {
+    override val set: String => (Statement, Int) => Statement = {
+      (value) => (statement, parameterIndex) =>
+        statement.setString(parameterIndex, value)
+        statement
     }
-
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case l: String =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setString(ix, l)
-          statement
-    }
-
   }
 
 }
@@ -295,19 +242,12 @@ trait ReaderParameter {
   self: ParameterValue =>
 
   implicit object ReaderParameter
-    extends PrimaryParameter[Reader] {
-
-    override val toParameter: PartialFunction[Any, Any] = {
-      case l: Reader => l
+    extends Parameter[Reader] {
+    override val set: (Reader) => (Statement, Int) => Statement = {
+      (value: Reader) => (statement: Statement, parameterIndex: Int) =>
+        statement.setCharacterStream(parameterIndex, value)
+        statement
     }
-
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case l: Reader =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setCharacterStream(ix, l)
-          statement
-    }
-
   }
 
 }
@@ -316,19 +256,12 @@ trait InputStreamParameter {
   self: ParameterValue =>
 
   implicit object InputStreamParameter
-    extends PrimaryParameter[InputStream] {
-
-    override val toParameter: PartialFunction[Any, Any] = {
-      case l: InputStream => l
+    extends Parameter[InputStream] {
+    override val set: (InputStream) => (Statement, Int) => Statement = {
+      (value: InputStream) => (statement: Statement, parameterIndex: Int) =>
+        statement.setBinaryStream(parameterIndex, value)
+        statement
     }
-
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case l: InputStream =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setBinaryStream(ix, l)
-          statement
-    }
-
   }
 
 }
@@ -337,20 +270,14 @@ trait UUIDParameter {
   self: ParameterValue =>
 
   implicit object UUIDParameter
-    extends PrimaryParameter[UUID] {
-
-    override val toParameter: PartialFunction[Any, Any] = {
-      case l: UUID => l
+    extends Parameter[UUID] {
+    override val set: (UUID) => (Statement, Int) => Statement = {
+      (value: UUID) => (statement: Statement, parameterIndex: Int) =>
+        statement.setObject(parameterIndex, value)
+        statement
     }
-
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case l: UUID =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setObject(ix, l)
-          statement
-    }
-
   }
+
 }
 
 //This is left out of the defaults, since no one seems to support it.
@@ -359,70 +286,37 @@ trait URLParameter {
   self: ParameterValue =>
 
   implicit object URLParameter
-    extends PrimaryParameter[URL] {
-
-    override val toParameter: PartialFunction[Any, Any] = {
-      case l: URL => l
+    extends Parameter[URL] {
+    override val set: (URL) => (Statement, Int) => Statement = {
+      (value: URL) => (statement: Statement, parameterIndex: Int) =>
+        statement.setURL(parameterIndex, value)
+        statement
     }
-
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case l: URL =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setURL(ix, l)
-          statement
-    }
-
   }
 
 }
 
-trait ArrayParameter {
-  self: ParameterValue =>
+trait SQLXMLParameter {
+  self: ParameterValue
+    with StringParameter =>
 
-  implicit object ArrayParameter
-    extends PrimaryParameter[JdbcArray] {
-
-    override val toParameter: PartialFunction[Any, Any] = {
-      case l: JdbcArray => l
+  implicit object SQLXMLParameter
+    extends Parameter[SQLXML] {
+    override val set: (SQLXML) => (PreparedStatement, Int) => PreparedStatement = {
+      (value: SQLXML) => (statement: Statement, parameterIndex: Int) =>
+        statement.setSQLXML(parameterIndex, value)
+        statement
     }
-
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case l: JdbcArray =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setArray(ix, l)
-          statement
-    }
-
   }
 
-}
-
-trait XMLParameter {
-  self: ParameterValue =>
-
-  implicit object XmlParameter
-    extends PrimaryParameter[Node]
-    with SecondaryParameter[SQLXML] {
-
-    override val toParameter: PartialFunction[Any, Any] = {
-      case l: Node => l
-      case s: SQLXML => s
-    }
-
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case l: Node =>
-        (statement: Statement, ix: ParameterIndex) =>
-          val sqlxml = statement.getConnection.createSQLXML()
-          sqlxml.setString(l.toString)
-          statement.setSQLXML(ix, sqlxml)
-          statement
-      case sqlxml: SQLXML =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setSQLXML(ix, sqlxml)
-          statement
-    }
-
-  }
+  /**
+    * JDBC has a special SQLXML type, but jTDS doesn't support it. Most drivers seem to
+    * have no problems sending XML as strings.
+    *
+    * The PostgreSQL driver, for example, sends the XML as a string with the Oid set as Oid.XML.
+    */
+  implicit object NodeParameter
+    extends SecondaryParameter[Node, String]()(StringParameter, _.toString)
 
 }
 
@@ -430,19 +324,12 @@ trait BlobParameter {
   self: ParameterValue =>
 
   implicit object BlobParameter
-    extends PrimaryParameter[Blob] {
-
-    override val toParameter: PartialFunction[Any, Any] = {
-      case b: Blob => b
+    extends Parameter[Blob] {
+    override val set: (Blob) => (Statement, Int) => Statement = {
+      (value: Blob) => (statement: Statement, parameterIndex: Int) =>
+        statement.setBlob(parameterIndex, value)
+        statement
     }
-
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] = {
-      case b: Blob =>
-        (statement: Statement, ix: ParameterIndex) =>
-          statement.setBlob(ix, b)
-          statement
-    }
-
   }
 
 }
@@ -452,15 +339,14 @@ trait OffsetDateTimeAsTimestampParameter {
     with TimestampParameter =>
 
   implicit object OffsetDateTimeParameter
-    extends PrimaryParameter[OffsetDateTime] {
+    extends Parameter[OffsetDateTime] {
 
-    override val toParameter: PartialFunction[Any, Any] = {
-      case l: OffsetDateTime =>
-        Timestamp.from(l.toInstant)
+    override val set: (OffsetDateTime) => (Statement, Int) => Statement = {
+      (value: OffsetDateTime) =>
+        val converted = Timestamp.from(value.toInstant)
+        TimestampParameter.set(converted)
     }
 
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] =
-      PartialFunction.empty
   }
 
 }
@@ -472,17 +358,13 @@ trait OffsetDateTimeAsStringParameter {
   val offsetDateTimeFormatter: DateTimeFormatter
 
   implicit object OffsetDateTimeParameter
-    extends PrimaryParameter[OffsetDateTime] {
-
-    override val toParameter: PartialFunction[Any, Any] = {
-      case l: OffsetDateTime =>
-        val formatted = offsetDateTimeFormatter.format(l)
-        formatted
+    extends Parameter[OffsetDateTime] {
+    override val set: (OffsetDateTime) => (Statement, Int) => Statement = {
+      value =>
+        val formatted = offsetDateTimeFormatter.format(value)
+        (statement, parameterIndex) =>
+          StringParameter.set(formatted)(statement, parameterIndex)
     }
-
-    override val setParameter: PartialFunction[Any, (Statement, ParameterIndex) => Statement] =
-      PartialFunction.empty
-
   }
 
 }
