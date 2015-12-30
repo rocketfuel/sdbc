@@ -5,10 +5,13 @@ import scala.annotation.implicitNotFound
 trait RowConverter {
   self: DBMS =>
 
-  @implicitNotFound("Import a DBMS or define a function from Row to A.")
-  trait RowConverter[A] extends Function[Row, A]
+//  @implicitNotFound("Import a DBMS or define a function from Row to A.")
+  trait RowConverter[A] extends (Row => A)
 
   object RowConverter extends LowerPriorityRowConverterImplicits {
+
+    def apply[A](implicit rowConverter: RowConverter[A]): RowConverter[A] = rowConverter
+
     implicit def fromFunction[A](implicit
       converter: Row => A
     ): RowConverter[A] =

@@ -1,6 +1,15 @@
 package com.rocketfuel.sdbc.h2
 
+import com.rocketfuel.sdbc.H2._
+
 class CompositeGetterSpec extends H2Suite {
+
+  test("Int") {implicit connection =>
+    val query = Select[Int]("VALUES (1)", hasParameters = false)
+    val result = query.option()(connection)
+    val expected = Some(1)
+    assertResult(expected)(result)
+  }
 
   test("(Int, Int, Int)") {implicit connection =>
     val query = Select[(Int, Int, Int)]("VALUES (1, 2, 3)", hasParameters = false)

@@ -50,7 +50,14 @@ trait ParameterValue {
     val set: T => (Statement, Int) => Statement
   }
 
-  class SecondaryParameter[T, JdbcType](implicit baseParameter: Parameter[JdbcType], conversion: T => JdbcType)
+  /**
+    * A type that is usable as a parameter, but it first must be converted.
+    * @param baseParameter
+    * @param conversion
+    * @tparam T
+    * @tparam JdbcType
+    */
+  class DerivedParameter[T, JdbcType](implicit baseParameter: Parameter[JdbcType], conversion: T => JdbcType)
     extends Parameter[T] {
 
     def toJdbcType(value: T): JdbcType = conversion(value)

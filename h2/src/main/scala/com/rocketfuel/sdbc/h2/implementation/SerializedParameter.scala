@@ -1,6 +1,5 @@
 package com.rocketfuel.sdbc.h2.implementation
 
-import com.rocketfuel.sdbc.base.jdbc._
 import com.rocketfuel.sdbc.h2.Serialized
 import java.sql.Types
 
@@ -11,7 +10,7 @@ private[sdbc] trait SerializedParameter {
     extends Parameter[Serialized] {
     override val set: (Serialized) => (Statement, Int) => Statement = {
       value => (statement, index) =>
-        statement.setObject(index, value.value, Types.JAVA_OBJECT)
+        statement.setObject(index + 1, value.value, Types.JAVA_OBJECT)
         statement
     }
   }
@@ -19,7 +18,7 @@ private[sdbc] trait SerializedParameter {
   implicit val SerializedUpdater: Updater[Serialized] =
     new Updater[Serialized] {
       override def update(row: UpdatableRow, columnIndex: Int, x: Serialized): Unit = {
-        row.updateObject(columnIndex, x.value, Types.JAVA_OBJECT)
+        row.updateObject(columnIndex + 1, x.value, Types.JAVA_OBJECT)
       }
     }
 

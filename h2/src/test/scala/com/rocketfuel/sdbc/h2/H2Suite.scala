@@ -1,5 +1,6 @@
 package com.rocketfuel.sdbc.h2
 
+import com.rocketfuel.sdbc.H2._
 import org.scalatest._
 
 abstract class H2Suite

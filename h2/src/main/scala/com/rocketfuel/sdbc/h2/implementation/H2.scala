@@ -10,8 +10,9 @@ private[sdbc] abstract class H2
   with jdbc.DefaultGetters
   with jdbc.DefaultParameters
   with jdbc.DefaultUpdaters
-  with SerializedParameter
-  with SeqParameter {
+  with jdbc.SeqParameter
+  with ArrayTypes
+  with SerializedParameter {
 
   /**
    * Class name for the DataSource class.

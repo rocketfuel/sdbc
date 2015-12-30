@@ -18,13 +18,13 @@ trait LongParameter {
     extends Parameter[Long] {
     override val set: Long => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setLong(parameterIndex, value)
+      statement.setLong(parameterIndex + 1, value)
       statement
     }
   }
 
   implicit object BoxedLongParameter
-    extends SecondaryParameter[lang.Long, Long]
+    extends DerivedParameter[lang.Long, Long]
 
 }
 
@@ -35,13 +35,13 @@ trait IntParameter {
     extends Parameter[Int] {
     override val set: Int => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-        statement.setInt(parameterIndex, value)
+        statement.setInt(parameterIndex + 1, value)
         statement
     }
   }
 
   implicit object BoxedIntParameter
-    extends SecondaryParameter[Integer, Int]
+    extends DerivedParameter[Integer, Int]
 
 }
 
@@ -52,13 +52,13 @@ trait ShortParameter {
     extends Parameter[Short] {
     override val set: Short => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setShort(parameterIndex, value)
+      statement.setShort(parameterIndex + 1, value)
       statement
     }
   }
 
   implicit object BoxedShortParameter
-    extends SecondaryParameter[lang.Short, Short]
+    extends DerivedParameter[lang.Short, Short]
 
 }
 
@@ -69,13 +69,13 @@ trait ByteParameter {
     extends Parameter[Byte] {
     override val set: Byte => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setByte(parameterIndex, value)
+      statement.setByte(parameterIndex + 1, value)
       statement
     }
   }
 
   implicit object BoxedByteParameter
-    extends SecondaryParameter[lang.Byte, Byte]
+    extends DerivedParameter[lang.Byte, Byte]
 
 }
 
@@ -88,16 +88,16 @@ trait BytesParameter {
     override val set: ByteVector => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
       val arrayValue = value.toArray
-      statement.setBytes(parameterIndex, arrayValue)
+      statement.setBytes(parameterIndex + 1, arrayValue)
       statement
     }
   }
 
   implicit object ByteBufferParameter
-    extends SecondaryParameter[ByteBuffer, ByteVector]()(ByteVectorParameter, (b: ByteBuffer) => ByteVector(b))
+    extends DerivedParameter[ByteBuffer, ByteVector]()(ByteVectorParameter, (b: ByteBuffer) => ByteVector(b))
 
   implicit object ArrayByteParameter
-    extends SecondaryParameter[Array[Byte], ByteVector]()(ByteVectorParameter, (b: Array[Byte]) => ByteVector(b))
+    extends DerivedParameter[Array[Byte], ByteVector]()(ByteVectorParameter, (b: Array[Byte]) => ByteVector(b))
 
 }
 
@@ -108,13 +108,13 @@ trait FloatParameter {
     extends Parameter[Float] {
     override val set: Float => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setFloat(parameterIndex, value)
+      statement.setFloat(parameterIndex + 1, value)
       statement
     }
   }
 
   implicit object BoxedFloatParameter
-    extends SecondaryParameter[lang.Float, Float]
+    extends DerivedParameter[lang.Float, Float]
 
 }
 
@@ -125,13 +125,13 @@ trait DoubleParameter {
     extends Parameter[Double] {
     override val set: Double => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setDouble(parameterIndex, value)
+      statement.setDouble(parameterIndex + 1, value)
       statement
     }
   }
 
   implicit object BoxedDoubleParameter
-    extends SecondaryParameter[lang.Double, Double]
+    extends DerivedParameter[lang.Double, Double]
 
 }
 
@@ -142,13 +142,13 @@ trait BigDecimalParameter {
     extends Parameter[java.math.BigDecimal] {
     override val set: java.math.BigDecimal => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setBigDecimal(parameterIndex, value)
+      statement.setBigDecimal(parameterIndex + 1, value)
       statement
     }
   }
 
   implicit object BigDecimalParameter
-    extends SecondaryParameter[BigDecimal, java.math.BigDecimal]()(JavaBigDecimalParameter, _.underlying())
+    extends DerivedParameter[BigDecimal, java.math.BigDecimal]()(JavaBigDecimalParameter, _.underlying())
 
 }
 
@@ -159,19 +159,19 @@ trait TimestampParameter {
     extends Parameter[Timestamp] {
     override val set: Timestamp => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-        statement.setTimestamp(parameterIndex, value)
+        statement.setTimestamp(parameterIndex + 1, value)
         statement
     }
   }
 
   implicit object JavaDateParameter
-    extends SecondaryParameter[Date, Timestamp]()(TimestampParameter, date => new Timestamp(date.getTime))
+    extends DerivedParameter[Date, Timestamp]()(TimestampParameter, date => new Timestamp(date.getTime))
 
   implicit object InstantParameter
-    extends SecondaryParameter[Instant, Timestamp]()(TimestampParameter, Timestamp.from)
+    extends DerivedParameter[Instant, Timestamp]()(TimestampParameter, Timestamp.from)
 
   implicit object LocalDateTimeParameter
-    extends SecondaryParameter[LocalDateTime, Timestamp]()(TimestampParameter, Timestamp.valueOf)
+    extends DerivedParameter[LocalDateTime, Timestamp]()(TimestampParameter, Timestamp.valueOf)
 
 }
 
@@ -181,13 +181,13 @@ trait DateParameter {
   implicit object JdbcDateParameter extends Parameter[JdbcDate] {
     override val set: JdbcDate => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setDate(parameterIndex, value)
+      statement.setDate(parameterIndex + 1, value)
       statement
     }
   }
 
   implicit object LocalDateParameter
-    extends SecondaryParameter[LocalDate, JdbcDate]()(JdbcDateParameter, JdbcDate.valueOf)
+    extends DerivedParameter[LocalDate, JdbcDate]()(JdbcDateParameter, JdbcDate.valueOf)
 
 }
 
@@ -197,13 +197,13 @@ trait TimeParameter {
   implicit object TimeParameter extends Parameter[Time] {
     override val set: Time => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setTime(parameterIndex, value)
+      statement.setTime(parameterIndex + 1, value)
       statement
     }
   }
 
   implicit object LocalTimeParameter
-    extends SecondaryParameter[LocalTime, Time]()(TimeParameter, Time.valueOf)
+    extends DerivedParameter[LocalTime, Time]()(TimeParameter, Time.valueOf)
 
 }
 
@@ -214,13 +214,13 @@ trait BooleanParameter {
     extends Parameter[Boolean] {
     override val set: Boolean => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setBoolean(parameterIndex, value)
+      statement.setBoolean(parameterIndex + 1, value)
       statement
     }
   }
 
   implicit object BoxedBooleanParameter
-    extends SecondaryParameter[lang.Boolean, Boolean]
+    extends DerivedParameter[lang.Boolean, Boolean]
 
 }
 
@@ -231,7 +231,7 @@ trait StringParameter {
     extends Parameter[String] {
     override val set: String => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-        statement.setString(parameterIndex, value)
+        statement.setString(parameterIndex + 1, value)
         statement
     }
   }
@@ -245,7 +245,7 @@ trait ReaderParameter {
     extends Parameter[Reader] {
     override val set: (Reader) => (Statement, Int) => Statement = {
       (value: Reader) => (statement: Statement, parameterIndex: Int) =>
-        statement.setCharacterStream(parameterIndex, value)
+        statement.setCharacterStream(parameterIndex + 1, value)
         statement
     }
   }
@@ -259,7 +259,7 @@ trait InputStreamParameter {
     extends Parameter[InputStream] {
     override val set: (InputStream) => (Statement, Int) => Statement = {
       (value: InputStream) => (statement: Statement, parameterIndex: Int) =>
-        statement.setBinaryStream(parameterIndex, value)
+        statement.setBinaryStream(parameterIndex + 1, value)
         statement
     }
   }
@@ -273,7 +273,7 @@ trait UUIDParameter {
     extends Parameter[UUID] {
     override val set: (UUID) => (Statement, Int) => Statement = {
       (value: UUID) => (statement: Statement, parameterIndex: Int) =>
-        statement.setObject(parameterIndex, value)
+        statement.setObject(parameterIndex + 1, value)
         statement
     }
   }
@@ -289,7 +289,7 @@ trait URLParameter {
     extends Parameter[URL] {
     override val set: (URL) => (Statement, Int) => Statement = {
       (value: URL) => (statement: Statement, parameterIndex: Int) =>
-        statement.setURL(parameterIndex, value)
+        statement.setURL(parameterIndex + 1, value)
         statement
     }
   }
@@ -304,7 +304,7 @@ trait SQLXMLParameter {
     extends Parameter[SQLXML] {
     override val set: (SQLXML) => (PreparedStatement, Int) => PreparedStatement = {
       (value: SQLXML) => (statement: Statement, parameterIndex: Int) =>
-        statement.setSQLXML(parameterIndex, value)
+        statement.setSQLXML(parameterIndex + 1, value)
         statement
     }
   }
@@ -316,7 +316,7 @@ trait SQLXMLParameter {
     * The PostgreSQL driver, for example, sends the XML as a string with the Oid set as Oid.XML.
     */
   implicit object NodeParameter
-    extends SecondaryParameter[Node, String]()(StringParameter, _.toString)
+    extends DerivedParameter[Node, String]()(StringParameter, _.toString)
 
 }
 
@@ -327,7 +327,7 @@ trait BlobParameter {
     extends Parameter[Blob] {
     override val set: (Blob) => (Statement, Int) => Statement = {
       (value: Blob) => (statement: Statement, parameterIndex: Int) =>
-        statement.setBlob(parameterIndex, value)
+        statement.setBlob(parameterIndex + 1, value)
         statement
     }
   }

@@ -3,6 +3,7 @@ package com.rocketfuel.sdbc.h2
 import com.zaxxer.hikari.HikariConfig
 import org.scalatest.{Outcome, fixture, BeforeAndAfterEach}
 import scalaz.stream._
+import com.rocketfuel.sdbc.H2._
 
 abstract class JdbcProcessSuite
   extends fixture.FunSuite

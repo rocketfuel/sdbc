@@ -52,7 +52,7 @@ private[sdbc] trait XMLParameter {
 
   implicit object XmlParameter
     extends PrimaryParameter[Node]
-    with SecondaryParameter[SQLXML] {
+    with DerivedParameter[SQLXML] {
 
     override val toParameter: PartialFunction[Any, Any] = {
       case l: Node => l.toString()

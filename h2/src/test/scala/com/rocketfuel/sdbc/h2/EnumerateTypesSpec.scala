@@ -1,5 +1,7 @@
 package com.rocketfuel.sdbc.h2
 
+import com.rocketfuel.sdbc.H2._
+
 class EnumerateTypesSpec extends H2Suite {
 
   ignore("list type map") {implicit connection =>

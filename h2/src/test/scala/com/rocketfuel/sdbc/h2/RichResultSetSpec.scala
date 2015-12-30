@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.h2
 
 import org.scalatest.BeforeAndAfterEach
-
+import com.rocketfuel.sdbc.H2._
 import scala.collection.immutable.Seq
 
 class RichResultSetSpec
@@ -44,7 +44,7 @@ class RichResultSetSpec
     batch.iterator()
 
     for(row <- connection.iteratorForUpdate("SELECT * FROM tbl")) {
-      row("x") = row.get[Int]("x").map(_ + 1)
+      row("x") = row[Int]("x") + 1
       row.updateRow()
     }
 
@@ -67,7 +67,7 @@ class RichResultSetSpec
 
     batch.iterator()
 
-    val result = Select[Int]("SELECT x FROM tbl ORDER BY id ASC").to[Vector]
+    val result = Select[Int]("SELECT x FROM tbl ORDER BY id ASC").iterator().toVector
 
     assertResult(randoms)(result)
   }
