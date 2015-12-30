@@ -80,9 +80,8 @@ class UpdatersSpec extends H2Suite {
   testUpdate("uuid")(UUID.randomUUID())(UUID.randomUUID())
 
   test(s"Update None") {implicit connection =>
-    //TODO: make it so that declaring these as Option[Int] isn't necessary.
-    val before: Option[Int] = Some(1)
-    val after: Option[Int] = None
+    val before = Some(1)
+    val after = None
 
     Update(s"CREATE TABLE tbl (id identity PRIMARY KEY, v int)").update()
 

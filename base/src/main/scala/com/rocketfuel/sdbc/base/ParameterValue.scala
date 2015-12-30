@@ -101,6 +101,10 @@ trait ParameterValue {
     implicit def of[T](p: T)(implicit parameter: Parameter[T]): ParameterValue = {
       ofOption[T](Some(p))
     }
+
+    implicit def ofNone(p: None.type): ParameterValue = {
+      new ParameterValue(None, setNone)
+    }
   }
 
   type ParameterList = Seq[(String, ParameterValue)]

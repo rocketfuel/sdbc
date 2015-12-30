@@ -22,6 +22,20 @@ trait ParameterizedQuery {
           ParameterValue.ofOption[A](value)
       }
     }
+
+    implicit def fromSomeValue[A](implicit parameter: Parameter[A]) = {
+      use {
+        (value: Some[A]) =>
+          ParameterValue.of[A](value.get)
+      }
+    }
+
+    implicit def fromNone(implicit parameter: Parameter[None.type]) = {
+      use {
+        (value: None.type) =>
+          ParameterValue.ofNone(value)
+      }
+    }
   }
 
   /**
