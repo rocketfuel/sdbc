@@ -1,9 +1,8 @@
 package com.rocketfuel.sdbc.postgresql.implementation
 
+import com.rocketfuel.sdbc.base.jdbc.ParameterValue
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-
-import com.rocketfuel.sdbc.base.ToParameter
 import org.postgresql.util.PGobject
 
 private[sdbc] class PGLocalTime() extends PGobject() {
@@ -20,26 +19,30 @@ private[sdbc] class PGLocalTime() extends PGobject() {
     this.localTime = for {
       reallyValue <- Option(value)
     } yield {
-        val parsed = DateTimeFormatter.ISO_LOCAL_TIME.parse(reallyValue)
-        LocalTime.from(parsed)
-      }
+      val parsed = DateTimeFormatter.ISO_LOCAL_TIME.parse(reallyValue)
+      LocalTime.from(parsed)
+    }
   }
 }
 
-private[sdbc] object PGLocalTime extends ToParameter {
-  def apply(l: LocalTime): PGLocalTime = {
+private[sdbc] object PGLocalTime {
+  implicit def apply(l: LocalTime): PGLocalTime = {
     val t = new PGLocalTime()
     t.localTime = Some(l)
     t
   }
-
-  override val toParameter: PartialFunction[Any, Any] = {
-    case l: LocalTime => PGLocalTime(l)
-  }
 }
 
-private[sdbc] trait PGLocalTimeImplicits {
-  implicit def LocalTimeToPGobject(l: LocalTime): PGobject = {
-    PGLocalTime(l)
+private[sdbc] trait LocalTimeParameter {
+  self: ParameterValue =>
+
+  implicit object LocalTimeParameter extends Parameter[LocalTime] {
+    override val set: (LocalTime) => (Statement, Int) => Statement = {
+      time => (statement, ix) =>
+        val pgTime: PGLocalTime = time
+        statement.setObject(ix + 1, pgTime)
+        statement
+    }
   }
+
 }

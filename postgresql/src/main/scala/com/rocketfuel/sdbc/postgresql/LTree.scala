@@ -11,11 +11,13 @@ import scala.collection.immutable.Seq
  * This mutable method of creating an object is not very scala-like, so we
  * supply custom apply and unapply methods.
  */
-class LTree() extends PGobject() with collection.immutable.Iterable[String] with PartialFunction[Int, String] {
+class LTree(
+  private var path: Option[Seq[String]] = None
+) extends PGobject()
+  with collection.immutable.Iterable[String]
+  with PartialFunction[Int, String] {
 
   setType("ltree")
-
-  private var path: Option[Seq[String]] = None
 
   def getPath: Seq[String] = {
     path.
@@ -107,9 +109,7 @@ object LTree {
   }
 
   def apply(path: Seq[String]): LTree = {
-    val l = new LTree
-    l.setPath(path)
-    l
+    new LTree(path = Some(path))
   }
 
   def unapply(ltree: LTree): Option[Seq[String]] = {

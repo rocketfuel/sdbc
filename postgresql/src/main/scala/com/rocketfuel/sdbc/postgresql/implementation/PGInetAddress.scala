@@ -1,15 +1,14 @@
 package com.rocketfuel.sdbc.postgresql.implementation
 
+import com.rocketfuel.sdbc.base.jdbc.ParameterValue
 import java.net.InetAddress
-import java.sql.SQLException
-
 import org.postgresql.util.PGobject
 
-private[sdbc] class PGInetAddress() extends PGobject() {
+private[sdbc] class PGInetAddress(
+  var inetAddress: Option[InetAddress] = None
+) extends PGobject() {
 
   setType("inet")
-
-  var inetAddress: Option[InetAddress] = None
 
   override def getValue: String = {
     inetAddress.map(_.getHostAddress).
@@ -35,23 +34,20 @@ private[sdbc] class PGInetAddress() extends PGobject() {
 
 private[sdbc] object PGInetAddress {
   def apply(address: InetAddress): PGInetAddress = {
-    val a = new PGInetAddress()
-    a.inetAddress = Some(address)
-    a
+    new PGInetAddress(inetAddress = Some(address))
   }
 }
 
-private[sdbc] trait PGInetAddressImplicits {
-  implicit def InetAddressToPGobject(x: InetAddress): PGobject = {
-    PGInetAddress(x)
-  }
+private[sdbc] trait InetAddressParameter {
+  self: ParameterValue =>
 
-  implicit def PGobjectToInetAddress(x: PGobject): InetAddress = {
-    x match {
-      case p: PGInetAddress =>
-        p.inetAddress.get
-      case _ =>
-        throw new SQLException("column does not contain an inet")
+  implicit object InetAddressParameter extends Parameter[InetAddress] {
+    override val set: (InetAddress) => (Statement, Int) => Statement = {
+      address => (statement, ix) =>
+        val pgAddress = PGInetAddress(address)
+        statement.setObject(ix + 1, pgAddress)
+        statement
     }
   }
+
 }

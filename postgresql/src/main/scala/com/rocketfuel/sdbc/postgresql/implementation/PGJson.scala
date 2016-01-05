@@ -1,17 +1,16 @@
 package com.rocketfuel.sdbc.postgresql.implementation
 
-import java.sql.SQLException
-
-import com.rocketfuel.sdbc.base.ToParameter
+import com.rocketfuel.sdbc.base.jdbc.ParameterValue
+import java.sql.PreparedStatement
 import org.json4s.jackson.JsonMethods
 import org.json4s.JValue
 import org.postgresql.util.PGobject
 
-private[sdbc] class PGJson() extends PGobject() {
+private[sdbc] class PGJson(
+  var jValue: Option[JValue] = None
+) extends PGobject() {
 
   setType("json")
-
-  var jValue: Option[JValue] = None
 
   override def getValue: String = {
     jValue.map(j => JsonMethods.compact(JsonMethods.render(j))).
@@ -30,31 +29,22 @@ private[sdbc] class PGJson() extends PGobject() {
 
 }
 
-private[sdbc] object PGJson extends ToParameter {
+private[sdbc] object PGJson {
   def apply(j: JValue): PGJson = {
-    val p = new PGJson()
-    p.jValue = Some(j)
-
+    val p = new PGJson(jValue = Some(j))
     p
-  }
-
-  override val toParameter: PartialFunction[Any, Any] = {
-    case j: JValue => PGJson(j)
   }
 }
 
-private[sdbc] trait PGJsonImplicits {
+private[sdbc] trait PGJsonParameter {
+  self: ParameterValue =>
 
-  implicit def JValueToPGJson(j: JValue): PGJson = {
-    PGJson(j)
-  }
-
-  implicit def PGobjectToJValue(x: PGobject): JValue = {
-    x match {
-      case p: PGJson =>
-        p.jValue.get
-      case _ =>
-        throw new SQLException("column does not contain a json")
+  implicit object JValueParameter extends Parameter[JValue] {
+    override val set: JValue => (PreparedStatement, Int) => PreparedStatement = {
+      json => (statement, ix) =>
+        val pgJson = PGJson(json)
+        statement.setObject(ix + 1, pgJson)
+        statement
     }
   }
 

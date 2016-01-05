@@ -4,6 +4,7 @@ import java.nio.file.Path
 import java.sql.DriverManager
 import com.rocketfuel.sdbc.base.CISet
 import com.rocketfuel.sdbc.base.jdbc
+import com.rocketfuel.sdbc.h2
 
 private[sdbc] abstract class H2
   extends jdbc.DBMS
@@ -13,6 +14,9 @@ private[sdbc] abstract class H2
   with jdbc.SeqParameter
   with ArrayTypes
   with SerializedParameter {
+
+  type Serialized = h2.Serialized
+  val Serialized = h2.Serialized
 
   /**
    * Class name for the DataSource class.

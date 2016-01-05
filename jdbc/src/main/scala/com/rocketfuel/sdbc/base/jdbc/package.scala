@@ -31,7 +31,7 @@ package object jdbc
     }
   }
 
-  def ofJdbcUrl(connectionString: String): DBMS = {
+  def ofConnectionString(connectionString: String): DBMS = {
     val jdbcURIRegex(scheme) = connectionString
 
     jdbcSchemes(scheme)
@@ -43,7 +43,7 @@ package object jdbc
 
   def of(config: HikariConfig): DBMS = {
     val dataSourceClassDbms = Option(config.getDataSourceClassName).flatMap(dataSources.get)
-    val urlDbms = Option(config.getJdbcUrl).map(ofJdbcUrl)
+    val urlDbms = Option(config.getJdbcUrl).map(ofConnectionString)
     dataSourceClassDbms.
     orElse(urlDbms).
     get

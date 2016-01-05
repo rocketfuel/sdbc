@@ -94,6 +94,10 @@ trait ParameterValue {
   }
 
   object ParameterValue {
+    def apply[T](p: T)(implicit toParameterValue: T => ParameterValue): ParameterValue = {
+      p
+    }
+
     implicit def ofOption[T](p: Option[T])(implicit parameter: Parameter[T]): ParameterValue = {
       new ParameterValue(p, setOption(p))
     }

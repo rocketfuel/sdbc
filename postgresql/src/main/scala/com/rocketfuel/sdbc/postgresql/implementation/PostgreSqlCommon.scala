@@ -3,13 +3,13 @@ package com.rocketfuel.sdbc.postgresql.implementation
 import com.rocketfuel.sdbc.base.CISet
 import com.rocketfuel.sdbc.base.jdbc._
 import com.rocketfuel.sdbc.postgresql.{LTree, Cidr}
+import java.sql.SQLException
 import org.postgresql.PGConnection
 
 private[sdbc] abstract class PostgreSqlCommon
   extends DBMS
   with Setters
   with IntervalImplicits
-  with ConnectionImplicits
   with Getters
   with Updaters {
 
@@ -34,6 +34,15 @@ private[sdbc] abstract class PostgreSqlCommon
     pgConnection.addDataType("json", classOf[PGJson])
     pgConnection.addDataType("jsonb", classOf[PGJson])
     pgConnection.addDataType("time", classOf[PGLocalTime])
+  }
+
+  /** This can be used to get to the getCopyApi() and other methods.
+    * @param connection The Connection or Hikari Connection which contains an underlying PGConnection.
+    * @return The underlying PGConnection.
+    * @throws SQLException if the connection is not a PGConnection.
+    */
+  implicit def PostgreSqlConnectionToPGConnection(connection: Connection): PGConnection = {
+    connection.unwrap(classOf[PGConnection])
   }
 
 }

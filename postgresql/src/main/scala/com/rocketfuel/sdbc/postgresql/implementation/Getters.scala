@@ -34,8 +34,7 @@ private[sdbc] trait Getters
   with InstantGetter
   with LocalDateGetter
   with LocalDateTimeGetter {
-  self: Getter
-    with Row
+  self: DBMS
     with PGTimestampTzImplicits
     with PGTimeTzImplicits
     with IntervalImplicits
@@ -95,19 +94,16 @@ private[sdbc] trait Getters
       }
     }
 
-  implicit val OffsetDateTimeGetter = new Getter[OffsetDateTime] {
-    override def apply(row: Row, ix: Index): Option[OffsetDateTime] = {
-      for {
-        asString <- Option(row.getString(ix(row)))
-      } yield {
-        val parsed = offsetDateTimeFormatter.parse(asString)
-        OffsetDateTime.from(parsed)
-      }
+  implicit val OffsetDateTimeGetter: Getter[OffsetDateTime] =
+    (row: Row, ix: Index) => for {
+      asString <- Option(row.getString(ix(row)))
+    } yield {
+      val parsed = offsetDateTimeFormatter.parse(asString)
+      OffsetDateTime.from(parsed)
     }
-  }
 
-  implicit val LocalTimeGetter = new Getter[LocalTime] {
-    override def apply(row: Row, ix: Index): Option[LocalTime] = {
+  implicit val LocalTimeGetter: Getter[LocalTime] =
+    (row: Row, ix: Index) => {
       for {
         asString <- Option(row.getString(ix(row)))
       } yield {
@@ -116,26 +112,21 @@ private[sdbc] trait Getters
         l
       }
     }
-  }
 
-  override implicit val UUIDGetter: Getter[UUID] = new Getter[UUID] {
-    override def apply(row: Row, ix: Index): Option[UUID] = {
+  override implicit val UUIDGetter: Getter[UUID] =
+    (row: Row, ix: Index) => {
       Option(row.getObject(ix(row))).map {
         case uuid: UUID => uuid
         case _ => throw new SQLDataException("column does not contain a uuid")
       }
     }
-  }
 
-  implicit val XMLGetter: Getter[Node] = new Parser[Node] {
+  implicit val XMLGetter: Getter[Node] =
     //PostgreSQL's ResultSet#getSQLXML just uses getString.
-    override def parse(asString: String): Node = {
-      XML.loadString(asString)
-    }
-  }
+    (asString: String) => XML.loadString(asString)
 
-  implicit val MapGetter: Getter[Map[String, String]] = new Getter[Map[String, String]] {
-    override def apply(row: Row, ix: Index): Option[Map[String, String]] = {
+  implicit val MapGetter: Getter[Map[String, String]] =
+    (row: Row, ix: Index) => {
       Option(row.getObject(ix(row))).map {
         case m: java.util.Map[_, _] =>
           import scala.collection.convert.decorateAsScala._
@@ -148,6 +139,5 @@ private[sdbc] trait Getters
           throw new SQLException("column does not contain an hstore")
       }
     }
-  }
 
 }

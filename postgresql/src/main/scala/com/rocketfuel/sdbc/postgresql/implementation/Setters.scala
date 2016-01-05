@@ -1,88 +1,74 @@
 package com.rocketfuel.sdbc.postgresql.implementation
 
 import java.sql.PreparedStatement
-
-import com.rocketfuel.sdbc.base.{ParameterValue, ToParameter}
 import com.rocketfuel.sdbc.base.jdbc._
 import org.postgresql.util.PGobject
-import scala.collection.convert.decorateAsJava._
 
 //PostgreSQL doesn't support Byte, so we don't use the default setters.
 private[sdbc] trait Setters
-  extends QPGObjectImplicits
-  with QBooleanImplicits
-  with QBytesImplicits
-  with QDateImplicits
-  with QBigDecimalImplicits
-  with QDoubleImplicits
-  with QFloatImplicits
-  with QIntImplicits
-  with QLongImplicits
-  with QShortImplicits
-  with QStringImplicits
-  with QTimeImplicits
-  with QTimestampImplicits
-  with QReaderImplicits
-  with QInputStreamImplicits
-  with QUUIDImplicits
-  with QInstantImplicits
-  with QLocalDateImplicits
-  with PGLocalTimeImplicits
-  with QLocalDateTimeImplicits
+  extends PGobjectParameter
+  with BooleanParameter
+  with BytesParameter
+  with DateParameter
+  with BigDecimalParameter
+  with DoubleParameter
+  with FloatParameter
+  with IntParameter
+  with LongParameter
+  with ShortParameter
+  with StringParameter
+  with TimeParameter
+  with TimestampParameter
+  with ReaderParameter
+  with InputStreamParameter
+  with UUIDParameter
+  with InstantParameter
+  with LocalDateParameter
+  with LocalTimeParameter
+  with LocalDateTimeParameter
   with PGTimeTzImplicits
   with PGTimestampTzImplicits
   with PGInetAddressImplicits
-  with QXMLImplicits
-  with QSQLXMLImplicits
-  with QBlobImplicits
+  with XMLParameter
+  with SQLXMLParameter
+  with BlobParameter
   with PGJsonImplicits
-  with QMapImplicits {
-
+  with MapParameter {
 
 }
 
-private[sdbc] object QPGObject extends ToParameter {
-  override val toParameter: PartialFunction[Any, Any] = {
-    case i: PGobject => i
-  }
-}
+private[sdbc] trait PGobjectParameter {
+  self: ParameterValue =>
 
-private[sdbc] trait QPGObjectImplicits {
-  implicit val PGobjectIsParameter: IsParameter[PGobject] = new IsParameter[PGobject] {
-    override def set(preparedStatement: PreparedStatement, parameterIndex: Int, parameter: PGobject): Unit = {
-      preparedStatement.setObject(parameterIndex, parameter)
+  implicit object PGobjectParameter extends Parameter[PGobject] {
+    override val set: (PGobject) => (Statement, Int) => Statement = {
+      value => (statement, parameterIndex) =>
+        statement.setObject(parameterIndex + 1, value)
+        statement
     }
   }
 
-  implicit def PGobjectToParameterValue(value: PGobject): ParameterValue = {
-    ParameterValue(value)
-  }
-
-  implicit def IsPGobjectToParameterValue[T](value: T)(implicit converter: T => PGobject): ParameterValue = {
-    converter(value)
-  }
-
-}
-
-private[sdbc] object QMap extends ToParameter {
-  override val toParameter: PartialFunction[Any, Any] = {
-    case i: Map[_, _] => //Technically, this should be a Map[String, String]
-      i.asJava
-  }
-}
-
-private[sdbc] trait QMapImplicits {
-  implicit val MapIsParameter: IsParameter[java.util.Map[String, String]] = new IsParameter[java.util.Map[String, String]] {
-    override def set(
-      preparedStatement: PreparedStatement,
-      parameterIndex: Int,
-      parameter: java.util.Map[String, String]
-    ): Unit = {
-      preparedStatement.setObject(parameterIndex, parameter)
+  implicit def isPGobjectParameter[A](value: A)(implicit toPGobject: A => PGobject): Parameter[A] = {
+    new Parameter[A] {
+      override val set: (A) => (PreparedStatement, Int) => PreparedStatement = {
+        value => (statement, parameterIndex) =>
+          val asPGobject = toPGobject(value)
+          PGobjectParameter.set(asPGobject)(statement, parameterIndex)
+      }
     }
   }
 
-  implicit def MapStringStringToParameterValue(value: Map[String, String]): ParameterValue = {
-    ParameterValue(value.asJava)
+}
+
+private[sdbc] trait MapParameter {
+  self: ParameterValue =>
+
+  implicit object MapParameter extends Parameter[Map[String, String]] {
+    override val set: (PGobject) => (Statement, Int) => Statement = {
+      value => (statement, parameterIndex) =>
+        statement.setObject(parameterIndex + 1, value)
+        statement
+    }
   }
+
 }
