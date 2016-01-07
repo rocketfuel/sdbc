@@ -2,6 +2,7 @@ package com.rocketfuel.sdbc.sqlserver.implementation
 
 import java.io.{InputStream, Reader}
 import java.sql.PreparedStatement
+import java.time.format.{DateTimeFormatterBuilder, DateTimeFormatter}
 import java.time.{LocalTime, OffsetDateTime}
 import java.util.UUID
 import com.rocketfuel.sdbc.base.CISet
@@ -29,6 +30,19 @@ private[sdbc] abstract class SqlServer
   with Getters
   with Updaters
   with Setters {
+
+  override val offsetDateTimeFormatter: DateTimeFormatter = {
+    new DateTimeFormatterBuilder().
+      parseCaseInsensitive().
+      append(DateTimeFormatter.ISO_LOCAL_DATE).
+      appendLiteral(' ').
+      append(DateTimeFormatter.ISO_LOCAL_TIME).
+      optionalStart().
+      appendLiteral(' ').
+      appendOffset("+HH:MM", "+00:00").
+      optionalEnd().
+      toFormatter
+  }
 
   override def driverClassName = "net.sourceforge.jtds.jdbc.Driver"
   override def dataSourceClassName ="net.sourceforge.jtds.jdbcx.JtdsDataSource"

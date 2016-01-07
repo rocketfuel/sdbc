@@ -16,6 +16,7 @@ private[sdbc] trait Updaters
   with BytesUpdater
   with DoubleUpdater
   with FloatUpdater
+  with BigDecimalUpdater
   with TimestampUpdater
   with DateUpdater
   with TimeUpdater
@@ -29,7 +30,8 @@ private[sdbc] trait Updaters
   self: Updater
     with UpdatableRow
     with ParameterValue
-    with MutableRow=>
+    with MutableRow
+    with OffsetDateTimeAsStringParameter =>
 
   implicit val LocalTimeUpdater = new Updater[LocalTime] {
     override def update(row: UpdatableRow, columnIndex: Int, x: LocalTime): Unit = {

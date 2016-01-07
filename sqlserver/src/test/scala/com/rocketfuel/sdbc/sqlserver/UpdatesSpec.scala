@@ -3,8 +3,8 @@ package com.rocketfuel.sdbc.sqlserver
 import java.sql.{Date, Time, Timestamp}
 import java.time.{Instant, LocalDate, LocalTime}
 import java.util.UUID
-import com.rocketfuel.sdbc.base.jdbc.Updater
 import scodec.bits.ByteVector
+import com.rocketfuel.sdbc.SqlServer._
 
 import scala.reflect.ClassTag
 
@@ -16,12 +16,13 @@ class UpdatesSpec extends SqlServerSuite {
   )(after: T
   )(implicit ctag: ClassTag[T],
     updater: Updater[T],
+    setter: T => ParameterValue,
     converter: CompositeGetter[T]
   ): Unit = {
     test(s"Update ${ctag.runtimeClass.getName}") {implicit connection =>
       Update(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v $typeName)").update()
 
-      update"INSERT INTO tbl (v) VALUES ($before)".update()
+      Update("INSERT INTO tbl (v) VALUES ($before)").on("before" -> before).update()
 
       for (row <- selectForUpdate"SELECT * FROM tbl".iterator()) {
         row("v") = after

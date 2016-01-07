@@ -3,10 +3,9 @@ package com.rocketfuel.sdbc.postgresql.implementation
 import com.rocketfuel.sdbc.base.CISet
 import com.rocketfuel.sdbc.base.jdbc._
 import com.rocketfuel.sdbc.postgresql.{LTree, Cidr}
-import java.sql.{Types, SQLException}
+import java.sql.SQLException
 import org.postgresql.PGConnection
 import org.postgresql.core.BaseConnection
-import scala.xml.{Elem, NodeSeq}
 
 private[sdbc] abstract class PostgreSql
   extends DBMS

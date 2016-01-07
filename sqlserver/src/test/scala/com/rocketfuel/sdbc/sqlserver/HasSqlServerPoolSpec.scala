@@ -3,6 +3,7 @@ package com.rocketfuel.sdbc.sqlserver
 import com.rocketfuel.sdbc.config.TestingConfig
 import com.typesafe.config.{Config, ConfigFactory}
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
+import com.rocketfuel.sdbc.SqlServer._
 
 class HasSqlServerPoolSpec
   extends FunSuite

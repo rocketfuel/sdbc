@@ -12,6 +12,7 @@ class SettersSpec
   }
 
   test("implicit Node conversion works") {
+    //assertCompiles doesn't work for this test
     val _: ParameterValue = <a></a>
   }
 

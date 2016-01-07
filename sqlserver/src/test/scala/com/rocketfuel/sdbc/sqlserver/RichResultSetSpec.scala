@@ -2,6 +2,7 @@ package com.rocketfuel.sdbc.sqlserver
 
 import org.scalatest.BeforeAndAfterEach
 import scala.collection.immutable.Seq
+import com.rocketfuel.sdbc.SqlServer._
 
 class RichResultSetSpec
   extends SqlServerSuite
@@ -42,7 +43,7 @@ class RichResultSetSpec
     batch.iterator()
 
     for (row <- connection.iteratorForUpdate("SELECT x FROM tbl")) {
-      row("x") = row.get[Int]("x").map(_ + 1)
+      row("x") = row[Option[Int]]("x").map(_ + 1)
       row.updateRow()
     }
 

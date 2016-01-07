@@ -1,5 +1,7 @@
 package com.rocketfuel.sdbc.sqlserver
 
+import com.rocketfuel.sdbc.SqlServer._
+
 /**
  * Output of this test:
  * int: int

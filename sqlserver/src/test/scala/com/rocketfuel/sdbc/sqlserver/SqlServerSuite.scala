@@ -1,5 +1,6 @@
 package com.rocketfuel.sdbc.sqlserver
 
+import com.rocketfuel.sdbc.SqlServer._
 import java.time.{Instant, OffsetDateTime}
 import com.rocketfuel.sdbc.config.TestingConfig
 import com.typesafe.config.{Config, ConfigFactory}

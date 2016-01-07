@@ -5,6 +5,7 @@ import java.sql.{Date, Time, Timestamp}
 import java.time._
 import java.util.UUID
 import scalaz.Scalaz._
+import com.rocketfuel.sdbc.SqlServer._
 
 /**
  * Note that some of these tests can fail if Sql Server's time isn't in sync with the client running the tests.

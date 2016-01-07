@@ -2,12 +2,10 @@ package com.rocketfuel.sdbc.postgresql.implementation
 
 import java.net.InetAddress
 import java.time.{Duration => JavaDuration, _}
-import java.util.UUID
 import com.rocketfuel.sdbc.base.jdbc._
 import org.json4s._
 import org.postgresql.util.{PGInterval, PGobject}
 import scala.concurrent.duration.{Duration => ScalaDuration}
-import scala.xml.{Elem, NodeSeq, Node}
 
 //PostgreSQL doesn't support Byte, so we don't use the default updaters.
 private[sdbc] trait Updaters

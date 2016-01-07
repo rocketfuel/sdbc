@@ -1,48 +1,30 @@
 package com.rocketfuel.sdbc.sqlserver.implementation
 
-import java.sql.SQLException
-import java.time.{LocalTime, Instant, OffsetDateTime}
+import java.time._
 import java.util.UUID
-
-import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.jdbc._
 import com.rocketfuel.sdbc.sqlserver.HierarchyId
 
 import scala.xml.{Node, XML}
 
 private[sdbc] trait Getters
-  extends DefaultGetters
-  with InstantGetter
-  with LocalDateGetter
-  with LocalDateTimeGetter {
+  extends DefaultGetters {
+  self: DBMS with OffsetDateTimeAsStringParameter =>
 
-  implicit val LocalTimeGetter: Getter[LocalTime] = new Getter[LocalTime] {
-    override def apply(row: Row, ix: Index): Option[LocalTime] = {
-      Option(row.getString(ix(row))).map(LocalTime.parse)
-    }
-  }
+  override implicit val LocalTimeGetter: Getter[LocalTime] =
+    (asString: String) => LocalTime.parse(asString)
 
-  implicit val OffsetDateTimeGetter: Getter[OffsetDateTime] = new Getter[OffsetDateTime] {
-    override def apply(row: Row, ix: Index): Option[OffsetDateTime] = {
-      Option(row.getString(ix(row))).map(s => OffsetDateTime.from(offsetDateTimeFormatter.parse(s)))
-    }
-  }
+  implicit val OffsetDateTimeGetter: Getter[OffsetDateTime] =
+    (asString: String) => OffsetDateTime.from(offsetDateTimeFormatter.parse(asString))
 
-  override implicit val UUIDGetter: Getter[UUID] = new Parser[UUID] {
-    override def parse(asString: String): UUID = {
-      UUID.fromString(asString)
-    }
-  }
+  override implicit val UUIDGetter: Getter[UUID] =
+    (asString: String) => UUID.fromString(asString)
 
-  implicit val HierarchyIdGetter = new Parser[HierarchyId] {
-    override def parse(asString: String): HierarchyId = {
-      HierarchyId.fromString(asString)
-    }
-  }
+  implicit val HierarchyIdGetter: Getter[HierarchyId] =
+    (asString: String) => HierarchyId.fromString(asString)
 
-  implicit val XMLGetter: Getter[Node] = new Getter[Node] {
-
-    override def apply(row: Row, ix: Index): Option[Node] = {
+  implicit val XMLGetter: Getter[Node] =
+    (row: Row, ix: Index) => {
       row match {
         case row: MutableRow =>
           for {
@@ -59,24 +41,13 @@ private[sdbc] trait Getters
           Option(row.getString(ix(row))).map(XML.loadString)
       }
     }
-  }
 
   /**
-   * The JTDS driver fails to parse timestamps, so when it fails, use our own parser.
+   * The JTDS driver sometimes fails to parse timestamps, so we use our own parser.
    */
-  override implicit val InstantGetter = new Getter[Instant] {
-    override def apply(row: Row, ix: Index): Option[Instant] = {
-      try {
-        Option(row.getTimestamp(ix(row))).map(_.toInstant)
-      } catch {
-        case e: SQLException if e.getMessage.endsWith("cannot be converted to TIMESTAMP.") =>
-          for {
-            asString <- Option(row.getString(ix(row)))
-          } yield {
-            val parsed = offsetDateTimeFormatter.parse(asString)
-            OffsetDateTime.from(parsed).toInstant
-          }
-      }
+  override implicit val InstantGetter: Getter[Instant] = {
+    (row: Row, ix: Index) => {
+      OffsetDateTimeGetter(row, ix).map(_.toInstant)
     }
   }
 
