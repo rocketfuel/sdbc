@@ -3,15 +3,19 @@ package com.rocketfuel.sdbc.postgresql.implementation
 import com.rocketfuel.sdbc.base.CISet
 import com.rocketfuel.sdbc.base.jdbc._
 import com.rocketfuel.sdbc.postgresql.{LTree, Cidr}
-import java.sql.SQLException
+import java.sql.{Types, SQLException}
 import org.postgresql.PGConnection
+import org.postgresql.core.BaseConnection
+import scala.xml.{Elem, NodeSeq}
 
-private[sdbc] abstract class PostgreSqlCommon
+private[sdbc] abstract class PostgreSql
   extends DBMS
   with Setters
   with IntervalImplicits
   with Getters
-  with Updaters {
+  with Updaters
+  with SeqWithXmlParameter
+  with ArrayTypes {
 
   override def dataSourceClassName = "org.postgresql.ds.PGSimpleDataSource"
   override def driverClassName = "org.postgresql.Driver"
@@ -33,7 +37,10 @@ private[sdbc] abstract class PostgreSqlCommon
     pgConnection.addDataType("cidr", classOf[Cidr])
     pgConnection.addDataType("json", classOf[PGJson])
     pgConnection.addDataType("jsonb", classOf[PGJson])
-    pgConnection.addDataType("time", classOf[PGLocalTime])
+    //The PG driver won't use these registered custom classes.
+//    pgConnection.addDataType("time", classOf[PGLocalTime])
+//    pgConnection.addDataType("timetz", classOf[PGTimeTz])
+//    pgConnection.addDataType("timestamptz", classOf[PGTimestampTz])
   }
 
   /** This can be used to get to the getCopyApi() and other methods.
@@ -41,8 +48,8 @@ private[sdbc] abstract class PostgreSqlCommon
     * @return The underlying PGConnection.
     * @throws SQLException if the connection is not a PGConnection.
     */
-  implicit def PostgreSqlConnectionToPGConnection(connection: Connection): PGConnection = {
-    connection.unwrap(classOf[PGConnection])
+  implicit def PostgreSqlConnectionToPGConnection(connection: Connection): BaseConnection = {
+    connection.unwrap(classOf[BaseConnection])
   }
 
 }

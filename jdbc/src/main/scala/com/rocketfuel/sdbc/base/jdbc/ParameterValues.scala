@@ -7,8 +7,8 @@ import java.nio.ByteBuffer
 import java.sql.{Date => JdbcDate, Array => _, _}
 import java.time._
 import java.time.format.DateTimeFormatter
-import java.util.{Date, UUID}
-import scala.xml.Node
+import java.util.UUID
+import scala.xml.{NodeSeq, Node}
 import scodec.bits.ByteVector
 
 trait LongParameter {
@@ -18,13 +18,12 @@ trait LongParameter {
     extends Parameter[Long] {
     override val set: Long => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setLong(parameterIndex + 1, value)
-      statement
+        statement.setLong(parameterIndex + 1, value)
+        statement
     }
   }
 
-  implicit object BoxedLongParameter
-    extends DerivedParameter[lang.Long, Long]
+  implicit val BoxedLongParameter = DerivedParameter[lang.Long, Long]
 
 }
 
@@ -40,8 +39,7 @@ trait IntParameter {
     }
   }
 
-  implicit object BoxedIntParameter
-    extends DerivedParameter[Integer, Int]
+  implicit val BoxedIntParameter = DerivedParameter[Integer, Int]
 
 }
 
@@ -52,13 +50,12 @@ trait ShortParameter {
     extends Parameter[Short] {
     override val set: Short => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setShort(parameterIndex + 1, value)
-      statement
+        statement.setShort(parameterIndex + 1, value)
+        statement
     }
   }
 
-  implicit object BoxedShortParameter
-    extends DerivedParameter[lang.Short, Short]
+  implicit val BoxedShortParameter = DerivedParameter[lang.Short, Short]
 
 }
 
@@ -69,13 +66,12 @@ trait ByteParameter {
     extends Parameter[Byte] {
     override val set: Byte => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setByte(parameterIndex + 1, value)
-      statement
+        statement.setByte(parameterIndex + 1, value)
+        statement
     }
   }
 
-  implicit object BoxedByteParameter
-    extends DerivedParameter[lang.Byte, Byte]
+  implicit val BoxedByteParameter = DerivedParameter[lang.Byte, Byte]
 
 }
 
@@ -84,20 +80,18 @@ trait BytesParameter {
 
   //We're using ByteVectors, since they're much more easily testable than Array[Byte].
   //IE equality actually works. Also, they're immutable.
-  implicit object ByteVectorParameter extends Parameter[ByteVector] {
-    override val set: ByteVector => (Statement, Int) => Statement = {
-      (value) => (statement, parameterIndex) =>
+  implicit val ByteVectorParameter: Parameter[ByteVector] = {
+    (value: ByteVector) => (statement: Statement, parameterIndex: Int) =>
       val arrayValue = value.toArray
       statement.setBytes(parameterIndex + 1, arrayValue)
       statement
-    }
   }
 
-  implicit object ByteBufferParameter
-    extends DerivedParameter[ByteBuffer, ByteVector]()(ByteVectorParameter, (b: ByteBuffer) => ByteVector(b))
+  implicit val ByteBufferParameter = DerivedParameter[ByteBuffer, ByteVector](ByteVector.apply, ByteVectorParameter)
 
-  implicit object ArrayByteParameter
-    extends DerivedParameter[Array[Byte], ByteVector]()(ByteVectorParameter, (b: Array[Byte]) => ByteVector(b))
+  implicit val ArrayByteParameter = DerivedParameter[Array[Byte], ByteVector](ByteVector.apply, ByteVectorParameter)
+
+  implicit val SeqByteParameter = DerivedParameter[Seq[Byte], ByteVector](ByteVector.apply, ByteVectorParameter)
 
 }
 
@@ -108,13 +102,12 @@ trait FloatParameter {
     extends Parameter[Float] {
     override val set: Float => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setFloat(parameterIndex + 1, value)
-      statement
+        statement.setFloat(parameterIndex + 1, value)
+        statement
     }
   }
 
-  implicit object BoxedFloatParameter
-    extends DerivedParameter[lang.Float, Float]
+  implicit val BoxedFloatParameter = DerivedParameter[lang.Float, Float]
 
 }
 
@@ -125,13 +118,12 @@ trait DoubleParameter {
     extends Parameter[Double] {
     override val set: Double => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setDouble(parameterIndex + 1, value)
-      statement
+        statement.setDouble(parameterIndex + 1, value)
+        statement
     }
   }
 
-  implicit object BoxedDoubleParameter
-    extends DerivedParameter[lang.Double, Double]
+  implicit val BoxedDoubleParameter = DerivedParameter[lang.Double, Double]
 
 }
 
@@ -142,13 +134,16 @@ trait BigDecimalParameter {
     extends Parameter[java.math.BigDecimal] {
     override val set: java.math.BigDecimal => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setBigDecimal(parameterIndex + 1, value)
-      statement
+        statement.setBigDecimal(parameterIndex + 1, value)
+        statement
     }
   }
 
-  implicit object BigDecimalParameter
-    extends DerivedParameter[BigDecimal, java.math.BigDecimal]()(JavaBigDecimalParameter, _.underlying())
+  implicit object BigDecimalParameter extends DerivedParameter[BigDecimal] {
+    override type B = java.math.BigDecimal
+    override val conversion: BigDecimal => B = _.underlying()
+    override val baseParameter: Parameter[java.math.BigDecimal] = JavaBigDecimalParameter
+  }
 
 }
 
@@ -164,14 +159,19 @@ trait TimestampParameter {
     }
   }
 
-  implicit object JavaDateParameter
-    extends DerivedParameter[Date, Timestamp]()(TimestampParameter, date => new Timestamp(date.getTime))
-
   implicit object InstantParameter
-    extends DerivedParameter[Instant, Timestamp]()(TimestampParameter, Timestamp.from)
+    extends DerivedParameter[Instant] {
+    override type B = Timestamp
+    override val conversion: Instant => B = Timestamp.from
+    override val baseParameter: Parameter[B] = TimestampParameter
+  }
 
   implicit object LocalDateTimeParameter
-    extends DerivedParameter[LocalDateTime, Timestamp]()(TimestampParameter, Timestamp.valueOf)
+    extends DerivedParameter[LocalDateTime] {
+    override type B = Timestamp
+    override val conversion: LocalDateTime => B = Timestamp.valueOf
+    override val baseParameter: Parameter[B] = TimestampParameter
+  }
 
 }
 
@@ -181,13 +181,17 @@ trait DateParameter {
   implicit object JdbcDateParameter extends Parameter[JdbcDate] {
     override val set: JdbcDate => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setDate(parameterIndex + 1, value)
-      statement
+        statement.setDate(parameterIndex + 1, value)
+        statement
     }
   }
 
   implicit object LocalDateParameter
-    extends DerivedParameter[LocalDate, JdbcDate]()(JdbcDateParameter, JdbcDate.valueOf)
+    extends DerivedParameter[LocalDate] {
+    override type B = JdbcDate
+    override val conversion: LocalDate => B = JdbcDate.valueOf
+    override val baseParameter: Parameter[B] = JdbcDateParameter
+  }
 
 }
 
@@ -197,13 +201,17 @@ trait TimeParameter {
   implicit object TimeParameter extends Parameter[Time] {
     override val set: Time => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setTime(parameterIndex + 1, value)
-      statement
+        statement.setTime(parameterIndex + 1, value)
+        statement
     }
   }
 
   implicit object LocalTimeParameter
-    extends DerivedParameter[LocalTime, Time]()(TimeParameter, Time.valueOf)
+    extends DerivedParameter[LocalTime] {
+    override type B = Time
+    override val conversion: LocalTime => B = Time.valueOf
+    override val baseParameter: Parameter[B] = TimeParameter
+  }
 
 }
 
@@ -214,13 +222,12 @@ trait BooleanParameter {
     extends Parameter[Boolean] {
     override val set: Boolean => (Statement, Int) => Statement = {
       (value) => (statement, parameterIndex) =>
-      statement.setBoolean(parameterIndex + 1, value)
-      statement
+        statement.setBoolean(parameterIndex + 1, value)
+        statement
     }
   }
 
-  implicit object BoxedBooleanParameter
-    extends DerivedParameter[lang.Boolean, Boolean]
+  implicit val BoxedBooleanParameter = DerivedParameter[lang.Boolean, Boolean]
 
 }
 
@@ -316,7 +323,11 @@ trait SQLXMLParameter {
     * The PostgreSQL driver, for example, sends the XML as a string with the Oid set as Oid.XML.
     */
   implicit object NodeParameter
-    extends DerivedParameter[Node, String]()(StringParameter, _.toString)
+    extends DerivedParameter[Seq[Node]] {
+    override type B = String
+    override val conversion: Seq[Node] => B = nodes => NodeSeq.fromSeq(nodes).toString
+    override val baseParameter: Parameter[B] = StringParameter
+  }
 
 }
 
@@ -339,14 +350,10 @@ trait OffsetDateTimeAsTimestampParameter {
     with TimestampParameter =>
 
   implicit object OffsetDateTimeParameter
-    extends Parameter[OffsetDateTime] {
-
-    override val set: (OffsetDateTime) => (Statement, Int) => Statement = {
-      (value: OffsetDateTime) =>
-        val converted = Timestamp.from(value.toInstant)
-        TimestampParameter.set(converted)
-    }
-
+    extends DerivedParameter[OffsetDateTime] {
+      override type B = Timestamp
+      override val conversion: OffsetDateTime => B = value => Timestamp.from(value.toInstant)
+      override val baseParameter: Parameter[B] = TimestampParameter
   }
 
 }
@@ -357,14 +364,11 @@ trait OffsetDateTimeAsStringParameter {
 
   val offsetDateTimeFormatter: DateTimeFormatter
 
-  implicit object OffsetDateTimeParameter
-    extends Parameter[OffsetDateTime] {
-    override val set: (OffsetDateTime) => (Statement, Int) => Statement = {
-      value =>
-        val formatted = offsetDateTimeFormatter.format(value)
-        (statement, parameterIndex) =>
-          StringParameter.set(formatted)(statement, parameterIndex)
-    }
+  implicit object OffsetDateTimeFormatter
+    extends DerivedParameter[OffsetDateTime] {
+      override type B = String
+      override val conversion: OffsetDateTime => B = offsetDateTimeFormatter.format
+      override val baseParameter: Parameter[B] = StringParameter
   }
 
 }

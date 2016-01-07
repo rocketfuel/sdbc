@@ -5,8 +5,12 @@ import java.time.OffsetTime
 import org.postgresql.util.PGobject
 
 private[sdbc] class PGTimeTz(
-  var offsetTime: Option[OffsetTime] = None
+  var offsetTime: Option[OffsetTime]
 ) extends PGobject() {
+
+  def this() {
+    this(None)
+  }
 
   setType("timetz")
 

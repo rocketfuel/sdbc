@@ -6,6 +6,7 @@ import java.sql.{Time, Date, Timestamp}
 import java.io.{InputStream, Reader}
 import java.time._
 import java.util.UUID
+import scala.xml.{Elem, NodeSeq}
 
 import scodec.bits.ByteVector
 
@@ -14,7 +15,7 @@ trait Updater {
     with ParameterValue
     with MutableRow =>
 
-  trait Updater[T] {
+  trait Updater[-T] {
 
     def update(row: UpdatableRow, columnIndex: Int, x: T): Unit
 
@@ -142,7 +143,7 @@ trait BytesUpdater {
     with ParameterValue
     with MutableRow =>
 
-  implicit val BytesUpdater = new Updater[Array[Byte]] {
+  implicit val ArrayByteUpdater = new Updater[Array[Byte]] {
     override def update(row: UpdatableRow, columnIndex: Int, x: Array[Byte]): Unit = {
       row.updateBytes(columnIndex, x)
     }
@@ -156,9 +157,16 @@ trait BytesUpdater {
 
   implicit val ByteBufferUpdater = new Updater[ByteBuffer] {
     override def update(row: UpdatableRow, columnIndex: Int, x: ByteBuffer): Unit = {
-      ByteVectorUpdater.update(row, columnIndex, ByteVector(x))
+      ArrayByteUpdater.update(row, columnIndex, x.array())
     }
   }
+
+  implicit val SeqByteUpdater = new Updater[Seq[Byte]] {
+    override def update(row: UpdatableRow, columnIndex: Int, x: Seq[Byte]): Unit = {
+      ArrayByteUpdater.update(row, columnIndex, x.toArray)
+    }
+  }
+
 }
 
 trait DoubleUpdater {
@@ -380,4 +388,28 @@ trait ReaderUpdater {
       row.updateCharacterStream(columnIndex, x)
     }
   }
+}
+
+trait XmlUpdater {
+  self: Updater
+  with UpdatableRow
+  with ParameterValue
+  with MutableRow =>
+
+  implicit val NodeSeqUpdater: Updater[NodeSeq] = new Updater[NodeSeq] {
+    override def update(row: UpdatableRow, columnIndex: Int, x: NodeSeq): Unit = {
+      val sqlxml = row.getStatement.getConnection.createSQLXML()
+      sqlxml.setString(x.toString)
+      row.updateSQLXML(columnIndex, sqlxml)
+    }
+  }
+
+  implicit val ElemUpdater: Updater[Elem] = new Updater[Elem] {
+    override def update(row: UpdatableRow, columnIndex: Int, x: Elem): Unit = {
+      val sqlxml = row.getStatement.getConnection.createSQLXML()
+      sqlxml.setString(x.toString)
+      row.updateSQLXML(columnIndex, sqlxml)
+    }
+  }
+
 }

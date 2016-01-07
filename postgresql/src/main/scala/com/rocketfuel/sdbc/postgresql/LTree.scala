@@ -12,12 +12,18 @@ import scala.collection.immutable.Seq
  * supply custom apply and unapply methods.
  */
 class LTree(
-  private var path: Option[Seq[String]] = None
+  private var path: Option[Seq[String]]
 ) extends PGobject()
   with collection.immutable.Iterable[String]
   with PartialFunction[Int, String] {
 
+  def this() {
+    this(None)
+  }
+
   setType("ltree")
+
+  path.foreach(LTree.validatePath)
 
   def getPath: Seq[String] = {
     path.

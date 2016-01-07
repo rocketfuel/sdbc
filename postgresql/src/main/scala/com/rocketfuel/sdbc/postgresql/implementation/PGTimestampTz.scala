@@ -5,8 +5,12 @@ import java.time.OffsetDateTime
 import org.postgresql.util.PGobject
 
 private[sdbc] class PGTimestampTz(
-  var offsetDateTime: Option[OffsetDateTime] = None
+  var offsetDateTime: Option[OffsetDateTime]
 ) extends PGobject() {
+
+  def this() {
+    this(None)
+  }
 
   setType("timestamptz")
 
@@ -32,9 +36,8 @@ private[sdbc] object PGTimestampTz {
     tz
   }
 
-  def apply(value: OffsetDateTime): PGTimestampTz = {
-    val tz = new PGTimestampTz(offsetDateTime = Some(value))
-    tz
+  implicit def apply(value: OffsetDateTime): PGTimestampTz = {
+    new PGTimestampTz(offsetDateTime = Some(value))
   }
 }
 

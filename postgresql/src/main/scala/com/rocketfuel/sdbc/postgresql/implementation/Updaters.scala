@@ -4,11 +4,10 @@ import java.net.InetAddress
 import java.time.{Duration => JavaDuration, _}
 import java.util.UUID
 import com.rocketfuel.sdbc.base.jdbc._
-import com.rocketfuel.sdbc.postgresql.Cidr
 import org.json4s._
-import org.postgresql.util.PGobject
+import org.postgresql.util.{PGInterval, PGobject}
 import scala.concurrent.duration.{Duration => ScalaDuration}
-import scala.xml.Node
+import scala.xml.{Elem, NodeSeq, Node}
 
 //PostgreSQL doesn't support Byte, so we don't use the default updaters.
 private[sdbc] trait Updaters
@@ -18,8 +17,7 @@ private[sdbc] trait Updaters
   with BytesUpdater
   with DoubleUpdater
   with FloatUpdater
-  with JavaBigDecimalUpdater
-  with ScalaBigDecimalUpdater
+  with BigDecimalUpdater
   with TimestampUpdater
   with DateUpdater
   with TimeUpdater
@@ -27,40 +25,35 @@ private[sdbc] trait Updaters
   with StringUpdater
   with UUIDUpdater
   with InputStreamUpdater
-  with UpdateReader
+  with ReaderUpdater
   with LocalDateTimeUpdater
   with InstantUpdater
-  with LocalDateUpdater {
-  self: PGTimestampTzImplicits
-    with PGTimeTzImplicits
-    with IntervalImplicits
-    with PGInetAddressImplicits
-    with PGJsonImplicits
-    with PGLocalTimeImplicits =>
+  with LocalDateUpdater
+  with XmlUpdater {
+  self: DBMS
+    with IntervalImplicits =>
 
-  private def IsPGobjectUpdater[T](implicit converter: T => PGobject): Updater[T] = {
-    new Updater[T] {
-      override def update(row: UpdatableRow, columnIndex: Int, x: T): Unit = {
+  private def IsPGobjectUpdater[A, B <: PGobject](implicit converter: A => B): Updater[A] = {
+    new Updater[A] {
+      override def update(row: UpdatableRow, columnIndex: Int, x: A): Unit = {
         PGobjectUpdater.update(row, columnIndex, converter(x))
       }
     }
   }
 
-  implicit val OffsetTimeUpdater = IsPGobjectUpdater[OffsetTime]
+  implicit val OffsetTimeUpdater = IsPGobjectUpdater[OffsetTime, PGTimeTz]
 
-  implicit val OffsetDateTimeUpdater = IsPGobjectUpdater[OffsetDateTime]
+  implicit val OffsetDateTimeUpdater = IsPGobjectUpdater[OffsetDateTime, PGTimestampTz]
 
-  implicit val LocalTimeUpdater = IsPGobjectUpdater[LocalTime]
+  implicit val LocalTimeUpdater = IsPGobjectUpdater[LocalTime, PGLocalTime]
 
-  implicit val ScalaDurationUpdater = IsPGobjectUpdater[ScalaDuration]
+  implicit val ScalaDurationUpdater = IsPGobjectUpdater[ScalaDuration, PGInterval]
 
-  implicit val JavaDurationUpdater = IsPGobjectUpdater[JavaDuration]
+  implicit val JavaDurationUpdater = IsPGobjectUpdater[JavaDuration, PGInterval]
 
-  implicit val JValueUpdater = IsPGobjectUpdater[JValue]
+  implicit val JValueUpdater = IsPGobjectUpdater[JValue, PGJson]
 
-  implicit val InetAddressUpdater = IsPGobjectUpdater[InetAddress]
-
-  implicit val CidrUpdater = IsPGobjectUpdater[Cidr]
+  implicit val InetAddressUpdater = IsPGobjectUpdater[InetAddress, PGInetAddress]
 
   implicit val PGobjectUpdater = new Updater[PGobject] {
     override def update(
@@ -69,25 +62,6 @@ private[sdbc] trait Updaters
       x: PGobject
     ): Unit = {
       row.updateObject(columnIndex, x)
-    }
-  }
-
-  override implicit val UUIDUpdater: Updater[UUID] = new Updater[UUID] {
-    override def update(row: UpdatableRow, columnIndex: Int, x: UUID): Unit = {
-      row.updateObject(columnIndex, x)
-    }
-  }
-
-  implicit val XmlUpdater = new Updater[Node] {
-    override def update(
-      row: UpdatableRow,
-      columnIndex: Int,
-      x: Node
-    ): Unit = {
-      val connection = row.underlying.getStatement.getConnection
-      val sqlXml = connection.createSQLXML()
-      sqlXml.setString(x.toString())
-      row.updateSQLXML(columnIndex, sqlXml)
     }
   }
 

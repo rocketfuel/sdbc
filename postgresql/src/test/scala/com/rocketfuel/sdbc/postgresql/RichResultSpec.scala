@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.postgresql
 
 import org.scalatest.BeforeAndAfterEach
-
+import com.rocketfuel.sdbc.PostgreSql._
 import scala.collection.immutable.Seq
 
 class RichResultSpec
@@ -68,7 +68,7 @@ class RichResultSpec
     batch.iterator()
 
     for(row <- connection.iteratorForUpdate("SELECT * FROM tbl")) {
-      row("x") = row.get[Int]("x").map(_ + 1)
+      row("x") = row[Option[Int]]("x").map(_ + 1)
       row.updateRow()
     }
 

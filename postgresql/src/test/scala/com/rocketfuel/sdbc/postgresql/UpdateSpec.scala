@@ -1,5 +1,6 @@
 package com.rocketfuel.sdbc.postgresql
 
+import com.rocketfuel.sdbc.PostgreSql._
 import org.scalatest.FunSuite
 
 class UpdateSpec extends FunSuite {
@@ -8,7 +9,7 @@ class UpdateSpec extends FunSuite {
     val query = Update("SELECT * FROM tbl WHERE @t < t")
 
     assertResult(
-      Map("t" -> None)
+      Map("t" -> ParameterValue.empty)
     )(
       query.on("t" -> None).parameterValues
     )

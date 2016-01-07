@@ -7,8 +7,12 @@ import org.json4s.JValue
 import org.postgresql.util.PGobject
 
 private[sdbc] class PGJson(
-  var jValue: Option[JValue] = None
+  var jValue: Option[JValue]
 ) extends PGobject() {
+
+  def this() {
+    this(None)
+  }
 
   setType("json")
 
@@ -30,7 +34,7 @@ private[sdbc] class PGJson(
 }
 
 private[sdbc] object PGJson {
-  def apply(j: JValue): PGJson = {
+  implicit def apply(j: JValue): PGJson = {
     val p = new PGJson(jValue = Some(j))
     p
   }

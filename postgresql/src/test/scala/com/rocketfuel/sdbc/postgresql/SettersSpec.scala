@@ -1,5 +1,6 @@
 package com.rocketfuel.sdbc.postgresql
 
+import com.rocketfuel.sdbc.PostgreSql._
 import java.math.{BigDecimal => JBigDecimal}
 import org.scalatest._
 
@@ -10,32 +11,40 @@ class SettersSpec
     assertCompiles("val _: ParameterValue = None")
   }
 
+  test("implicit Node conversion works") {
+    val _: ParameterValue = <a></a>
+  }
+
   test("implicit Seq[Int] conversion works") {
-    assertCompiles("val _: ParameterValue = Seq(1,2,3)")
+    assertCompiles("val _: ParameterValue = Seq[Int]()")
   }
 
   test("implicit Seq[String] conversion works") {
-    assertCompiles("val _: ParameterValue = Seq(\"\")")
+    assertCompiles("val _: ParameterValue = Seq[String]()")
   }
 
   test("implicit Seq[java.math.BigDecimal] conversion works") {
-    assertCompiles("val _: ParameterValue = Seq(1L,2L,3L).map(JBigDecimal.valueOf)")
+    assertCompiles("val _: ParameterValue = Seq[java.math.BigDecimal]()")
   }
 
   test("implicit Seq[scala.BigDecimal] conversion works") {
-    assertCompiles("val _: ParameterValue = Seq(BigDecimal(1),BigDecimal(2),BigDecimal(3))")
+    assertCompiles("val _: ParameterValue = Seq[scala.BigDecimal]()")
   }
 
   test("implicit Seq[Option[Int]] conversion works") {
-    assertCompiles("val _: ParameterValue = Seq(Some(1),None,Some(3))")
+    assertCompiles("val _: ParameterValue = Seq[Option[Int]]()")
   }
 
   test("implicit Seq[Option[java.math.BigDecimal]] conversion works") {
-    assertCompiles("val _: ParameterValue = Seq(Some(JBigDecimal.valueOf(1L)),None)")
+    assertCompiles("val _: ParameterValue = Seq[Option[JBigDecimal]]()")
   }
 
   test("implicit Seq[Option[scala.BigDecimal]] conversion works") {
-    assertCompiles("val _: ParameterValue = Seq(Some(BigDecimal(1)),None,Some(BigDecimal(3)))")
+    assertCompiles("val _: ParameterValue = Seq[Option[BigDecimal]]()")
+  }
+
+  test("implicit Seq[java.lang.Long] conversion works") {
+    assertCompiles("val _: ParameterValue = Seq[java.lang.Long]()")
   }
 
 }

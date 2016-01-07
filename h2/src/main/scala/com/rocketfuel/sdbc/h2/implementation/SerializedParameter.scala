@@ -1,6 +1,5 @@
 package com.rocketfuel.sdbc.h2.implementation
 
-import com.rocketfuel.sdbc.h2.Serialized
 import java.sql.Types
 
 private[sdbc] trait SerializedParameter {

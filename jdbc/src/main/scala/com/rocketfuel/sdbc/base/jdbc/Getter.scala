@@ -35,7 +35,7 @@ trait Getter {
       Getter[T](getter)
     }
 
-    def ofParser[T](parser: String => T)(implicit stringGetter: Getter[String]): Getter[T] = {
+    implicit def ofParser[T](parser: String => T)(implicit stringGetter: Getter[String]): Getter[T] = {
       Getter((row: Row, index: Index) => stringGetter.getter(row, index).map(parser))
     }
 
@@ -123,6 +123,11 @@ trait BytesGetter {
   implicit val ByteVectorGetter: Getter[ByteVector] = {
     (row: Row, ix: Index) =>
       ArrayByteGetter(row, ix).map(ByteVector.apply)
+  }
+
+  implicit val SeqByteGetter: Getter[Seq[Byte]] = {
+    (row: Row, ix: Index) =>
+      ArrayByteGetter(row, ix).map(_.toSeq)
   }
 
 }

@@ -1,12 +1,16 @@
 package com.rocketfuel.sdbc.postgresql.implementation
 
-import com.rocketfuel.sdbc.base.jdbc.ParameterValue
+import com.rocketfuel.sdbc.base.jdbc.{Updater, MutableRow, UpdatableRow, ParameterValue}
 import java.net.InetAddress
 import org.postgresql.util.PGobject
 
 private[sdbc] class PGInetAddress(
-  var inetAddress: Option[InetAddress] = None
+  var inetAddress: Option[InetAddress]
 ) extends PGobject() {
+
+  def this() {
+    this(None)
+  }
 
   setType("inet")
 
@@ -33,7 +37,7 @@ private[sdbc] class PGInetAddress(
 }
 
 private[sdbc] object PGInetAddress {
-  def apply(address: InetAddress): PGInetAddress = {
+  implicit def apply(address: InetAddress): PGInetAddress = {
     new PGInetAddress(inetAddress = Some(address))
   }
 }

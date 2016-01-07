@@ -46,27 +46,41 @@ trait ParameterValue {
     }
   }
 
-  trait Parameter[T] {
-    val set: T => (Statement, Int) => Statement
+  trait Parameter[-A] {
+    val set: A => (Statement, Int) => Statement
   }
 
-  /**
-    * A type that is usable as a parameter, but it first must be converted.
-    * @param baseParameter
-    * @param conversion
-    * @tparam T
-    * @tparam JdbcType
-    */
-  class DerivedParameter[T, JdbcType](implicit baseParameter: Parameter[JdbcType], conversion: T => JdbcType)
-    extends Parameter[T] {
+  object Parameter {
+    implicit def apply[A](set0: A => (Statement, Int) => Statement): Parameter[A] = new Parameter[A] {
+      override val set: (A) => (Statement, Int) => Statement = set0
+    }
+  }
 
-    def toJdbcType(value: T): JdbcType = conversion(value)
+  trait DerivedParameter[-A] extends Parameter[A] {
 
-    override val set: T => (Statement, Int) => Statement =
-      (value: T) => {
-        val converted = toJdbcType(value)
+    type B
+
+    val conversion: A => B
+    val baseParameter: Parameter[B]
+
+    override val set: A => (Statement, Int) => Statement = {
+      (value: A) => {
+        val converted = conversion(value)
         (statement, parameterIndex) =>
           baseParameter.set(converted)(statement, parameterIndex)
+      }
+    }
+
+  }
+
+  object DerivedParameter {
+    type Aux[A, B0] = DerivedParameter[A] { type B = B0 }
+
+    implicit def apply[A, B0](implicit conversion0: A => B0, baseParameter0: Parameter[B0]): DerivedParameter[A] =
+      new DerivedParameter[A] {
+        type B = B0
+        override val conversion: A => B = conversion0
+        override val baseParameter: Parameter[B] = baseParameter0
       }
 
   }
@@ -99,7 +113,7 @@ trait ParameterValue {
     }
 
     implicit def ofOption[T](p: Option[T])(implicit parameter: Parameter[T]): ParameterValue = {
-      new ParameterValue(p, setOption(p))
+      ParameterValue(p, setOption(p))
     }
 
     implicit def of[T](p: T)(implicit parameter: Parameter[T]): ParameterValue = {
@@ -107,8 +121,10 @@ trait ParameterValue {
     }
 
     implicit def ofNone(p: None.type): ParameterValue = {
-      new ParameterValue(None, setNone)
+      empty
     }
+
+    val empty = ParameterValue(None, setNone)
   }
 
   type ParameterList = Seq[(String, ParameterValue)]

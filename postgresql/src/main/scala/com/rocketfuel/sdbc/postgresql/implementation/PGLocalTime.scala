@@ -1,15 +1,24 @@
 package com.rocketfuel.sdbc.postgresql.implementation
 
 import com.rocketfuel.sdbc.base.jdbc.ParameterValue
+import java.sql.{PreparedStatement, Time}
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import org.postgresql.util.PGobject
 
-private[sdbc] class PGLocalTime() extends PGobject() {
+/**
+  * This gives us better precision than the JDBC time type.
+  * @param localTime
+  */
+private[sdbc] class PGLocalTime(
+  var localTime: Option[LocalTime]
+) extends PGobject() {
+
+  def this() {
+    this(None)
+  }
 
   setType("time")
-
-  var localTime: Option[LocalTime] = None
 
   override def getValue: String = {
     localTime.map(DateTimeFormatter.ISO_LOCAL_TIME.format).orNull
@@ -19,17 +28,25 @@ private[sdbc] class PGLocalTime() extends PGobject() {
     this.localTime = for {
       reallyValue <- Option(value)
     } yield {
-      val parsed = DateTimeFormatter.ISO_LOCAL_TIME.parse(reallyValue)
-      LocalTime.from(parsed)
+      PGLocalTime.parse(reallyValue)
     }
   }
 }
 
 private[sdbc] object PGLocalTime {
-  implicit def apply(l: LocalTime): PGLocalTime = {
+  def apply(value: String): PGLocalTime = {
     val t = new PGLocalTime()
-    t.localTime = Some(l)
+    t.setValue(value)
     t
+  }
+
+  implicit def apply(l: LocalTime): PGLocalTime = {
+    new PGLocalTime(Some(l))
+  }
+
+  def parse(value: String): LocalTime = {
+    val parsed = DateTimeFormatter.ISO_LOCAL_TIME.parse(value)
+    LocalTime.from(parsed)
   }
 }
 
@@ -37,10 +54,18 @@ private[sdbc] trait LocalTimeParameter {
   self: ParameterValue =>
 
   implicit object LocalTimeParameter extends Parameter[LocalTime] {
-    override val set: (LocalTime) => (Statement, Int) => Statement = {
+    override val set: LocalTime => (Statement, Int) => Statement = {
       time => (statement, ix) =>
-        val pgTime: PGLocalTime = time
+        val pgTime = PGLocalTime(time)
         statement.setObject(ix + 1, pgTime)
+        statement
+    }
+  }
+
+  implicit object TimeParameter extends Parameter[Time] {
+    override val set: Time => (PreparedStatement, Int) => PreparedStatement = {
+      time => (statement, ix) =>
+        statement.setTime(ix + 1, time)
         statement
     }
   }

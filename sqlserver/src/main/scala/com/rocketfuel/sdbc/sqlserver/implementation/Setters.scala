@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.sqlserver.implementation
 
-import java.sql.{SQLXML, PreparedStatement}
+import java.sql.SQLXML
 import java.time.LocalTime
 import java.util.UUID
 
@@ -11,7 +11,7 @@ import scala.xml.Node
 
 private[sdbc] trait LocalTimeParameter {
   self: ParameterValue
-    with StringParameter=>
+    with StringParameter =>
 
   implicit object LocalTimeIsParameter extends PrimaryParameter[LocalTime] {
     override val toParameter: PartialFunction[Any, Any] = {
@@ -51,8 +51,7 @@ private[sdbc] trait XMLParameter {
     with StringParameter =>
 
   implicit object XmlParameter
-    extends PrimaryParameter[Node]
-    with DerivedParameter[SQLXML] {
+    extends Parameter[Node] {
 
     override val toParameter: PartialFunction[Any, Any] = {
       case l: Node => l.toString()

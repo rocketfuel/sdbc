@@ -5,7 +5,7 @@ import java.nio.ByteBuffer
 import java.sql.{Array => _, _}
 import java.time._
 import java.util.UUID
-import com.rocketfuel.sdbc.postgresql._
+import com.rocketfuel.sdbc.PostgreSql._
 import org.json4s.JValue
 import org.json4s.jackson.JsonMethods
 import org.postgresql.util.PGInterval
@@ -88,7 +88,7 @@ class ParameterValueSpec
 
   testSelect[InetAddress]("SELECT '1.1.1.1'::inet", Some(InetAddress.getByName("1.1.1.1")))
 
-  testSelect[Cidr]("SELECT '1.1.1.0/24'::cidr", Some(Cidr(InetAddress.getByName("1.1.1.0"), 24)))
+  testSelect[Cidr]("SELECT '1.1.1.0/24'::cidr", Some(Cidr("1.1.1.0", "24")))
 
   testSelect[Map[String, String]]("SELECT 'a=>b'::hstore", Some(Map("a" -> "b")))
 }

@@ -3,13 +3,13 @@ package com.rocketfuel.sdbc.postgresql
 import java.sql.{Date, Time, Timestamp}
 import java.time._
 import java.util.UUID
-import com.rocketfuel.sdbc.base.jdbc.Updater
 import org.apache.commons.lang3.RandomStringUtils
 import org.json4s.JValue
 import org.json4s.jackson.JsonMethods
+import scala.xml.NodeSeq
 import scodec.bits.ByteVector
 import scala.reflect.ClassTag
-import scala.xml.Node
+import com.rocketfuel.sdbc.PostgreSql._
 
 class UpdatersSpec
   extends PostgreSqlSuite {
@@ -39,7 +39,14 @@ class UpdatersSpec
 
       assert(maybeValue.nonEmpty)
 
-      assertResult(Some(after))(maybeValue)
+      (after, maybeValue.get) match {
+        case (a: Array[_], b: Array[_]) =>
+          assert(a.sameElements(b))
+        case (expectedAfter, actualAfter) =>
+          assertResult(expectedAfter)(actualAfter)
+      }
+
+
     }
   }
 
@@ -65,6 +72,8 @@ class UpdatersSpec
 
   testUpdate[ByteVector]("bytea")(ByteVector(1, 2, 3))(ByteVector(4, 5, 6))
 
+  testUpdate[Array[Byte]]("bytea")(Array[Byte](1, 2, 3))(Array[Byte](4, 5, 6))
+
   testUpdate[BigDecimal]("numeric")(BigDecimal(3))(BigDecimal("500"))
 
   testUpdate[Timestamp]("timestamp")(new Timestamp(0))(Timestamp.from(Instant.now()))
@@ -87,7 +96,7 @@ class UpdatersSpec
 
   testUpdate[Map[String, String]]("hstore")(Map("hi" -> "there"))(Map("bye" -> "now"))
 
-  testUpdate[Node]("xml")(<a></a>)(<b></b>)
+  testUpdate[NodeSeq]("xml")(<a></a>)(<b></b>)
 
   testUpdate[JValue]("json")(JsonMethods.parse("{}"))(JsonMethods.parse("""{"a": 1}"""))
 

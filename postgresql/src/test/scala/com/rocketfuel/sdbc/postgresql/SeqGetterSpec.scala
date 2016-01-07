@@ -1,6 +1,7 @@
 package com.rocketfuel.sdbc.postgresql
 
 import scalaz.Scalaz._
+import com.rocketfuel.sdbc.PostgreSql._
 
 class SeqGetterSpec
   extends PostgreSqlSuite {
@@ -26,13 +27,6 @@ class SeqGetterSpec
   testSelect[Seq[Option[Seq[Option[Int]]]]]("SELECT '{{1,2,3},{4,5,6}}'::int[][] --optional Seq and Int", Seq(Some(SeqGetterSpec.oneTwoThreeOption), Some(SeqGetterSpec.fourFiveSixOption)).some)
 
   testSelect[Seq[Byte]]("SELECT E'\\\\x010203'::bytea", SeqGetterSpec.oneTwoThree.map(_.toByte).some)
-
-  {
-    val expected: Seq[ParameterValue] =
-      Seq(SeqGetterSpec.oneTwoThree, SeqGetterSpec.fourFiveSix).map(p => Some[ParameterValue](p))
-
-    testSelect[ParameterValue]("SELECT '{{1,2,3},{4,5,6}}'::int[][] --as ParameterValue", ParameterValue(QSeq[Int](expected, "int4")).some)
-  }
 
 }
 

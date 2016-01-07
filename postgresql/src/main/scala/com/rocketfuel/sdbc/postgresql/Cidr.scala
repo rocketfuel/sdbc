@@ -1,10 +1,15 @@
 package com.rocketfuel.sdbc.postgresql
 
+import java.net.InetAddress
 import org.postgresql.util.PGobject
 
 class Cidr(
-  var cidr: Option[(String, String)] = None
+  private var cidr: Option[(String, String)]
 ) extends PGobject() {
+
+  def this() {
+    this(None)
+  }
 
   setType("cidr")
 
@@ -26,6 +31,14 @@ class Cidr(
       val netmask = parts(1)
       cidr = Some((ip, netmask))
     }
+  }
+
+  def address: InetAddress = {
+    InetAddress.getByName(cidr.get._1)
+  }
+
+  def netmask: Short = {
+    cidr.get._2.toShort
   }
 
   override def equals(obj: Any): Boolean = {

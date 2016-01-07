@@ -4,6 +4,7 @@ import java.time.{Instant, OffsetDateTime}
 import com.rocketfuel.sdbc.config.TestingConfig
 import com.typesafe.config.{Config, ConfigFactory}
 import org.scalatest._
+import com.rocketfuel.sdbc.PostgreSql._
 
 abstract class PostgreSqlSuite
   extends fixture.FunSuite
