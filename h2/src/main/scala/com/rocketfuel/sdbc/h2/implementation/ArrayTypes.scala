@@ -1,6 +1,8 @@
 package com.rocketfuel.sdbc.h2.implementation
 
+import java.nio.ByteBuffer
 import java.sql.Types
+import java.time.{Instant, LocalDate, LocalTime}
 import java.util.UUID
 
 import com.rocketfuel.sdbc.base.jdbc
@@ -15,34 +17,60 @@ trait ArrayTypes {
     DataType.getDataType(DataType.convertSQLTypeToValueType(jdbcType)).name
   }
 
-  implicit val integerTypeName = ConcreteArrayType[Int](nameOfJdbcType(DataType.convertSQLTypeToValueType(Types.INTEGER)))
+  implicit val integerTypeName = ArrayTypeName[Int](nameOfJdbcType(Types.INTEGER))
 
-  implicit val booleanTypeName = ConcreteArrayType[Boolean](nameOfJdbcType(Types.BOOLEAN))
+  implicit val boxedIntegerTypeName = ArrayTypeName[Integer](nameOfJdbcType(Types.INTEGER))
 
-  implicit val tinyintTypeName = ConcreteArrayType[Byte](nameOfJdbcType(Types.TINYINT))
+  implicit val booleanTypeName = ArrayTypeName[Boolean](nameOfJdbcType(Types.BOOLEAN))
 
-  implicit val smallintTypeName = ConcreteArrayType[Short](nameOfJdbcType(Types.SMALLINT))
+  implicit val boxedBooleanTypeName = ArrayTypeName[java.lang.Boolean](nameOfJdbcType(Types.BOOLEAN))
 
-  implicit val bigintTypeName = ConcreteArrayType[Long](nameOfJdbcType(Types.BIGINT))
+  implicit val tinyintTypeName = ArrayTypeName[Byte](nameOfJdbcType(Types.TINYINT))
 
-  implicit val decimalTypeName = ConcreteArrayType[java.math.BigDecimal](nameOfJdbcType(Types.DECIMAL))
+  implicit val boxedTinyIntTypeName = ArrayTypeName[java.lang.Byte](nameOfJdbcType(Types.TINYINT))
 
-  implicit val floatTypeName = ConcreteArrayType[Float](nameOfJdbcType(Types.FLOAT))
+  implicit val smallintTypeName = ArrayTypeName[Short](nameOfJdbcType(Types.SMALLINT))
 
-  implicit val realTypeName = ConcreteArrayType[Double](nameOfJdbcType(Types.REAL))
+  implicit val boxedSmallIntType = ArrayTypeName[java.lang.Short](nameOfJdbcType(Types.SMALLINT))
 
-  implicit val timeTypeName = ConcreteArrayType[java.sql.Time](nameOfJdbcType(Types.TIME))
+  implicit val bigintTypeName = ArrayTypeName[Long](nameOfJdbcType(Types.BIGINT))
 
-  implicit val dateTypeName = ConcreteArrayType[java.sql.Date](nameOfJdbcType(Types.DATE))
+  implicit val boxedBigintTypeName = ArrayTypeName[java.lang.Long](nameOfJdbcType(Types.BIGINT))
 
-  implicit val timestampTypeName = ConcreteArrayType[java.sql.Timestamp](nameOfJdbcType(Types.TIMESTAMP))
+  implicit val javaDecimalTypeName = ArrayTypeName[java.math.BigDecimal](nameOfJdbcType(Types.DECIMAL))
 
-  implicit val varbinaryTypeName = ConcreteArrayType[ByteVector](nameOfJdbcType(Types.VARBINARY))
+  implicit val decimalTypeName = ArrayTypeName[BigDecimal](nameOfJdbcType(Types.DECIMAL))
 
-  implicit val otherTypeName = ConcreteArrayType[Serialized](nameOfJdbcType(Types.JAVA_OBJECT))
+  implicit val floatTypeName = ArrayTypeName[Float](nameOfJdbcType(Types.FLOAT))
 
-  implicit val varcharTypeName = ConcreteArrayType[String](nameOfJdbcType(Types.VARCHAR))
+  implicit val boxedFloatTypeName = ArrayTypeName[java.lang.Float](nameOfJdbcType(Types.FLOAT))
 
-  implicit val uuidTypeName = ConcreteArrayType[UUID](DataType.getTypeByName("UUID").name)
+  implicit val realTypeName = ArrayTypeName[Double](nameOfJdbcType(Types.REAL))
+
+  implicit val boxedDoubleTypeName = ArrayTypeName[java.lang.Double](nameOfJdbcType(Types.REAL))
+
+  implicit val timeTypeName = ArrayTypeName[java.sql.Time](nameOfJdbcType(Types.TIME))
+
+  implicit val localTimeTypeName = ArrayTypeName[LocalTime](nameOfJdbcType(Types.TIME))
+
+  implicit val dateTypeName = ArrayTypeName[java.sql.Date](nameOfJdbcType(Types.DATE))
+
+  implicit val localDateTypeName = ArrayTypeName[LocalDate](nameOfJdbcType(Types.DATE))
+
+  implicit val timestampTypeName = ArrayTypeName[java.sql.Timestamp](nameOfJdbcType(Types.TIMESTAMP))
+
+  implicit val instantTypeName = ArrayTypeName[Instant](nameOfJdbcType(Types.TIMESTAMP))
+
+  implicit val varbinaryTypeName = ArrayTypeName[ByteVector](nameOfJdbcType(Types.VARBINARY))
+
+  implicit val bytesTypeName = ArrayTypeName[Array[Byte]](nameOfJdbcType(Types.VARBINARY))
+
+  implicit val byteBufferTypesName = ArrayTypeName[ByteBuffer](nameOfJdbcType(Types.VARBINARY))
+
+  implicit val otherTypeName = ArrayTypeName[Serialized](nameOfJdbcType(Types.JAVA_OBJECT))
+
+  implicit val varcharTypeName = ArrayTypeName[String](nameOfJdbcType(Types.VARCHAR))
+
+  implicit val uuidTypeName = ArrayTypeName[UUID](DataType.getTypeByName("UUID").name)
 
 }

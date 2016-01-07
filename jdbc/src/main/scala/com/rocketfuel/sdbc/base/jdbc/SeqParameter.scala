@@ -8,7 +8,7 @@ trait SeqParameter {
   self: DBMS =>
 
   case class SeqParameter[T] private[sdbc] (
-    arrayType: ArrayType[Seq[T]],
+    arrayType: ArrayTypeName[Seq[T]],
     toArray: Seq[T] => Array[AnyRef]
   ) extends Parameter[Seq[T]] {
 
@@ -24,10 +24,9 @@ trait SeqParameter {
 
   object SeqParameter {
     //Base cases for inductive SeqParameter creation.
-    implicit def ofParameter[T](implicit parameter: Parameter[T], arrayType: ArrayType[Seq[T]]): SeqParameter[T] = {
+    implicit def ofParameter[T](implicit parameter: Parameter[T], arrayType: ArrayTypeName[Seq[T]]): SeqParameter[T] = {
       val mapF: T => AnyRef = parameter match {
         case p: DerivedParameter[_] =>
-          //We know that the first parameter is T, but the JVM doesn't know.
           elem => box(p.conversion(elem))
         case _ =>
           elem => box(elem)
@@ -39,11 +38,10 @@ trait SeqParameter {
       )
     }
 
-    implicit def ofParameterOption[T](implicit parameter: Parameter[T], arrayType: ArrayType[Seq[Option[T]]]): SeqParameter[Option[T]] = {
+    implicit def ofParameterOption[T](implicit parameter: Parameter[T], arrayType: ArrayTypeName[Seq[Option[T]]]): SeqParameter[Option[T]] = {
       val mapF: Option[T] => AnyRef = parameter match {
         case p: DerivedParameter[_] =>
-          //We know that the first parameter is T, but the JVM doesn't know.
-          elem => elem.map(p.asInstanceOf[DerivedParameter[T]].conversion andThen box).orNull
+          elem => elem.map(p.conversion andThen box).orNull
         case _ =>
           elem => elem.map(box).orNull
       }
@@ -55,14 +53,14 @@ trait SeqParameter {
     }
 
     //Inductive cases.
-    implicit def ofSeqParameter[T](implicit parameter: SeqParameter[T], arrayType: ArrayType[Seq[Seq[T]]]): SeqParameter[Seq[T]] = {
+    implicit def ofSeqParameter[T](implicit parameter: SeqParameter[T], arrayType: ArrayTypeName[Seq[Seq[T]]]): SeqParameter[Seq[T]] = {
       SeqParameter[Seq[T]](
         arrayType = arrayType,
         toArray = seq => seq.map(parameter.toArray).toArray
       )
     }
 
-    implicit def ofSeqOptionParameter[T](implicit parameter: SeqParameter[Option[T]], arrayType: ArrayType[Seq[Seq[Option[T]]]]): SeqParameter[Seq[Option[T]]] = {
+    implicit def ofSeqOptionParameter[T](implicit parameter: SeqParameter[Option[T]], arrayType: ArrayTypeName[Seq[Seq[Option[T]]]]): SeqParameter[Seq[Option[T]]] = {
       SeqParameter[Seq[Option[T]]](
         arrayType = arrayType,
         toArray = seq => seq.map(parameter.toArray).toArray
@@ -75,29 +73,24 @@ trait SeqParameter {
   }
 
   /**
-    * Defines the name of the type to use when creating the JDBC array.
+    * Defines the name of the type to use when creating the JDBC array for type T.
     *
     * @tparam T is the type associated with the given name. It doesn't need to be an AnyRef,
     *           because one of the steps before creating the jdbc array is boxing.
     */
-  sealed trait ArrayType[-T] {
-    val name: String
-  }
+  case class ArrayTypeName[-T](name: String)
 
-  case class ConcreteArrayType[-T](override val name: String) extends ArrayType[T]
+  object ArrayTypeName {
 
-  object ArrayType {
-    implicit def ofSeq[T](implicit innerArrayType: ArrayType[T]): ArrayType[Seq[T]] = new ArrayType[Seq[T]] {
-      override val name: String = innerArrayType.name
-    }
+    implicit def ofSeq[T](implicit innerArrayType: ArrayTypeName[T]): ArrayTypeName[Seq[T]] = ArrayTypeName[Seq[T]](innerArrayType.name)
 
-    implicit def ofSeqOption[T](implicit innerArrayType: ArrayType[T]): ArrayType[Seq[Option[T]]] = new ArrayType[Seq[Option[T]]] {
-      override val name: String = innerArrayType.name
-    }
+    implicit def ofSeqOption[T](implicit innerArrayType: ArrayTypeName[T]): ArrayTypeName[Seq[Option[T]]] =
+      ArrayTypeName[Seq[Option[T]]](innerArrayType.name)
+
   }
 
   case class SeqUpdater[T](
-    arrayType: ArrayType[Seq[T]],
+    arrayType: ArrayTypeName[Seq[T]],
     toArray: Seq[T] => Array[AnyRef]
   ) extends Updater[Seq[T]] {
     override def update(row: UpdatableRow, columnIndex: Int, x: Seq[T]): Unit = {
@@ -107,14 +100,14 @@ trait SeqParameter {
     }
   }
 
-  implicit def seqUpdaterOfSeqParameter[T](implicit parameter: SeqParameter[T], arrayType: ArrayType[Seq[T]]): Updater[Seq[T]] = {
+  implicit def seqUpdaterOfSeqParameter[T](implicit parameter: SeqParameter[T], arrayType: ArrayTypeName[Seq[T]]): Updater[Seq[T]] = {
     SeqUpdater[T](
       arrayType = arrayType,
       toArray = parameter.toArray
     )
   }
 
-  implicit def seqUpdaterOfSeqOptionParameter[T](implicit parameter: SeqParameter[Option[T]], arrayType: ArrayType[Seq[Option[T]]]): Updater[Seq[Option[T]]] = {
+  implicit def seqUpdaterOfSeqOptionParameter[T](implicit parameter: SeqParameter[Option[T]], arrayType: ArrayTypeName[Seq[Option[T]]]): Updater[Seq[Option[T]]] = {
     SeqUpdater[Option[T]](
       arrayType = arrayType,
       toArray = parameter.toArray
