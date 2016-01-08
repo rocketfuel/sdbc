@@ -9,7 +9,7 @@ import com.zaxxer.hikari.pool.HikariPool
 
 import scala.collection.convert.wrapAsScala._
 
-trait HikariImplicits {
+private[jdbc] trait HikariImplicits {
 
   implicit class ConfigOps(config: Config) {
 

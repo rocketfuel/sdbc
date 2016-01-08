@@ -1,7 +1,6 @@
 package com.rocketfuel.sdbc.examples
 
-import com.rocketfuel.sdbc.h2.H2
-import H2._
+import com.rocketfuel.sdbc.H2._
 
 case class TestClass(
   id: Int,
@@ -9,10 +8,6 @@ case class TestClass(
 )
 
 object TestClass {
-
-  implicit def apply(row: Row): TestClass = {
-    TestClass(row.get[Int]("id").get, row.get[String]("value").get)
-  }
 
   final case class Value(value: String)
 

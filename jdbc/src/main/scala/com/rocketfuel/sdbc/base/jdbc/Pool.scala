@@ -7,7 +7,7 @@ import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 
 case class Pool(configuration: HikariConfig) {
 
-  val dbms: DBMS = of(configuration)
+  val dbms: DBMS = DBMS.of(configuration)
 
   //Set the test query if the driver doesn't support .isValid().
   if (! dbms.supportsIsValid) {

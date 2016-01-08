@@ -2,28 +2,22 @@ package com.rocketfuel.sdbc.base
 
 import com.rocketfuel.sdbc.base
 
-trait Selectable[Key, Value, Connection, Select <: base.Select[Connection, Value]] {
+trait Selectable {
 
-  def select(key: Key): Select
+  type Connection
 
-}
+  type Select[Value] <: base.Select[Connection, Value]
 
-trait SelectableMethods[Connection, Select[T] <: base.Select[Connection, T]] {
+  trait Selectable[Key, Value] {
+    def select(key: Key): Select[Value]
+  }
 
   def iterator[Key, Value](
     key: Key
-  )(implicit selectable: base.Selectable[Key, Value, Connection, Select[Value]],
+  )(implicit selectable: Selectable[Key, Value],
     connection: Connection
   ): Iterator[Value] = {
     selectable.select(key).iterator()
-  }
-
-  def option[Key, Value](
-    key: Key
-  )(implicit selectable: base.Selectable[Key, Value, Connection, Select[Value]],
-    connection: Connection
-  ): Option[Value] = {
-      iterator(key).toStream.headOption
   }
 
 }

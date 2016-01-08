@@ -2,14 +2,21 @@ package com.rocketfuel.sdbc.base
 
 import com.rocketfuel.sdbc.base
 
-trait Executable[Key, Connection, Execute <: base.Execute[Connection]] {
-  def execute(key: Key): Execute
-}
+trait Executable {
 
-trait ExecutableMethods[Connection, Execute <: base.Execute[Connection]] {
+  type Connection
 
-  def execute[Key](key: Key)(implicit ev: base.Executable[Key, Connection, Execute], connection: Connection): Unit = {
-    ev.execute(key)
+  type Execute <: base.Execute[Connection]
+
+  trait Executable[Key] {
+    def execute(key: Key): Execute
+  }
+
+  def execute[Key](key: Key)(implicit
+    executable: Executable[Key],
+    connection: Connection
+  ): Unit = {
+    executable.execute(key).execute()
   }
 
 }

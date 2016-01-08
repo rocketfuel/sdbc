@@ -2,23 +2,19 @@ package com.rocketfuel.sdbc.base
 
 import com.rocketfuel.sdbc.base
 
-trait Updatable[Key, Connection, Update <: base.Update[Connection]] {
-  def update(key: Key): Update
-}
+trait Updatable {
 
-trait UpdatableMethods[Connection, Update <: base.Update[Connection]] {
+  type Connection
 
-  def updateIterator[Key](
-    key: Key
-  )(implicit updatable: base.Updatable[Key, Connection, Update],
-    connection: Connection
-  ): Iterator[Long] = {
-    updatable.update(key).iterator()
+  type Update <: base.Update[Connection]
+
+  trait Updatable[Key] {
+    def update(key: Key): Update
   }
 
   def update[Key](
     key: Key
-  )(implicit updatable: base.Updatable[Key, Connection, Update],
+  )(implicit updatable: Updatable[Key],
     connection: Connection
   ): Long = {
     updatable.update(key).update()
