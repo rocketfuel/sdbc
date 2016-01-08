@@ -1,16 +1,15 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
-import com.datastax.driver.core
 import com.rocketfuel.sdbc.base
-import com.rocketfuel.sdbc.cassandra.Select
 import scala.concurrent.{ExecutionContext, Future}
 
-private[sdbc] trait SelectableMethods extends base.SelectableMethods[core.Session, Select] {
+private[sdbc] trait Selectable extends base.Selectable {
+  self: Cassandra =>
 
   def iteratorAsync[Key, Value](
     key: Key
   )(implicit ev: Selectable[Key, Value],
-    connection: Session,
+    connection: Connection,
     ec: ExecutionContext
   ): Future[Iterator[Value]] = {
     ev.select(key).iteratorAsync()

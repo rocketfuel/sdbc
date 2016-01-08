@@ -1,9 +1,12 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
-import com.datastax.driver.core.Row
+import com.datastax.driver.core
 import com.rocketfuel.sdbc.base
 
-trait Index extends base.Index[Row] {
+trait Index extends base.Index {
+
+  override type Row = core.Row
+
   override def getColumnCount(row: Row): Int = row.getColumnDefinitions.size()
 
   override def getColumnIndex(row: Row, columnName: String): Int = {
@@ -16,4 +19,5 @@ trait Index extends base.Index[Row] {
   override def containsColumn(row: Row, columnName: String): Boolean = {
     row.getColumnDefinitions.contains(columnName)
   }
+
 }

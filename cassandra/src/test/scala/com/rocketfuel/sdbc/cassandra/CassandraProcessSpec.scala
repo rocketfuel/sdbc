@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.cassandra
 
+import com.rocketfuel.sdbc.Cassandra._
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
-
 import scalaz.stream._
 import scalaz.concurrent.Task
 

@@ -1,5 +1,6 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
+import com.rocketfuel.sdbc.Cassandra._
 import org.scalatest.FunSuite
 import shapeless._
 import shapeless.record._

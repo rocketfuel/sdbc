@@ -1,5 +1,6 @@
 package com.rocketfuel.sdbc.cassandra
 
+import com.rocketfuel.sdbc.Cassandra._
 import java.math.{BigDecimal => JBigDecimal}
 import java.net.InetAddress
 import java.nio.ByteBuffer

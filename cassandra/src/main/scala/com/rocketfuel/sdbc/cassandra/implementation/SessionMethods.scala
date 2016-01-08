@@ -1,7 +1,6 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
 import com.datastax.driver.core.{Row => CRow}
-import com.rocketfuel.sdbc.cassandra.Select
 
 private[sdbc] trait SessionMethods {
   self: Cassandra =>

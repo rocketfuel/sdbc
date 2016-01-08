@@ -1,5 +1,6 @@
 package com.rocketfuel.sdbc.cassandra
 
+import com.rocketfuel.sdbc.Cassandra._
 import com.datastax.driver.core
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Outcome, fixture}

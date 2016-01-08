@@ -1,37 +1,41 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
-import com.datastax.driver.core.Row
-
+import com.datastax.driver.core
 import scala.annotation.implicitNotFound
 
-//@implicitNotFound("Define an implicit function from Row to A, or make A a Product (i.e., a tuple or case class).")
-trait RowConverter[A] extends Function[Row, A]
+trait RowConverter {
+  self: Cassandra =>
 
-object RowConverter extends LowerPriorityRowConverterImplicits {
-  def apply[A](implicit rowConverter: RowConverter[A]): RowConverter[A] = rowConverter
+  //@implicitNotFound("Define an implicit function from Row to A, or make A a Product (i.e., a tuple or case class).")
+  trait RowConverter[+A] extends (core.Row => A)
 
-  implicit def fromFunction[A](implicit
-    converter: Row => A
-  ): RowConverter[A] =
-    new RowConverter[A] {
-      override def apply(row: Row): A = {
-        converter(row)
+  object RowConverter extends LowerPriorityRowConverterImplicits {
+    def apply[A](implicit rowConverter: RowConverter[A]): RowConverter[A] = rowConverter
+
+    implicit def fromFunction[A](implicit
+      converter: core.Row => A
+    ): RowConverter[A] =
+      new RowConverter[A] {
+        override def apply(row: core.Row): A = {
+          converter(row)
+        }
       }
-    }
-}
+  }
 
-/**
-  * Automatically generated row converters are to be used
-  * only if there isn't an explicit row converter.
-  */
-trait LowerPriorityRowConverterImplicits {
+  /**
+    * Automatically generated row converters are to be used
+    * only if there isn't an explicit row converter.
+    */
+  trait LowerPriorityRowConverterImplicits {
 
-  implicit def fromComposite[A](implicit
-    converter: CompositeGetter[A]
-  ): RowConverter[A] =
-    new RowConverter[A] {
-      override def apply(row: Row): A = {
-        converter(row, 0)
+    implicit def fromComposite[A](implicit
+      converter: CompositeGetter[A]
+    ): RowConverter[A] =
+      new RowConverter[A] {
+        override def apply(row: core.Row): A = {
+          converter(row, 0)
+        }
       }
-    }
+  }
+
 }

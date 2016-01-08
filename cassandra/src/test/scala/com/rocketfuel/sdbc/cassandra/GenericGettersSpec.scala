@@ -1,5 +1,7 @@
 package com.rocketfuel.sdbc.cassandra
 
+import com.rocketfuel.sdbc.Cassandra._
+
 class GenericGettersSpec
   extends CassandraSuite {
 

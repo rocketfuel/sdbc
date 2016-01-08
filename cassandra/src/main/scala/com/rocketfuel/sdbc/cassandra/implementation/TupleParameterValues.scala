@@ -8,6 +8,7 @@ import shapeless.poly._
 import shapeless.syntax.std.tuple._
 
 private[sdbc] trait TupleParameterValues {
+  self: Cassandra =>
 
   object toSome extends (Id ~> Option) {
     override def apply[T](f: Id[T]): Option[T] = {
