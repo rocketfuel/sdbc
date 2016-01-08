@@ -74,7 +74,7 @@ trait Connection {
       queryText: String,
       batches: Map[String, ParameterValue]*
     ): IndexedSeq[Long] = {
-      Batch(queryText).copy(parameterValueBatches = batches).seq()
+      Batch(queryText).copy(parameterValueBatches = batches).seq()(this)
     }
 
     def execute(
