@@ -1,12 +1,12 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 import com.rocketfuel.sdbc.base
-import com.rocketfuel.sdbc.base.{CaseInsensitiveOrdering, jdbc}
-import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
+import com.zaxxer.hikari.HikariConfig
 
 abstract class DBMS
   extends ParameterValue
   with HikariImplicits
+  with Pool
   with Batch
   with Update
   with Select
@@ -33,14 +33,6 @@ abstract class DBMS
 
     def select(key: Key): SelectForUpdatable[Key]
 
-  }
-
-  type Pool = jdbc.Pool
-
-  val Pool = jdbc.Pool
-
-  implicit def poolToHikariPool(pool: Pool): HikariDataSource = {
-    pool.underlying
   }
 
   implicit class ConnectionMethods(connection: Connection) {
@@ -129,7 +121,7 @@ object DBMS {
     import scala.collection.convert.decorateAsScala._
     //Scala's collections don't contain an ordered mutable map,
     //so just use java's.
-    new java.util.TreeMap[String, DBMS](CaseInsensitiveOrdering).asScala
+    new java.util.TreeMap[String, DBMS](base.CaseInsensitiveOrdering).asScala
   }
 
   private val productNames: collection.mutable.Map[String, DBMS] = collection.mutable.Map.empty

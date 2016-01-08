@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import java.sql.{DriverPropertyInfo, Driver}
+import java.sql.{Connection, DriverPropertyInfo, Driver}
 import java.util.Properties
 import java.util.logging.Logger
 

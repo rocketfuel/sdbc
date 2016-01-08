@@ -3,6 +3,7 @@ package com.rocketfuel.sdbc.base.jdbc
 import java.io.PrintWriter
 import java.util.logging.Logger
 import javax.sql.DataSource
+import java.sql.Connection
 
 class TestDataSource extends DataSource {
   override def getConnection: Connection = ???
