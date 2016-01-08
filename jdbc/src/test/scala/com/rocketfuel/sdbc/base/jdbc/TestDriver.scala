@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import java.sql.{Connection, DriverPropertyInfo, Driver}
+import java.sql.{DriverPropertyInfo, Driver}
 import java.util.Properties
 import java.util.logging.Logger
 
@@ -18,7 +18,7 @@ class TestDriver extends Driver {
 
   override def getParentLogger: Logger = ???
 
-  override def connect(url: String, info: Properties): Connection = ???
+  override def connect(url: String, info: Properties): java.sql.Connection = ???
 
   override def getMajorVersion: Int = ???
 }

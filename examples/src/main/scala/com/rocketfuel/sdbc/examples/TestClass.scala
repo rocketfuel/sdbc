@@ -47,4 +47,11 @@ object TestClass {
     }
   }
 
+  implicit val updateValues = new SelectForUpdatable[All.type] {
+    val query = SelectForUpdate("SELECT id, value FROM test_class")
+    override def select(key: All.type): SelectForUpdate = {
+      query
+    }
+  }
+
 }

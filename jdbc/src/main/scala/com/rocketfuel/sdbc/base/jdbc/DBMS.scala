@@ -6,13 +6,15 @@ import com.zaxxer.hikari.HikariConfig
 abstract class DBMS
   extends ParameterValue
   with HikariImplicits
+  with Connection
   with Pool
   with Batch
   with Update
   with Select
-  with SelectForUpdate
   with Execute
   with UpdaterImplicits
+  with SelectForUpdate
+  with SelectForUpdatable
   with base.Selectable
   with base.Updatable
   with base.Batchable
@@ -28,53 +30,6 @@ abstract class DBMS
   with UpdatableRow
   with CompositeGetter
   with RowConverter {
-
-  trait SelectForUpdatable[Key] {
-
-    def select(key: Key): SelectForUpdatable[Key]
-
-  }
-
-  implicit class ConnectionMethods(connection: Connection) {
-
-    def iterator[T](
-      queryText: String,
-      parameters: (String, ParameterValue)*
-    )(implicit converter: RowConverter[T]
-    ): Iterator[T] = {
-      Select[T](queryText).on(parameters: _*).iterator()(connection)
-    }
-
-    def iteratorForUpdate(
-      queryText: String,
-      parameters: (String, ParameterValue)*
-    ): Iterator[UpdatableRow] = {
-      SelectForUpdate(queryText).on(parameters: _*).iterator()(connection)
-    }
-
-    def option[T](
-      queryText: String,
-      parameters: (String, ParameterValue)*
-    )(implicit converter: RowConverter[T]
-    ): Option[T] = {
-      Select[T](queryText).on(parameters: _*).option()(connection)
-    }
-
-    def update(
-      queryText: String,
-      parameterValues: (String, ParameterValue)*
-    ): Long = {
-      Update(queryText).on(parameterValues: _*).update()(connection)
-    }
-
-    def execute(
-      queryText: String,
-      parameterValues: (String, ParameterValue)*
-    ): Unit = {
-      Execute(queryText).on(parameterValues: _*).execute()(connection)
-    }
-
-  }
 
   /**
    * Class name for the DataSource class.

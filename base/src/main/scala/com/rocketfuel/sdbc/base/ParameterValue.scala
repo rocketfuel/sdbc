@@ -2,21 +2,21 @@ package com.rocketfuel.sdbc.base
 
 trait ParameterValue {
 
-  type Statement
+  type PreparedStatement
 
   type Connection
 
-  def prepareStatement(statement: String)(implicit connection: Connection): Statement
+  def prepareStatement(statement: String)(implicit connection: Connection): PreparedStatement
 
   protected def setNone(
-    preparedStatement: Statement,
+    preparedStatement: PreparedStatement,
     parameterIndex: Int
-  ): Statement
+  ): PreparedStatement
 
   protected def setOption[T](
     value: Option[T]
   )(implicit parameter: Parameter[T]
-  ): (Statement, Int) => Statement = {
+  ): (PreparedStatement, Int) => PreparedStatement = {
     value.map(parameter.set).getOrElse(setNone)
   }
 
@@ -25,17 +25,17 @@ trait ParameterValue {
     parameterValues: Map[String, ParameterValue],
     parameterPositions: Map[String, Set[Int]]
   )(implicit connection: Connection
-  ): Statement = {
+  ): PreparedStatement = {
     val preparedStatement = prepareStatement(queryText)
 
     bind(preparedStatement, parameterValues, parameterPositions)
   }
 
   protected def bind(
-    preparedStatement: Statement,
+    preparedStatement: PreparedStatement,
     parameterValues: Map[String, ParameterValue],
     parameterPositions: Map[String, Set[Int]]
-  ): Statement = {
+  ): PreparedStatement = {
     parameterValues.foldLeft(preparedStatement) {
       case (accum, (key, parameterValue)) =>
         val parameterIndices = parameterPositions(key)
@@ -47,12 +47,12 @@ trait ParameterValue {
   }
 
   trait Parameter[-A] {
-    val set: A => (Statement, Int) => Statement
+    val set: A => (PreparedStatement, Int) => PreparedStatement
   }
 
   object Parameter {
-    implicit def apply[A](set0: A => (Statement, Int) => Statement): Parameter[A] = new Parameter[A] {
-      override val set: (A) => (Statement, Int) => Statement = set0
+    implicit def apply[A](set0: A => (PreparedStatement, Int) => PreparedStatement): Parameter[A] = new Parameter[A] {
+      override val set: (A) => (PreparedStatement, Int) => PreparedStatement = set0
     }
   }
 
@@ -63,7 +63,7 @@ trait ParameterValue {
     val conversion: A => B
     val baseParameter: Parameter[B]
 
-    override val set: A => (Statement, Int) => Statement = {
+    override val set: A => (PreparedStatement, Int) => PreparedStatement = {
       (value: A) => {
         val converted = conversion(value)
         (statement, parameterIndex) =>
@@ -87,7 +87,7 @@ trait ParameterValue {
 
   case class ParameterValue private[sdbc] (
     value: Option[Any],
-    set: (Statement, Int) => Statement
+    set: (PreparedStatement, Int) => PreparedStatement
   ) {
     override def equals(obj: scala.Any): Boolean = {
       obj match {

@@ -7,7 +7,7 @@ private[sdbc] trait SerializedParameter {
 
   implicit object SerializedParameter
     extends Parameter[Serialized] {
-    override val set: (Serialized) => (Statement, Int) => Statement = {
+    override val set: (Serialized) => (PreparedStatement, Int) => PreparedStatement = {
       value => (statement, index) =>
         statement.setObject(index + 1, value.value, Types.JAVA_OBJECT)
         statement

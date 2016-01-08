@@ -37,7 +37,7 @@ private[sdbc] trait PGobjectParameter {
   self: ParameterValue =>
 
   implicit object PGobjectParameter extends Parameter[PGobject] {
-    override val set: PGobject => (Statement, Int) => Statement = {
+    override val set: PGobject => (PreparedStatement, Int) => PreparedStatement = {
       value => (statement, parameterIndex) =>
         statement.setObject(parameterIndex + 1, value)
         statement
@@ -60,7 +60,7 @@ private[sdbc] trait MapParameter {
   self: ParameterValue =>
 
   implicit object MapParameter extends Parameter[Map[String, String]] {
-    override val set: Map[String, String] => (Statement, Int) => Statement = {
+    override val set: Map[String, String] => (PreparedStatement, Int) => PreparedStatement = {
       value => (statement, parameterIndex) =>
         statement.setObject(parameterIndex + 1, value.asJava)
         statement

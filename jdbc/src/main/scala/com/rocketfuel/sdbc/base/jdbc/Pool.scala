@@ -18,7 +18,7 @@ trait Pool {
     def getConnection(): Connection = {
       val connection = underlying.getConnection()
       self.initializeConnection(connection)
-      connection
+      Connection(connection)
     }
 
     def withConnection[T](f: Connection => T): T = {

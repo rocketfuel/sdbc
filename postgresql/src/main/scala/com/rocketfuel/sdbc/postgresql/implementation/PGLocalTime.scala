@@ -54,7 +54,7 @@ private[sdbc] trait LocalTimeParameter {
   self: ParameterValue =>
 
   implicit object LocalTimeParameter extends Parameter[LocalTime] {
-    override val set: LocalTime => (Statement, Int) => Statement = {
+    override val set: LocalTime => (PreparedStatement, Int) => PreparedStatement = {
       time => (statement, ix) =>
         val pgTime = PGLocalTime(time)
         statement.setObject(ix + 1, pgTime)

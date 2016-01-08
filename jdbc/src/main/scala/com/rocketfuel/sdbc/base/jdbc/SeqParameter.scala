@@ -149,7 +149,7 @@ trait SeqWithXmlParameter extends SeqParameter {
   implicit val NodeSeqParameter: Parameter[NodeSeq] = {
     (nodes: NodeSeq) =>
       val asString = nodes.toString()
-      (statement: Statement, columnIndex: Int) =>
+      (statement: PreparedStatement, columnIndex: Int) =>
         statement.setObject(columnIndex + 1, asString, Types.SQLXML)
         statement
   }
@@ -157,7 +157,7 @@ trait SeqWithXmlParameter extends SeqParameter {
   implicit val ElemParameter: Parameter[Elem] = {
     (nodes: Elem) =>
       val asString = nodes.toString()
-      (statement: Statement, columnIndex: Int) =>
+      (statement: PreparedStatement, columnIndex: Int) =>
         statement.setObject(columnIndex + 1, asString, Types.SQLXML)
         statement
   }

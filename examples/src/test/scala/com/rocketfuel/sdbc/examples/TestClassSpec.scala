@@ -1,16 +1,56 @@
 package com.rocketfuel.sdbc.examples
 
-import com.rocketfuel.sdbc.H2._
-import com.rocketfuel.sdbc.h2.H2Suite
+import com.rocketfuel.sdbc.H2
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest._
 
 class TestClassSpec
- extends H2Suite {
+ extends fixture.FunSuite
+ with BeforeAndAfterEach {
 
-  test("insert and select works") { implicit connection =>
-    connection.execute("CREATE TEMPORARY TABLE test_class (id int IDENTITY(1,1) PRIMARY KEY, value varchar(100) NOT NULL)")
-    assertResult(1)(update(TestClass.Value("hi")))
-    val rows = iterator(TestClass.All).toSeq
-    assert(rows.exists(_.value == "hi"))
+  type FixtureParam = H2.Connection
+
+  override protected def withFixture(test: OneArgTest): Outcome = {
+    H2.withMemConnection[Outcome](name = "test") { connection: H2.Connection =>
+      withFixture(test.toNoArgTest(connection))
+    }
   }
 
+  val before = "hi"
+
+  val after = "bye"
+
+  test("insert and select works") { implicit connection =>
+    assertResult(1)(H2.update(TestClass.Value(before)))
+    val rows = H2.iterator(TestClass.All).toSeq
+    assert(rows.exists(_.value == before), "The row wasn't inserted.")
+  }
+
+  test("select for update works") {implicit connection =>
+    //insert a row
+    assertResult(1)(H2.update(TestClass.Value(before)))
+
+    //update all the values to "bye"
+    val rows = H2.iteratorForUpdate(TestClass.All)
+    for (row <- rows) {
+      row("value") = after
+      row.updateRow()
+    }
+
+    //Make sure "hi" disappeared and "bye" exists.
+    val resultRows = H2.iterator(TestClass.All).toSeq
+    assert(resultRows.exists(_.value == after) && !resultRows.exists(_.value == before), "The value wasn't updated.")
+  }
+
+  override protected def beforeEach(): Unit = {
+    H2.withMemConnection(name = "test") {implicit connection =>
+      connection.execute("CREATE TABLE test_class (id int IDENTITY(1,1) PRIMARY KEY, value varchar(100) NOT NULL)")
+    }
+  }
+
+  override protected def afterEach(): Unit = {
+    H2.withMemConnection(name = "test") {implicit connection =>
+      connection.execute("DROP TABLE test_class")
+    }
+  }
 }

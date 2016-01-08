@@ -46,7 +46,7 @@ private[sdbc] trait InetAddressParameter {
   self: ParameterValue =>
 
   implicit object InetAddressParameter extends Parameter[InetAddress] {
-    override val set: (InetAddress) => (Statement, Int) => Statement = {
+    override val set: (InetAddress) => (PreparedStatement, Int) => PreparedStatement = {
       address => (statement, ix) =>
         val pgAddress = PGInetAddress(address)
         statement.setObject(ix + 1, pgAddress)

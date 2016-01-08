@@ -45,7 +45,7 @@ private[sdbc] trait OffsetTimeParameter {
   self: ParameterValue =>
 
   implicit object OffsetTimeParameter extends Parameter[OffsetTime] {
-    override val set: (OffsetTime) => (Statement, Int) => Statement = {
+    override val set: (OffsetTime) => (PreparedStatement, Int) => PreparedStatement = {
       offsetTime => (statement, ix) =>
         val timeTz = PGTimeTz(offsetTime)
         statement.setObject(ix + 1, timeTz)
