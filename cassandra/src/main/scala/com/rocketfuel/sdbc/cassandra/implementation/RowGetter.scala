@@ -25,7 +25,7 @@ trait RowGetter {
       }
     }
 
-    implicit def apply[T](implicit rowGetter: RowGetter[T]): RowGetter[T] = rowGetter
+    def apply[T](implicit rowGetter: RowGetter[T]): RowGetter[T] = rowGetter
 
     implicit val BooleanRowGetter: RowGetter[Boolean] = of[Boolean](row => ix => row.getBool(ix))
 

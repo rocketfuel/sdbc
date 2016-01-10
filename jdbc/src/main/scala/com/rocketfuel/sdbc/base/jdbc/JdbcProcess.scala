@@ -1,9 +1,8 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 import shapeless.ops.hlist._
-import shapeless.ops.nat.ToInt
 import shapeless.ops.record.{MapValues, Keys}
-import shapeless.{Nat, LabelledGeneric, HList}
+import shapeless.{LabelledGeneric, HList}
 import scalaz.concurrent.Task
 import scalaz.stream._
 

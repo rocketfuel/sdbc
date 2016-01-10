@@ -59,18 +59,7 @@ private[sdbc] trait ParameterValue
       }
     }
 
-    forBinding.setConsistencyLevel(queryOptions.consistencyLevel)
-    forBinding.setSerialConsistencyLevel(queryOptions.serialConsistencyLevel)
-    queryOptions.defaultTimestamp.map(forBinding.setDefaultTimestamp)
-    forBinding.setFetchSize(queryOptions.fetchSize)
-    forBinding.setIdempotent(queryOptions.idempotent)
-    forBinding.setRetryPolicy(queryOptions.retryPolicy)
-
-    if (queryOptions.tracing) {
-      forBinding.enableTracing()
-    } else {
-      forBinding.disableTracing()
-    }
+    queryOptions.set(forBinding)
 
     forBinding
   }

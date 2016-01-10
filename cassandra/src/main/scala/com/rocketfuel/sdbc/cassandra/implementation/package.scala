@@ -5,7 +5,7 @@ import scala.concurrent.{Promise, Future, ExecutionContext}
 
 package object implementation {
 
-  private [sdbc] def toScalaFuture[T](f: ListenableFuture[T])(implicit ec: ExecutionContext): Future[T] = {
+  private[sdbc] def toScalaFuture[T](f: ListenableFuture[T])(implicit ec: ExecutionContext): Future[T] = {
     //Thanks http://stackoverflow.com/questions/18026601/listenablefuture-to-scala-future
     val p = Promise[T]()
 

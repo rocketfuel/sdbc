@@ -41,6 +41,8 @@ trait CompositeGetter {
         override val length: Int = 1
       }
 
+
+
     implicit def recordComposite[K <: Symbol, H, T <: HList](implicit
       H: CompositeGetter[H],
       T: CompositeGetter[T]

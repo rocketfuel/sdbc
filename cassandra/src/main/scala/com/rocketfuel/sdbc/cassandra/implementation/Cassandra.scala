@@ -5,7 +5,7 @@ import com.datastax.driver.core
 private[sdbc] abstract class Cassandra
   extends ParameterValue
   with TupleParameterValues
-  with TupleDataTypes
+  with TupleDataType
   with SessionMethods
   with Executable
   with Selectable
@@ -13,18 +13,19 @@ private[sdbc] abstract class Cassandra
   with Select
   with Execute
   with CassandraProcess
-  with Index
+  with Row
   with RowGetter
   with RowConverter
-  with CompositeGetter {
+  with CompositeGetter
+  with TupleValue
+  with TupleGetter
+  with CompositeTupleGetter {
 
   type Session = core.Session
 
   type Cluster = core.Cluster
 
   type UDTValue = core.UDTValue
-
-  type TupleValue = core.TupleValue
 
   type Token = core.Token
 
