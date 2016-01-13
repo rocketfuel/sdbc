@@ -1,7 +1,6 @@
 package com.rocketfuel.sdbc.cassandra
 
 import com.rocketfuel.sdbc.Cassandra._
-import com.rocketfuel.sdbc.cassandra.implementation.{Select, Execute, RowGetter}
 import org.scalacheck.Gen
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 

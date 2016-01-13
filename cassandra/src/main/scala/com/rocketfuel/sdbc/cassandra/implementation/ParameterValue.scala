@@ -16,6 +16,7 @@ import scala.collection.convert.decorateAsJava._
 private[sdbc] trait ParameterValue
   extends base.ParameterValue
   with base.ParameterizedQuery {
+  self: Cassandra =>
 
   type PreparedStatement = core.BoundStatement
 
@@ -185,9 +186,9 @@ private[sdbc] trait ParameterValue
       statement.setToken(ix, value)
   }
 
-  implicit val TupleValueParameter: Parameter[core.TupleValue] = {
-    (value: core.TupleValue) => (statement: PreparedStatement, ix: Int) =>
-      statement.setTupleValue(ix, value)
+  implicit val TupleValueParameter: Parameter[TupleValue] = {
+    (value: TupleValue) => (statement: PreparedStatement, ix: Int) =>
+      statement.setTupleValue(ix, value.underlying)
   }
 
   implicit val UDTValueParameter: Parameter[core.UDTValue] = {

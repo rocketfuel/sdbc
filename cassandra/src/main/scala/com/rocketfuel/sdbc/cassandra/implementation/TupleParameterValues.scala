@@ -71,7 +71,7 @@ private[sdbc] trait TupleParameterValues {
 
   }
 
-  implicit def hlistParameterValue[
+  implicit def hlistTupleValue[
     H <: HList,
     ListH <: HList,
     MappedTypesH <: HList,
@@ -88,7 +88,21 @@ private[sdbc] trait TupleParameterValues {
     TupleValue(underlying)
   }
 
-  implicit def productParameterValue[
+  implicit def hlistParameterValue[
+    H <: HList,
+    ListH <: HList,
+    MappedTypesH <: HList,
+    MappedValuesH <: HList
+  ](h: H
+  )(implicit dataTypeMapper: Mapper.Aux[ToTupleDataType.type, H, MappedTypesH],
+    dataTypeList: ToList[MappedTypesH, TupleDataType[Any]],
+    dataValueMapper: Mapper.Aux[ToTupleDataValue.type, H, MappedValuesH],
+    dataValueList: ToList[MappedValuesH, AnyRef]
+  ): ParameterValue = {
+    hlistTupleValue(h)
+  }
+
+  implicit def productTupleValue[
     P <: Product,
     H <: HList,
     ListH <: HList,
@@ -101,7 +115,23 @@ private[sdbc] trait TupleParameterValues {
     dataValueMapper: Mapper.Aux[ToTupleDataValue.type, H, MappedValuesH],
     dataValueList: ToList[MappedValuesH, AnyRef]
   ): TupleValue = {
-    hlistParameterValue(p.toHList)
+    hlistTupleValue(p.toHList)
+  }
+
+  implicit def productParameterValue[
+    P <: Product,
+    H <: HList,
+    ListH <: HList,
+    MappedTypesH <: HList,
+    MappedValuesH <: HList
+  ](p: P
+  )(implicit toHList: ToHList.Aux[P, H],
+    dataTypeMapper: Mapper.Aux[ToTupleDataType.type, H, MappedTypesH],
+    dataTypeList: ToList[MappedTypesH, TupleDataType[Any]],
+    dataValueMapper: Mapper.Aux[ToTupleDataValue.type, H, MappedValuesH],
+    dataValueList: ToList[MappedValuesH, AnyRef]
+  ): ParameterValue = {
+    productTupleValue(p)
   }
 
 }

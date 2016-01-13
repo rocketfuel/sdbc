@@ -7,13 +7,13 @@ trait RowConverter {
   self: Cassandra =>
 
   //@implicitNotFound("Define an implicit function from Row to A, or make A a Product (i.e., a tuple or case class).")
-  trait RowConverter[+A] extends (Row => A)
+  trait RowConverter[A] extends (Row => A)
 
   object RowConverter extends LowerPriorityRowConverterImplicits {
     def apply[A](implicit rowConverter: RowConverter[A]): RowConverter[A] = rowConverter
 
     implicit def fromFunction[A](implicit
-      converter: core.Row => A
+      converter: Row => A
     ): RowConverter[A] =
       new RowConverter[A] {
         override def apply(row: Row): A = {
