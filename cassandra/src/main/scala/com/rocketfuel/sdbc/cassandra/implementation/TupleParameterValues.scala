@@ -47,7 +47,7 @@ private[sdbc] trait TupleParameterValues {
 
     implicit def fromValue[A](a: A)(implicit dt: TupleDataType[A]) = {
       use {
-        (value: A) => dt.toCassandraValue(value)
+        (value: A) => box(dt.toCassandraValue(value))
       }
     }
 
@@ -59,7 +59,7 @@ private[sdbc] trait TupleParameterValues {
 
     implicit def fromSome[A](implicit dt: TupleDataType[A]) = {
       use {
-        (value: Some[A]) => dt.toCassandraValue(value.get)
+        (value: Some[A]) => box(dt.toCassandraValue(value.get))
       }
     }
 
@@ -80,10 +80,10 @@ private[sdbc] trait TupleParameterValues {
   )(implicit dataTypeMapper: Mapper.Aux[ToTupleDataType.type, H, MappedTypesH],
     dataTypeList: ToList[MappedTypesH, TupleDataType[Any]],
     dataValueMapper: Mapper.Aux[ToTupleDataValue.type, H, MappedValuesH],
-    dataValueList: ToList[MappedValuesH, Any]
+    dataValueList: ToList[MappedValuesH, AnyRef]
   ): TupleValue = {
-    val dataTypes = h.map(ToTupleDataType).toList.map(_.dataType)
-    val dataValues = h.map(ToTupleDataValue).toList
+    val dataTypes = h.map(ToTupleDataType).toList.map(_.dataType).toSeq
+    val dataValues = h.map(ToTupleDataValue).toList.toSeq
     val underlying = core.TupleType.of(dataTypes: _*).newValue(dataValues: _*)
     TupleValue(underlying)
   }
@@ -94,12 +94,12 @@ private[sdbc] trait TupleParameterValues {
     ListH <: HList,
     MappedTypesH <: HList,
     MappedValuesH <: HList
-  ](p: Product
+  ](p: P
   )(implicit toHList: ToHList.Aux[P, H],
     dataTypeMapper: Mapper.Aux[ToTupleDataType.type, H, MappedTypesH],
     dataTypeList: ToList[MappedTypesH, TupleDataType[Any]],
     dataValueMapper: Mapper.Aux[ToTupleDataValue.type, H, MappedValuesH],
-    dataValueList: ToList[MappedValuesH, Any]
+    dataValueList: ToList[MappedValuesH, AnyRef]
   ): TupleValue = {
     hlistParameterValue(p.toHList)
   }

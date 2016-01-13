@@ -451,9 +451,9 @@ trait CassandraProcess {
     private def runBoundStatement(
       prepared: PreparedStatement
     )(implicit session: Session
-    ): Task[Process[Task, core.Row]] = {
+    ): Task[Process[Task, Row]] = {
       toTask[core.ResultSet](session.executeAsync(prepared)).map { result =>
-        io.iterator(Task.delay(result.iterator()))
+        io.iterator(Task.delay(result.iterator().map(Row.of)))
       }
     }
 

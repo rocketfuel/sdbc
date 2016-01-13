@@ -51,7 +51,7 @@ trait TupleValue {
 
     override def getString(i: Int): String = underlying.getString(i: Int)
 
-    override def getTupleValue(i: Int): TupleValue = underlying.getTupleValue(i: Int)
+    override def getTupleValue(i: Int): core.TupleValue = underlying.getTupleValue(i: Int)
 
     override def getList[T](i: Int, elementsType: TypeToken[T]): util.List[T] = underlying.getList[T](i: Int, elementsType: TypeToken[T])
 
@@ -69,8 +69,6 @@ trait TupleValue {
     implicit def of(underlying: core.TupleValue): TupleValue = {
       apply(underlying)
     }
-
-    implicit def toCoreTupleValue(tv: TupleValue): core.TupleValue = tv.underlying
   }
 
 }

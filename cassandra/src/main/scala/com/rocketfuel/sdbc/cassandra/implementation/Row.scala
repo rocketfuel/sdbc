@@ -109,7 +109,7 @@ trait Row extends base.Index {
 
     override def getString(name: String): String = underlying.getString(name: String)
 
-    override def getTupleValue(i: Int): TupleValue = underlying.getTupleValue(i: Int)
+    override def getTupleValue(i: Int): core.TupleValue = underlying.getTupleValue(i: Int)
 
     override def getList[T](i: Int, elementsType: TypeToken[T]): util.List[T] = underlying.getList[T](i: Int, elementsType: TypeToken[T])
 
@@ -121,7 +121,7 @@ trait Row extends base.Index {
 
     override def getSet[T](i: Int, elementsType: TypeToken[T]): util.Set[T] = underlying.getSet[T](i: Int, elementsType: TypeToken[T])
 
-    override def getTupleValue(name: String): TupleValue = underlying.getTupleValue(name: String)
+    override def getTupleValue(name: String): core.TupleValue = underlying.getTupleValue(name: String)
 
     override def getList[T](name: String, elementsType: TypeToken[T]): util.List[T] = underlying.getList[T](name: String, elementsType: TypeToken[T])
 
@@ -132,6 +132,12 @@ trait Row extends base.Index {
     override def getObject(name: String): AnyRef = underlying.getObject(name: String)
 
     override def getSet[T](name: String, elementsType: TypeToken[T]): util.Set[T] = underlying.getSet[T](name: String, elementsType: TypeToken[T])
+  }
+
+  object Row {
+    implicit def of(underlyling: core.Row): Row = {
+      Row(underlyling)
+    }
   }
 
 }

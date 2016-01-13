@@ -22,7 +22,7 @@ trait Select {
     override def iterator()(implicit session: Session): Iterator[T] = {
       logger.debug(s"""Selecting "$originalQueryText" with parameters $parameterValues.""")
       val prepared = prepare(this, queryOptions)
-      session.execute(prepared).iterator().asScala.map(converter)
+      session.execute(prepared).iterator().asScala.map(Row.of _ andThen converter)
     }
 
     def iteratorAsync()(implicit session: Session, ec: ExecutionContext): Future[Iterator[T]] = {
@@ -34,7 +34,7 @@ trait Select {
       for {
         result <- implementation.toScalaFuture(toListen)
       } yield {
-        result.iterator().asScala.map(converter)
+        result.iterator().asScala.map(Row.of _ andThen converter)
       }
     }
 

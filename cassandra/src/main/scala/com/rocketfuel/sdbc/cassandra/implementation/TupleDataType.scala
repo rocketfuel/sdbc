@@ -2,6 +2,7 @@ package com.rocketfuel.sdbc.cassandra.implementation
 
 import java.net.InetAddress
 import java.nio.ByteBuffer
+import java.time.Instant
 import java.util.UUID
 import com.datastax.driver.core.DataType
 import scodec.bits.ByteVector
@@ -10,7 +11,7 @@ import scala.collection.convert.decorateAsJava._
 private[sdbc] trait TupleDataType {
   self: Cassandra =>
 
-  case class TupleDataType[T](dataType: DataType, toCassandraValue: T => Any = identity _)
+  case class TupleDataType[T](dataType: DataType, toCassandraValue: T => Any = (x: T) => x)
 
   object TupleDataType {
 
@@ -46,16 +47,20 @@ private[sdbc] trait TupleDataType {
 
     implicit val uuid = TupleDataType[UUID](DataType.uuid())
 
+    implicit val bigDecimal = TupleDataType[BigDecimal](DataType.decimal(), _.underlying())
+
+    implicit val javaBigDecimal = TupleDataType[java.math.BigDecimal](DataType.decimal())
+
+    implicit val date = TupleDataType[java.util.Date](DataType.timestamp())
+
+    implicit val instant = TupleDataType[Instant](DataType.timestamp(), java.util.Date.from)
+
     implicit def seq[T](implicit innerType: TupleDataType[T]): TupleDataType[collection.immutable.Seq[T]] = {
       TupleDataType[collection.immutable.Seq[T]](DataType.list(innerType.dataType, true), _.asJava)
     }
 
     implicit def mutableSeq[T](implicit innerType: TupleDataType[T]): TupleDataType[collection.mutable.Seq[T]] = {
       TupleDataType[collection.mutable.Seq[T]](DataType.list(innerType.dataType, false), _.asJava)
-    }
-
-    implicit def javaList[T](implicit innerType: TupleDataType[T]): TupleDataType[java.util.List[T]] = {
-      TupleDataType[java.util.List[T]](DataType.list(innerType.dataType, false))
     }
 
     implicit def immutableSet[T](implicit innerType: TupleDataType[T]): TupleDataType[collection.immutable.Set[T]] = {
@@ -66,20 +71,12 @@ private[sdbc] trait TupleDataType {
       TupleDataType[collection.mutable.Set[T]](DataType.set(innerType.dataType, false), _.asJava)
     }
 
-    implicit def javaSet[T](implicit innerType: TupleDataType[T]): TupleDataType[java.util.Set[T]] = {
-      TupleDataType[java.util.Set[T]](DataType.set(innerType.dataType, false))
-    }
-
     implicit def immutableMap[K, V](implicit keyType: TupleDataType[K], valueType: TupleDataType[V]): TupleDataType[collection.immutable.Map[K, V]] = {
       TupleDataType[collection.immutable.Map[K, V]](DataType.map(keyType.dataType, valueType.dataType, true), _.asJava)
     }
 
     implicit def mutableMap[K, V](implicit keyType: TupleDataType[K], valueType: TupleDataType[V]): TupleDataType[collection.mutable.Map[K, V]] = {
       TupleDataType[collection.mutable.Map[K, V]](DataType.map(keyType.dataType, valueType.dataType, false), _.asJava)
-    }
-
-    implicit def javaMap[K, V](implicit keyType: TupleDataType[K], valueType: TupleDataType[V]): TupleDataType[java.util.Map[K, V]] = {
-      TupleDataType[java.util.Map[K, V]](DataType.map(keyType.dataType, valueType.dataType, false))
     }
 
   }
