@@ -15,14 +15,14 @@ trait CassandraProcess {
   self: Cassandra =>
 
   object HasCassandraProcess {
-    val cassandra = CassandraProcess
+    val cassandra: CassandraProcess.type = CassandraProcess
   }
 
   implicit def ProcessToCassandraProcess(x: Process.type): HasCassandraProcess.type = {
     HasCassandraProcess
   }
 
-  trait CassandraProcess {
+  trait CassandraProcess extends CassandraProcessUtils {
 
     /**
       * Create a stream from one query, whose result is ignored.
@@ -31,7 +31,7 @@ trait CassandraProcess {
       * @return a stream of one () value.
       */
     def execute(execute: Execute)(implicit session: Session): Process[Task, Unit] = {
-      Process.eval(ProcessUtils.runExecute(execute))
+      Process.eval(runExecute(execute))
     }
 
     /**
@@ -42,7 +42,7 @@ trait CassandraProcess {
       * @return a stream of the query results.
       */
     def select[T](select: Select[T])(implicit session: Session): Process[Task, T] = {
-      ProcessUtils.runSelect(select)
+      runSelect(select)
     }
 
     object product {
@@ -60,7 +60,7 @@ trait CassandraProcess {
         vtl: ToList[MappedRepr, ParameterValue]
       ): Sink[Task, A] = {
         sink.lift[Task, A] {param =>
-          ProcessUtils.runExecute(execute.onProduct(param))
+          runExecute(execute.onProduct(param))
         }
       }
 
@@ -79,7 +79,7 @@ trait CassandraProcess {
         vtl: ToList[MappedRepr, ParameterValue]
       ): Channel[Task, A, Process[Task, Value]] = {
         channel.lift[Task, A, Process[Task, Value]] { param =>
-          Task.delay(ProcessUtils.runSelect[Value](select.onProduct(params)))
+          Task.delay(runSelect[Value](select.onProduct(params)))
         }
       }
 
@@ -95,8 +95,8 @@ trait CassandraProcess {
         ktl: ToList[ReprKeys, Symbol],
         vtl: ToList[MappedRepr, ParameterValue]
       ): Cluster => Sink[Task, (String, A)] = {
-        ProcessUtils.forClusterWithKeyspaceAux[A, Unit] { param => implicit session =>
-          ProcessUtils.runExecute(execute.onProduct(param))
+        forClusterWithKeyspaceAux[A, Unit] { param => implicit session =>
+          runExecute(execute.onProduct(param))
         }
       }
 
@@ -113,8 +113,8 @@ trait CassandraProcess {
         ktl: ToList[ReprKeys, Symbol],
         vtl: ToList[MappedRepr, ParameterValue]
       ): Cluster => Channel[Task, (String, A), Process[Task, Value]] = {
-        ProcessUtils.forClusterWithKeyspaceAux[A, Process[Task, Value]] { param => implicit session =>
-          Task.delay(ProcessUtils.runSelect[Value](select.onProduct(param)))
+        forClusterWithKeyspaceAux[A, Process[Task, Value]] { param => implicit session =>
+          Task.delay(runSelect[Value](select.onProduct(param)))
         }
       }
     }
@@ -132,7 +132,7 @@ trait CassandraProcess {
         vtl: ToList[MappedRepr, ParameterValue]
       ): Sink[Task, Repr] = {
         sink.lift[Task, Repr] {param =>
-          ProcessUtils.runExecute(execute.onRecord(param))
+          runExecute(execute.onRecord(param))
         }
       }
 
@@ -149,7 +149,7 @@ trait CassandraProcess {
         vtl: ToList[MappedRepr, ParameterValue]
       ): Channel[Task, Repr, Process[Task, Value]] = {
         channel.lift[Task, Repr, Process[Task, Value]] { param =>
-          Task.delay(ProcessUtils.runSelect[Value](select.onRecord(param)))
+          Task.delay(runSelect[Value](select.onRecord(param)))
         }
       }
 
@@ -163,8 +163,8 @@ trait CassandraProcess {
         ktl: ToList[ReprKeys, Symbol],
         vtl: ToList[MappedRepr, ParameterValue]
       ): Cluster => Sink[Task, (String, Repr)] = {
-        ProcessUtils.forClusterWithKeyspaceAux[Repr, Unit] { param => implicit session =>
-          ProcessUtils.runExecute(execute.onRecord(param))
+        forClusterWithKeyspaceAux[Repr, Unit] { param => implicit session =>
+          runExecute(execute.onRecord(param))
         }
       }
 
@@ -179,8 +179,8 @@ trait CassandraProcess {
         ktl: ToList[ReprKeys, Symbol],
         vtl: ToList[MappedRepr, ParameterValue]
       ): Cluster => Channel[Task, (String, Repr), Process[Task, Value]] = {
-        ProcessUtils.forClusterWithKeyspaceAux[Repr, Process[Task, Value]] { param => implicit session =>
-          Task.delay(ProcessUtils.runSelect[Value](select.onRecord(param)))
+        forClusterWithKeyspaceAux[Repr, Process[Task, Value]] { param => implicit session =>
+          Task.delay(runSelect[Value](select.onRecord(param)))
         }
       }
     }
@@ -201,7 +201,7 @@ trait CassandraProcess {
       )(implicit session: Session
       ): Sink[Task, ParameterList] = {
         sink.lift[Task, Seq[(String, ParameterValue)]] { params =>
-          ProcessUtils.runExecute(execute.on(params: _*))
+          runExecute(execute.on(params: _*))
         }
       }
 
@@ -223,7 +223,7 @@ trait CassandraProcess {
       )(implicit session: Session
       ): Channel[Task, ParameterList, Process[Task, Value]] = {
         channel.lift[Task, Seq[(String, ParameterValue)], Process[Task, Value]] { params =>
-          Task.delay(ProcessUtils.runSelect[Value](select.on(params: _*)))
+          Task.delay(runSelect[Value](select.on(params: _*)))
         }
       }
 
@@ -240,8 +240,8 @@ trait CassandraProcess {
       def executeWithKeyspace[Value](
         execute: Execute
       ): Cluster => Sink[Task, (String, ParameterList)] = {
-        ProcessUtils.forClusterWithKeyspaceAux[ParameterList, Unit] { params => implicit session =>
-          ProcessUtils.runExecute(execute.on(params: _*))
+        forClusterWithKeyspaceAux[ParameterList, Unit] { params => implicit session =>
+          runExecute(execute.on(params: _*))
         }
       }
 
@@ -262,8 +262,8 @@ trait CassandraProcess {
       def selectWithKeyspace[Value](
         select: Select[Value]
       ): Cluster => Channel[Task, (String, ParameterList), Process[Task, Value]] = {
-        ProcessUtils.forClusterWithKeyspaceAux[ParameterList, Process[Task, Value]] { params => implicit session =>
-          Task.delay(ProcessUtils.runSelect[Value](select.on(params: _*)))
+        forClusterWithKeyspaceAux[ParameterList, Process[Task, Value]] { params => implicit session =>
+          Task.delay(runSelect[Value](select.on(params: _*)))
         }
       }
     }
@@ -284,7 +284,7 @@ trait CassandraProcess {
       )(implicit executable: Executable[Key]
       ): Sink[Task, Key] = {
         sink.lift[Task, Key] { key =>
-          ProcessUtils.runExecute(executable.execute(key))(session)
+          runExecute(executable.execute(key))(session)
         }
       }
 
@@ -306,7 +306,7 @@ trait CassandraProcess {
       )(implicit selectable: Selectable[Key, Value]
       ): Channel[Task, Key, Process[Task, Value]] = {
         channel.lift[Task, Key, Process[Task, Value]] { key =>
-          Task.delay(ProcessUtils.runSelect[Value](selectable.select(key))(session))
+          Task.delay(runSelect[Value](selectable.select(key))(session))
         }
       }
 
@@ -325,8 +325,8 @@ trait CassandraProcess {
         keyspace: Option[String] = None
       )(implicit executable: Executable[Key]
       ): Sink[Task, Key] = {
-        Process.await(ProcessUtils.connect(cluster, keyspace)) { session =>
-          execute(session).onComplete(Process.eval_(ProcessUtils.closeSession(session)))
+        Process.await(connect(cluster, keyspace)) { session =>
+          execute(session).onComplete(Process.eval_(closeSession(session)))
         }
       }
 
@@ -345,8 +345,8 @@ trait CassandraProcess {
         cluster: Cluster
       )(implicit executable: Executable[Key]
       ): Sink[Task, (String, Key)] = {
-        ProcessUtils.forClusterWithKeyspaceAux[Key, Unit] { key => implicit session =>
-          ProcessUtils.runExecute(executable.execute(key))
+        forClusterWithKeyspaceAux[Key, Unit] { key => implicit session =>
+          runExecute(executable.execute(key))
         }(cluster)
       }
 
@@ -369,8 +369,8 @@ trait CassandraProcess {
         keyspace: Option[String] = None
       )(implicit selectable: Selectable[Key, Value]
       ): Channel[Task, Key, Process[Task, Value]] = {
-        Process.await(ProcessUtils.connect(cluster, keyspace)) { session =>
-          select(session).onComplete(Process.eval_(ProcessUtils.closeSession(session)))
+        Process.await(connect(cluster, keyspace)) { session =>
+          select(session).onComplete(Process.eval_(closeSession(session)))
         }
       }
 
@@ -393,8 +393,8 @@ trait CassandraProcess {
         cluster: Cluster
       )(implicit selectable: Selectable[Key, Value]
       ): Channel[Task, (String, Key), Process[Task, Value]] = {
-        ProcessUtils.forClusterWithKeyspaceAux[Key, Process[Task, Value]] { key => implicit session =>
-          Task.delay(ProcessUtils.runSelect[Value](selectable.select(key)))
+        forClusterWithKeyspaceAux[Key, Process[Task, Value]] { key => implicit session =>
+          Task.delay(runSelect[Value](selectable.select(key)))
         }(cluster)
       }
     }
@@ -403,9 +403,9 @@ trait CassandraProcess {
 
   object CassandraProcess extends CassandraProcess
 
-  private object ProcessUtils {
+  protected trait CassandraProcessUtils {
 
-    def connect(cluster: Cluster, keyspace: Option[String] = None): Task[Session] = {
+    protected def connect(cluster: Cluster, keyspace: Option[String] = None): Task[Session] = {
       Task.delay(keyspace.map(cluster.connect).getOrElse(cluster.connect()))
     }
 
@@ -415,7 +415,7 @@ trait CassandraProcess {
       * @tparam T
       * @return
       */
-    def toTask[T](f: ListenableFuture[T]): Task[T] = {
+    protected def toTask[T](f: ListenableFuture[T]): Task[T] = {
       Task.async[T] { callback =>
         val googleCallback = new FutureCallback[T] {
           override def onFailure(t: Throwable): Unit = {
@@ -431,14 +431,14 @@ trait CassandraProcess {
       }
     }
 
-    def prepareAsync(
+    protected def prepareAsync(
       query: ParameterizedQuery[_]
     )(implicit session: Session
     ): Task[core.PreparedStatement] = {
       toTask(session.prepareAsync(query.queryText))
     }
 
-    def runSelect[Value](
+    protected def runSelect[Value](
       select: Select[Value]
     )(implicit session: Session
     ): Process[Task, Value] = {
@@ -456,7 +456,7 @@ trait CassandraProcess {
       }
     }
 
-    def runExecute(
+    protected def runExecute(
       execute: Execute
     )(implicit session: Session
     ): Task[Unit] = {
@@ -475,7 +475,7 @@ trait CassandraProcess {
       toTask(rsFuture).map(Function.const(()))
     }
 
-    def closeSession(session: Session): Task[Unit] = {
+    protected def closeSession(session: Session): Task[Unit] = {
       val f = session.closeAsync()
       toTask(f).map(Function.const(()))
     }
@@ -489,7 +489,7 @@ trait CassandraProcess {
       * @tparam O
       * @return
       */
-    def forClusterWithKeyspaceAux[T, O](
+    protected def forClusterWithKeyspaceAux[T, O](
       runner: T => Session => Task[O]
     )(cluster: Cluster
     ): Channel[Task, (String, T), O] = {
