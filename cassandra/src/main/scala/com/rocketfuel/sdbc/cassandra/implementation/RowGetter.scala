@@ -80,7 +80,7 @@ trait RowGetter {
      * @tparam V
      * @return
      */
-    def MapRowGetter[K, V](keyTag: ClassTag[K], valueTag: ClassTag[V]): RowGetter[Map[K, V]] =
+    implicit def MapRowGetter[K, V](implicit keyTag: ClassTag[K], valueTag: ClassTag[V]): RowGetter[Map[K, V]] =
       of[Map[K, V]](row => ix => row.getMap[K, V](ix, TypeToken.of[K](keyTag.runtimeClass.asInstanceOf[Class[K]]), TypeToken.of[V](valueTag.runtimeClass.asInstanceOf[Class[V]])).toMap)
 
   }

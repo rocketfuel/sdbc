@@ -65,7 +65,6 @@ private[sdbc] trait ParameterValue
     forBinding
   }
 
-
   implicit val BooleanParameter: Parameter[Boolean] = {
     (value: Boolean) => (statement: PreparedStatement, ix: Int) =>
       statement.setBool(ix, value)

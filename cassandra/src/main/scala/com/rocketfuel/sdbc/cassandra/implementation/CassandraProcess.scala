@@ -403,7 +403,6 @@ trait CassandraProcess {
 
   object CassandraProcess extends CassandraProcess
 
-
   private object ProcessUtils {
 
     def connect(cluster: Cluster, keyspace: Option[String] = None): Task[Session] = {

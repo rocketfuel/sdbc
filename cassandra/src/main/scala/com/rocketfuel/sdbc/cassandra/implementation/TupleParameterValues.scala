@@ -1,10 +1,9 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
-import com.rocketfuel.sdbc.base.box
 import com.datastax.driver.core
 import shapeless._
-import shapeless.ops.hlist.{ToList, Mapper}
-import shapeless.ops.product._
+import shapeless.ops.hlist.{Mapper, ToTraversable}
+import shapeless.ops.product.ToHList
 import shapeless.syntax.std.product._
 
 private[sdbc] trait TupleParameterValues {
@@ -15,57 +14,17 @@ private[sdbc] trait TupleParameterValues {
     implicit def fromValue[A](implicit dt: TupleDataType[A]) = {
       use {
         (value: A) =>
-          dt
+          dt.dataType
       }
-    }
-
-    implicit def fromOptionalValue[A](implicit dt: TupleDataType[A]) = {
-      use {
-        (value: Option[A]) =>
-          dt
-      }
-    }
-
-    implicit def fromSomeValue[A](implicit dt: TupleDataType[A]) = {
-      use {
-        (value: Some[A]) =>
-          dt
-
-      }
-    }
-
-    val noneDataType = TupleDataType(core.DataType.custom(classOf[java.lang.Object].getName), Function.const(null))
-
-    implicit val none = use {
-      (value: None.type) =>
-        noneDataType
     }
 
   }
 
   object ToTupleDataValue extends Poly {
 
-    implicit def fromValue[A](a: A)(implicit dt: TupleDataType[A]) = {
+    implicit def fromValue[A](implicit dt: TupleDataType[A]) = {
       use {
-        (value: A) => box(dt.toCassandraValue(value))
-      }
-    }
-
-    implicit def fromOption[A](implicit dt: TupleDataType[A]) = {
-      use {
-        (value: Option[A]) => value.map(dt.toCassandraValue andThen box).orNull
-      }
-    }
-
-    implicit def fromSome[A](implicit dt: TupleDataType[A]) = {
-      use {
-        (value: Some[A]) => box(dt.toCassandraValue(value.get))
-      }
-    }
-
-    implicit def fromNone = {
-      use {
-        (value: None.type) => null
+        (value: A) => dt.toCassandraValue(value)
       }
     }
 
@@ -78,12 +37,13 @@ private[sdbc] trait TupleParameterValues {
     MappedValuesH <: HList
   ](h: H
   )(implicit dataTypeMapper: Mapper.Aux[ToTupleDataType.type, H, MappedTypesH],
-    dataTypeList: ToList[MappedTypesH, TupleDataType[Any]],
+    dataTypeList: ToTraversable.Aux[MappedTypesH, Seq, core.DataType],
     dataValueMapper: Mapper.Aux[ToTupleDataValue.type, H, MappedValuesH],
-    dataValueList: ToList[MappedValuesH, AnyRef]
+    dataValueList: ToTraversable.Aux[MappedValuesH, Seq, AnyRef]
   ): TupleValue = {
-    val dataTypes = h.map(ToTupleDataType).toList.map(_.dataType).toSeq
-    val dataValues = h.map(ToTupleDataValue).toList.toSeq
+    val dataTypes = dataTypeList(h.map(ToTupleDataType))
+    val dataValueHList = h.map(ToTupleDataValue)
+    val dataValues = dataValueList(dataValueHList)
     val underlying = core.TupleType.of(dataTypes: _*).newValue(dataValues: _*)
     TupleValue(underlying)
   }
@@ -95,9 +55,9 @@ private[sdbc] trait TupleParameterValues {
     MappedValuesH <: HList
   ](h: H
   )(implicit dataTypeMapper: Mapper.Aux[ToTupleDataType.type, H, MappedTypesH],
-    dataTypeList: ToList[MappedTypesH, TupleDataType[Any]],
+    dataTypeList: ToTraversable.Aux[MappedTypesH, Seq, core.DataType],
     dataValueMapper: Mapper.Aux[ToTupleDataValue.type, H, MappedValuesH],
-    dataValueList: ToList[MappedValuesH, AnyRef]
+    dataValueList: ToTraversable.Aux[MappedValuesH, Seq, AnyRef]
   ): ParameterValue = {
     hlistTupleValue(h)
   }
@@ -111,11 +71,13 @@ private[sdbc] trait TupleParameterValues {
   ](p: P
   )(implicit toHList: ToHList.Aux[P, H],
     dataTypeMapper: Mapper.Aux[ToTupleDataType.type, H, MappedTypesH],
-    dataTypeList: ToList[MappedTypesH, TupleDataType[Any]],
+    dataTypeList: ToTraversable.Aux[MappedTypesH, Seq, core.DataType],
     dataValueMapper: Mapper.Aux[ToTupleDataValue.type, H, MappedValuesH],
-    dataValueList: ToList[MappedValuesH, AnyRef]
+    dataValueList: ToTraversable.Aux[MappedValuesH, Seq, AnyRef]
   ): TupleValue = {
-    hlistTupleValue(p.toHList)
+    val asH = p.toHList
+    val tv = hlistTupleValue(asH)
+    tv
   }
 
   implicit def productParameterValue[
@@ -127,11 +89,13 @@ private[sdbc] trait TupleParameterValues {
   ](p: P
   )(implicit toHList: ToHList.Aux[P, H],
     dataTypeMapper: Mapper.Aux[ToTupleDataType.type, H, MappedTypesH],
-    dataTypeList: ToList[MappedTypesH, TupleDataType[Any]],
+    dataTypeList: ToTraversable.Aux[MappedTypesH, Seq, core.DataType],
     dataValueMapper: Mapper.Aux[ToTupleDataValue.type, H, MappedValuesH],
-    dataValueList: ToList[MappedValuesH, AnyRef]
+    dataValueList: ToTraversable.Aux[MappedValuesH, Seq, AnyRef],
+    toParameterValue: TupleValue => ParameterValue
   ): ParameterValue = {
-    productTupleValue(p)
+    val asTupleValue = productTupleValue(p)
+    toParameterValue(asTupleValue)
   }
 
 }

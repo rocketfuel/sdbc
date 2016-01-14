@@ -64,11 +64,9 @@ class RichResultSetSpec
         insert.on("id" -> ix, "x" -> tuple).execute()
       }
 
-      val results = Select[(Option[Int], Option[Int])]("SELECT x FROM spc.tbl").iterator().toSeq
+      val results = Select[TupleValue]("SELECT x FROM spc.tbl").iterator().map(_[(Int, Int)]).toSeq
 
-      val expectedResults = tuples.map { case (x, y) => (Some(x), Some(y)) }
-
-      assertResult(expectedResults.toSet)(results.toSet)
+      assertResult(tuples.toSet)(results.toSet)
 
       assertResult(tuples.size)(results.size)
 
@@ -84,10 +82,11 @@ class RichResultSetSpec
       val insert = Execute("INSERT INTO spc.tbl (id, x) VALUES (@id, @x)")
 
       for ((tuple, ix) <- tuples.zipWithIndex) {
-        insert.on("id" -> ix, "x" -> tuple).execute()
+        val tupleParam: ParameterValue = productParameterValue(tuple)
+        insert.on("id" -> ix, "x" -> tupleParam).execute()
       }
 
-      val results = Select[(Option[Int], Option[Int])]("SELECT x FROM spc.tbl").iterator().toSeq
+      val results = Select[TupleValue]("SELECT x FROM spc.tbl").iterator().map(_[(Option[Int], Option[Int])]).toSeq
 
       assertResult(tuples.toSet)(results.toSet)
 
@@ -123,7 +122,7 @@ class RichResultSetSpec
     t1 <- Gen.alphaStr
   } yield (t0, t1)
 
-  implicit val getter = RowGetter.MapRowGetter[String, String](classTag[String], classTag[String])
+//  implicit val getter = RowGetter.MapRowGetter[String, String](classTag[String], classTag[String])
 
   test("Insert and select works for maps.") {implicit connection =>
     Execute("CREATE KEYSPACE spc WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}").execute()
@@ -135,6 +134,8 @@ class RichResultSetSpec
       for ((map, id) <- maps.zipWithIndex) {
         insert.on("id" -> id, "x" -> map).execute()
       }
+
+      implicit val getter = RowConverter[Map[String, String]]
 
       val results = Select[Map[String, String]]("SELECT x FROM spc.tbl").iterator().toSeq
 

@@ -18,17 +18,8 @@ trait TupleGetter {
     implicit def of[T](getter: TupleValue => Int => T): TupleGetter[T] = {
       new TupleGetter[T] {
         override def apply(tuple: TupleValue, ix: Int): Option[T] = {
-          
           if (tuple.isNull(ix)) None
           else Some(getter(tuple)(ix))
-        }
-      }
-    }
-
-    implicit def ofTupleDataType[T](implicit tupleType: TupleDataType[T]): TupleGetter[T] = {
-      new TupleGetter[T] {
-        override def apply(v1: TupleValue, v2: Int): Option[T] = {
-          Option(v1.getObject(v2)).map(_.asInstanceOf[T])
         }
       }
     }
