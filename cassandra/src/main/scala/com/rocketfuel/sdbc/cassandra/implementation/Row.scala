@@ -30,7 +30,7 @@ trait Row extends base.Index {
   case class Row(underlying: core.Row) extends core.Row {
 
     def apply[T](ix: Index)(implicit getter: CompositeGetter[T]): T = {
-      getter(this, ix)
+      getter(this, ix(this))
     }
 
     override def getUUID(i: Int): UUID = underlying.getUUID(i: Int)

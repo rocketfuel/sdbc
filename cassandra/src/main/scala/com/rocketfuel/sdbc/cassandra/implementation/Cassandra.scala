@@ -14,7 +14,6 @@ private[sdbc] abstract class Cassandra
   with Execute
   with CassandraProcess
   with Row
-  with RowGetter
   with RowConverter
   with CompositeGetter
   with TupleValue
