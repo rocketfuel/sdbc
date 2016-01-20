@@ -134,10 +134,4 @@ trait Row extends base.Index {
     override def getSet[T](name: String, elementsType: TypeToken[T]): util.Set[T] = underlying.getSet[T](name: String, elementsType: TypeToken[T])
   }
 
-  object Row {
-    implicit def of(underlyling: core.Row): Row = {
-      Row(underlyling)
-    }
-  }
-
 }

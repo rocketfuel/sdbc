@@ -1,5 +1,10 @@
 package com.rocketfuel.sdbc.base
 
+import shapeless._
+import shapeless.record._
+import shapeless.ops.record._
+import shapeless.ops.hlist._
+
 trait ParameterValue {
 
   type PreparedStatement
@@ -18,32 +23,6 @@ trait ParameterValue {
   )(implicit parameter: Parameter[T]
   ): (PreparedStatement, Int) => PreparedStatement = {
     value.map(parameter.set).getOrElse(setNone)
-  }
-
-  protected def prepare(
-    queryText: String,
-    parameterValues: Map[String, ParameterValue],
-    parameterPositions: Map[String, Set[Int]]
-  )(implicit connection: Connection
-  ): PreparedStatement = {
-    val preparedStatement = prepareStatement(queryText)
-
-    bind(preparedStatement, parameterValues, parameterPositions)
-  }
-
-  protected def bind(
-    preparedStatement: PreparedStatement,
-    parameterValues: Map[String, ParameterValue],
-    parameterPositions: Map[String, Set[Int]]
-  ): PreparedStatement = {
-    parameterValues.foldLeft(preparedStatement) {
-      case (accum, (key, parameterValue)) =>
-        val parameterIndices = parameterPositions(key)
-        parameterIndices.foldLeft(accum) {
-          case (accum2, index) =>
-            parameterValue.set(accum, index)
-        }
-    }
   }
 
   trait Parameter[-A] {
@@ -127,6 +106,83 @@ trait ParameterValue {
     val empty = ParameterValue(None, setNone)
   }
 
-  type ParameterList = Seq[(String, ParameterValue)]
+  case class Parameters(parameters: Map[String, ParameterValue])
+
+  object Parameters {
+    val empty = Parameters(Map.empty[String, ParameterValue])
+
+    def apply(parameters: (String, ParameterValue)*): Parameters = {
+      parameters
+    }
+
+    implicit def map(parameters: Map[String, ParameterValue]): Parameters = {
+      Parameters(parameters)
+    }
+
+    implicit def seq(parameters: Seq[(String, ParameterValue)]): Parameters = {
+      Parameters(Map(parameters: _*))
+    }
+
+    implicit def product[
+      A,
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
+    ](t: A
+    )(implicit genericA: LabelledGeneric.Aux[A, Repr],
+      keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, ParameterValue]
+    ): Parameters = {
+      val asGeneric = genericA.to(t)
+      record(asGeneric)
+    }
+
+    implicit def record[
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
+    ](t: Repr
+    )(implicit keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, ParameterValue]
+    ): Parameters = {
+      val mapped = t.mapValues(ToParameterValue)
+      t.keys.toList.map(_.name) zip mapped.toList
+    }
+  }
+
+  object ToParameterValue extends Poly {
+    implicit def fromValue[A](implicit parameter: Parameter[A]) = {
+      use {
+        (value: A) =>
+          ParameterValue.of[A](value)
+      }
+    }
+
+    implicit def fromOptionalValue[A](implicit parameter: Parameter[A]) = {
+      use {
+        (value: Option[A]) =>
+          ParameterValue.ofOption[A](value)
+      }
+    }
+
+    implicit def fromSomeValue[A](implicit parameter: Parameter[A]) = {
+      use {
+        (value: Some[A]) =>
+          ParameterValue.of[A](value.get)
+      }
+    }
+
+    implicit def fromNone(implicit parameter: Parameter[None.type]) = {
+      use {
+        (value: None.type) =>
+          ParameterValue.ofNone(value)
+      }
+    }
+  }
+
 
 }

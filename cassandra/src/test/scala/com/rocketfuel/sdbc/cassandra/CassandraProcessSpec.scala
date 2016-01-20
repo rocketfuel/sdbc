@@ -12,18 +12,17 @@ class CassandraProcessSpec
   override implicit val generatorDrivenConfig: PropertyCheckConfig = PropertyCheckConfig(maxSize = 10)
 
   test("values are inserted and selected") {implicit connection =>
-    Execute("CREATE KEYSPACE spc WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}").execute()
-    Execute("CREATE TABLE spc.tbl (id int PRIMARY KEY, x int)").execute()
+    Query(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x int)").io.execute()
 
     forAll { (randoms: Seq[Int]) =>
 
       val insert: Process[Task, Unit] = {
-        val execute = Execute("INSERT INTO spc.tbl (id, x) VALUES (@id, @x)")
-        val randomsParameters = Process.emitAll(randoms.zipWithIndex).map[ParameterList](x => Seq("id" -> x._2, "x" -> x._1))
-        randomsParameters.to(Process.cassandra.params.execute(execute))
+        val execute = s"INSERT INTO $keyspace.tbl (id, x) VALUES (@id, @x)"
+        val randomStream = Process.emitAll(randoms.zipWithIndex).toSource
+        randomStream.map { case (x, id) =>  Parameters("id" -> id, "x" -> x)}.through(Query.stream.ofParameters(execute)).map(Function.const(()))
       }
 
-      val select = Process.cassandra.select(Select[Int]("SELECT x FROM spc.tbl"))
+      val select = Query[Int](s"SELECT x FROM $keyspace.tbl").stream()
 
       val combined = for {
         _ <- insert
@@ -34,7 +33,7 @@ class CassandraProcessSpec
 
       assertResult(randoms.sorted)(results.sorted)
 
-      RichResultSetSpec.truncate()
+      truncate()
     }
   }
 

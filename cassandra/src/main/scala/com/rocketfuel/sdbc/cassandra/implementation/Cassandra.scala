@@ -7,12 +7,9 @@ private[sdbc] abstract class Cassandra
   with TupleParameterValues
   with TupleDataType
   with SessionMethods
-  with Executable
-  with Selectable
   with StringContextMethods
-  with Select
-  with Execute
-  with CassandraProcess
+  with Query
+  with Queryable
   with Row
   with RowConverter
   with CompositeGetter

@@ -2,6 +2,7 @@ package com.rocketfuel.sdbc.cassandra.implementation
 
 import com.rocketfuel.sdbc.base.CompiledStatement
 import com.rocketfuel.sdbc.cassandra.QueryOptions
+import scalaz.concurrent.Task
 import shapeless.{ProductArgs, HList}
 import shapeless.ops.hlist._
 
@@ -18,7 +19,7 @@ private[sdbc] trait StringContextMethods {
     ](a: A
     )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
       toList: ToList[MappedA, ParameterValue]
-    ): ParameterList = {
+    ): Parameters = {
       a.
         map(ToParameterValue).
         toList.
@@ -29,31 +30,19 @@ private[sdbc] trait StringContextMethods {
         } toSeq
     }
 
-    object execute extends ProductArgs {
+    object query extends ProductArgs {
       def applyProduct[
         A <: HList,
-        MappedA <: HList
+        MappedA <: HList,
+        B
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
-        toList: ToList[MappedA, ParameterValue]
-      ): Execute = {
+        toList: ToList[MappedA, ParameterValue],
+        rowConverter: RowConverter[B]
+      ): Query[B] = {
         val parameterValues = toParameterValues(a)
 
-        Execute(compiled, Map.empty[String, ParameterValue], QueryOptions.default).on(parameterValues: _*)
-      }
-    }
-
-    object select extends ProductArgs {
-      def applyProduct[
-        A <: HList,
-        MappedA <: HList
-      ](a: A
-      )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
-        toList: ToList[MappedA, ParameterValue]
-      ): Select[Row] = {
-        val parameterValues = toParameterValues(a)
-
-        Select[Row](compiled, Map.empty[String, ParameterValue], QueryOptions.default).on(parameterValues: _*)
+        Query(compiled, QueryOptions.default, Map.empty[String, ParameterValue]).assign(parameterValues)
       }
     }
 

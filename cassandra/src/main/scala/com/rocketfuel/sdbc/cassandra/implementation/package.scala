@@ -2,6 +2,8 @@ package com.rocketfuel.sdbc.cassandra
 
 import com.google.common.util.concurrent.{Futures, FutureCallback, ListenableFuture}
 import scala.concurrent.{Promise, Future, ExecutionContext}
+import scalaz.{\/-, -\/}
+import scalaz.concurrent.Task
 
 package object implementation {
 
@@ -23,4 +25,17 @@ package object implementation {
 
     p.future
   }
+
+  private[sdbc] def toTask[T](f: ListenableFuture[T]): Task[T] = {
+    Task.async { register =>
+      val callback = new FutureCallback[T] {
+        override def onFailure(t: Throwable): Unit = register(-\/(t))
+
+        override def onSuccess(result: T): Unit = register(\/-(result))
+      }
+
+      Futures.addCallback(f, callback)
+    }
+  }
+
 }

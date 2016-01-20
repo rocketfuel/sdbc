@@ -247,11 +247,12 @@ trait JdbcProcess {
         * indicating the number of updated rows per query in the batch.
         *
         * A connection is taken from the pool for each execution.
+ *
         * @param batch
         * @return
         */
-      def batch(batch: Batch)(implicit pool: Pool): Channel[Task, Traversable[ParameterList], Seq[Long]] = {
-        withConnection[Traversable[ParameterList], Seq[Long]] { batches => implicit connection =>
+      def batch(batch: Batch)(implicit pool: Pool): Channel[Task, Traversable[Parameters], Seq[Long]] = {
+        withConnection[Traversable[Parameters], Seq[Long]] { batches => implicit connection =>
           Task.delay(batches.foldLeft(batch) { case (b, params) => b.addBatch(params: _*) }.seq())
         }
       }
@@ -261,11 +262,12 @@ trait JdbcProcess {
         * query, execute it, and ignore the results.
         *
         * A connection is taken from the pool for each execution.
+ *
         * @param execute
         * @return
         */
-      def execute(execute: Execute)(implicit pool: Pool): Sink[Task, ParameterList] = {
-        withConnection[ParameterList, Unit] { params => implicit connection =>
+      def execute(execute: Execute)(implicit pool: Pool): Sink[Task, Parameters] = {
+        withConnection[Parameters, Unit] { params => implicit connection =>
           Task.delay(execute.on(params: _*).execute())
         }
       }
@@ -278,6 +280,7 @@ trait JdbcProcess {
         * .flatMap(identity) to concatenate them.
         *
         * A connection is taken from the pool for each execution.
+ *
         * @param select
         * @param pool
         * @tparam T
@@ -286,8 +289,8 @@ trait JdbcProcess {
       def select[T](
         select: Select[T]
       )(implicit pool: Pool
-      ): Channel[Task, ParameterList, Process[Task, T]] = {
-        channel.lift[Task, ParameterList, Process[Task, T]] { params =>
+      ): Channel[Task, Parameters, Process[Task, T]] = {
+        channel.lift[Task, Parameters, Process[Task, T]] { params =>
           Task.delay {
             Process.await(getConnection(pool)) { implicit connection =>
               io.iterator(Task.delay(select.on(params: _*).iterator())).onComplete(Process.eval_(closeConnection(connection)))
@@ -302,11 +305,12 @@ trait JdbcProcess {
         * updated.
         *
         * A connection is taken from the pool for each execution.
+ *
         * @param update
         * @return
         */
-      def update(update: Update)(implicit pool: Pool): Channel[Task, ParameterList, Long] = {
-        withConnection[ParameterList, Long] { params => implicit connection =>
+      def update(update: Update)(implicit pool: Pool): Channel[Task, Parameters, Long] = {
+        withConnection[Parameters, Long] { params => implicit connection =>
           Task.delay(update.on(params: _*).update())
         }
       }

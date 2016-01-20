@@ -1,6 +1,5 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
-import com.datastax.driver.core
 import scala.annotation.implicitNotFound
 
 trait RowConverter {

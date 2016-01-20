@@ -17,7 +17,7 @@ trait StringContextMethods {
     ](a: A
     )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
       toList: ToList[MappedA, ParameterValue]
-    ): ParameterList = {
+    ): Parameters = {
       a.
         map(ToParameterValue).
         toList.

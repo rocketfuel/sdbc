@@ -2,7 +2,6 @@ package com.rocketfuel.sdbc.cassandra.implementation
 
 import com.datastax.driver.core
 import com.datastax.driver.core.BoundStatement
-import com.rocketfuel.sdbc.cassandra._
 import java.lang
 import java.math.BigInteger
 import java.net.InetAddress
@@ -29,40 +28,6 @@ private[sdbc] trait ParameterValue
   override protected def setNone(preparedStatement: BoundStatement, parameterIndex: Int): BoundStatement = {
     preparedStatement.setToNull(parameterIndex)
     preparedStatement
-  }
-
-  def prepare(
-    query: ParameterizedQuery[_],
-    queryOptions: QueryOptions
-  )(implicit connection: Connection
-  ): core.BoundStatement = {
-    val prepared = connection.prepare(query.queryText)
-
-    bind(
-      query,
-      queryOptions,
-      prepared
-    )
-  }
-
-  private[sdbc] def bind(
-    query: ParameterizedQuery[_],
-    queryOptions: QueryOptions,
-    statement: core.PreparedStatement
-  ): core.BoundStatement = {
-    val forBinding = statement.bind()
-
-    for ((key, parameterValue) <- query.parameterValues) {
-      val parameterIndices = query.parameterPositions(key)
-
-      for (parameterIndex <- parameterIndices) {
-        parameterValue.set(forBinding, parameterIndex)
-      }
-    }
-
-    queryOptions.set(forBinding)
-
-    forBinding
   }
 
   implicit val BooleanParameter: Parameter[Boolean] = {

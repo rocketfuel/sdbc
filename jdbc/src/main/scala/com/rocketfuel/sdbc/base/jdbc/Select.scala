@@ -15,7 +15,7 @@ trait Select {
   ) extends base.Select[Connection, T]
   with ParameterizedQuery[Select[T]]
   with Logging {
-
+x = this.on
     private def executeQuery()(implicit connection: Connection): ResultSet = {
       logger.debug(s"""Selecting "$originalQueryText" with parameters $parameterValues.""")
       val prepared = prepare(
