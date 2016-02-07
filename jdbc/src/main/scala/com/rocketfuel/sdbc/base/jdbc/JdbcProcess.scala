@@ -15,19 +15,12 @@ trait JdbcProcess {
 
     private def closeConnection(connection: Connection): Task[Unit] = Task.delay(connection.close())
 
-    private def withConnection[Key, T](task: Key => Connection => Task[T])(implicit pool: Pool): Channel[Task, Key, T] = {
-      channel.lift[Task, Key, T] { params =>
-        for {
-          connection <- getConnection(pool)
-          result <- task(params)(connection).onFinish(_ => closeConnection(connection))
-        } yield result
-      }
-    }
 
     /**
       * Create a Process with a single Unit value.
       *
       * The connection is not closed when the Process completes.
+ *
       * @param execute
       * @param connection
       * @return
@@ -44,6 +37,7 @@ trait JdbcProcess {
       * updated rows per query in the batch.
       *
       * The connection is not closed when the Process completes.
+ *
       * @param batch
       * @param connection
       * @return
@@ -59,14 +53,16 @@ trait JdbcProcess {
       * Create a Process of the query results.
       *
       * The connection is not closed when the Process completes.
+ *
       * @param select
       * @param connection
       * @tparam T
       * @return
       */
     def select[T](
-      select: Select[T]
-    )(implicit connection: Connection
+      select: Query[T]
+    )(
+      implicit connection: Connection
     ): Process[Task, T] = {
       io.iteratorR(Task.delay(select.iterator()))(i => Task.delay(i.close()))(Task.now)
     }
@@ -75,6 +71,7 @@ trait JdbcProcess {
       * Create a Process with one element indicating the number of updated rows.
       *
       * The connection is not closed when the Process completes.
+ *
       * @param update
       * @param connection
       * @return
@@ -130,7 +127,8 @@ trait JdbcProcess {
         Repr <: HList,
         MappedRepr <: HList,
         ReprKeys <: HList
-      ](select: Select[Value]
+      ](
+        select: Query[Value]
       )(implicit pool: Pool,
         genericA: LabelledGeneric.Aux[A, Repr],
         keys: Keys.Aux[Repr, ReprKeys],
@@ -206,7 +204,8 @@ trait JdbcProcess {
         Repr <: HList,
         MappedRepr <: HList,
         ReprKeys <: HList
-      ](select: Select[Value]
+      ](
+        select: Query[Value]
       )(implicit pool: Pool,
         keys: Keys.Aux[Repr, ReprKeys],
         valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
@@ -287,7 +286,7 @@ trait JdbcProcess {
         * @return
         */
       def select[T](
-        select: Select[T]
+        select: Query[T]
       )(implicit pool: Pool
       ): Channel[Task, Parameters, Process[Task, T]] = {
         channel.lift[Task, Parameters, Process[Task, T]] { params =>
@@ -323,6 +322,7 @@ trait JdbcProcess {
         * indicates the number of rows updated by each query in the batch.
         *
         * A connection is taken from the pool for each execution.
+ *
         * @param pool
         * @param batchable
         * @tparam Key
@@ -342,6 +342,7 @@ trait JdbcProcess {
         * which each indicates that a query was executed.
         *
         * A connection is taken from the pool for each execution.
+ *
         * @param pool
         * @param executable
         * @tparam Key
@@ -364,6 +365,7 @@ trait JdbcProcess {
         * to concatenate them.
         *
         * A connection is taken from the pool for each execution.
+ *
         * @param pool
         * @param selectable
         * @tparam Key
@@ -388,6 +390,7 @@ trait JdbcProcess {
         * how many rows were updated for each execution.
         *
         * A connection is taken from the pool for each execution.
+ *
         * @param pool
         * @param updatable
         * @tparam Key

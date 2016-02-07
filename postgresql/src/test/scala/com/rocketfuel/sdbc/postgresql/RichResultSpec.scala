@@ -11,7 +11,7 @@ class RichResultSpec
   test("option() selects nothing from an empty table") {implicit connection =>
     Execute("CREATE TABLE tbl (x int)").execute()
 
-    val result = Select[Int]("SELECT * FROM tbl").option()
+    val result = Query[Int]("SELECT * FROM tbl").option()
 
     assert(result.isEmpty, "Selecting from an empty table yielded a row.")
   }
@@ -20,19 +20,19 @@ class RichResultSpec
     Execute("CREATE TABLE tbl (x serial)").execute()
     Execute("INSERT INTO tbl DEFAULT VALUES").execute()
 
-    val result = Select[Int]("SELECT * FROM tbl").option()
+    val result = Query[Int]("SELECT * FROM tbl").option()
 
     assert(result.isDefined, "Selecting from a table with a row did not yeild a row.")
   }
 
   test("seq() works on an empty result") {implicit connection =>
     Execute("CREATE TABLE tbl (x serial)").execute()
-    val results = Select[Int]("SELECT * FROM tbl").iterator().toSeq
+    val results = Query[Int]("SELECT * FROM tbl").iterator().toSeq
     assert(results.isEmpty)
   }
 
   test("seq() works on a single result") {implicit connection =>
-    val results = Select[Int]("SELECT 1::integer").iterator().toSeq
+    val results = Query[Int]("SELECT 1::integer").iterator().toSeq
     assert(results == Seq(1))
   }
 
@@ -49,7 +49,7 @@ class RichResultSpec
 
     assert(insertions.sum[Long] == randoms.size)
 
-    val results = Select[Int]("SELECT x FROM tbl").iterator().toSeq
+    val results = Query[Int]("SELECT x FROM tbl").iterator().toSeq
     assert(results == randoms)
   }
 

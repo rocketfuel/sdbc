@@ -1,4 +1,4 @@
-package com.rocketfuel.sdbc.base.jdbc
+package com.rocketfuel.sdbc.base.jdbc.statement
 
 trait DefaultParameters
   extends BooleanParameter

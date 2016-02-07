@@ -1,51 +1,32 @@
-package com.rocketfuel.sdbc.base.jdbc
+package com.rocketfuel.sdbc.base.jdbc.resultset
 
 import com.rocketfuel.sdbc.base
-import java.io.{Reader, InputStream}
+import com.rocketfuel.sdbc.base.jdbc.DBMS
 import java.math.BigDecimal
 import java.net.URL
 import java.sql.{Array => JdbcArray, _}
-import com.rocketfuel.sdbc.base.CIMap
 
 trait Row extends base.Index {
   self: DBMS =>
 
-  override protected def getColumnCount(row: Row): Int =
-    row.getMetaData.getColumnCount
+  abstract class Row private[jdbc]() extends RowIndexOps {
 
-  override protected def getColumnIndex(row: Row, columnName: String): Int =
-    row.columnIndexes(columnName)
+    override def columnCount: Int = getMetaData.getColumnCount
 
-  override protected def containsColumn(row: Row, columnName: String): Boolean =
-    row.columnIndexes.contains(columnName)
+    def toSeq: IndexedSeq[Option[Any]]
 
-  abstract class Row {
-
-    def columnTypes: IndexedSeq[String]
-
-    def columnNames: IndexedSeq[String]
-
-    lazy val columnIndexes = CIMap(columnNames.zipWithIndex: _*)
-
-    def asStringMap: Map[String, Option[Any]] = {
-      asIntMap.zipWithIndex.map {
-        case (value, ix) =>
-          val columnName = columnNames(ix)
-          columnName -> value
-      }.toMap
-    }
-
-    def asIntMap: IndexedSeq[Option[Any]]
+    def toMap: Map[String, Option[Any]]
 
     /**
-      * The index of the row in the result set.
+      * The index of the row in the ResultSet.
+      *
       * @return
       */
     def getRow: Int
 
     def getMetaData: ResultSetMetaData
 
-    def apply[T](columnIndex: Index)(implicit getter: CompositeGetter[T]): T = {
+    def apply[T](columnIndex: Index)(implicit getter: CompositeGetter[this.type, T]): T = {
       getter(this, columnIndex)
     }
 
@@ -54,14 +35,6 @@ trait Row extends base.Index {
     def getTimestamp(columnIndex: Int): Timestamp
 
     def getTimestamp(columnLabel: String): Timestamp
-
-    def getBinaryStream(columnIndex: Int): InputStream
-
-    def getBinaryStream(columnLabel: String): InputStream
-
-    def getCharacterStream(columnIndex: Int): Reader
-
-    def getCharacterStream(columnLabel: String): Reader
 
     def getDouble(columnIndex: Int): Double
 
@@ -115,10 +88,6 @@ trait Row extends base.Index {
 
     def getInt(columnLabel: String): Int
 
-    def getBlob(columnIndex: Int): Blob
-
-    def getBlob(columnLabel: String): Blob
-
     def getBytes(columnIndex: Int): Array[Byte]
 
     def getBytes(columnLabel: String): Array[Byte]
@@ -131,9 +100,37 @@ trait Row extends base.Index {
 
     def getObject(columnLabel: String): AnyRef
 
-    def getClob(columnIndex: Int): Clob
+  }
 
-    def getClob(columnLabel: String): Clob
+  object Row {
+    private[sdbc] def toSeq(
+      row: ResultSet
+    ): IndexedSeq[Option[Any]] = {
+      IndexedSeq.tabulate(row.getMetaData.getColumnCount) { ix =>
+        Option(row.getObject(ix + 1)).map(base.unbox)
+      }
+    }
+
+    private[sdbc] def toMap(
+      toSeq: IndexedSeq[Option[Any]],
+      getMetaData: ResultSetMetaData
+    ): Map[String, Option[Any]] = {
+      toSeq.zipWithIndex.map {
+        case (value, ix) =>
+          val columnName = getMetaData.getColumnName(ix)
+          columnName -> value
+      }.toMap
+    }
+
+    private[sdbc] def columnNames(resultSetMetaData: ResultSetMetaData): IndexedSeq[String] = {
+      IndexedSeq.tabulate(resultSetMetaData.getColumnCount) { ix =>
+        resultSetMetaData.getColumnName(ix + 1)
+      }
+    }
+
+    private[sdbc] def columnIndexes(columnNames: IndexedSeq[String]): Map[String, Int] = {
+      columnNames.zipWithIndex.toMap
+    }
   }
 
 }

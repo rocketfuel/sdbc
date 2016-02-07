@@ -21,10 +21,6 @@ private[sdbc] trait ParameterValue
 
   type Connection = core.Session
 
-  override def prepareStatement(statement: String)(implicit connection: core.Session): BoundStatement = {
-    connection.prepare(statement).bind()
-  }
-
   override protected def setNone(preparedStatement: BoundStatement, parameterIndex: Int): BoundStatement = {
     preparedStatement.setToNull(parameterIndex)
     preparedStatement

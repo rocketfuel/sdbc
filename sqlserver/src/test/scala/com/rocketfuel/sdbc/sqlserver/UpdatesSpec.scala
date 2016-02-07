@@ -29,7 +29,7 @@ class UpdatesSpec extends SqlServerSuite {
         row.updateRow()
       }
 
-      val maybeValue = Select[T]("SELECT v FROM tbl").option()
+      val maybeValue = Query[T]("SELECT v FROM tbl").option()
 
       assert(maybeValue.nonEmpty)
 
@@ -97,7 +97,7 @@ class UpdatesSpec extends SqlServerSuite {
       row.updateRow()
     }
 
-    val maybeValue = Select[Timestamp]("SELECT v FROM tbl").option()
+    val maybeValue = Query[Timestamp]("SELECT v FROM tbl").option()
 
     assert(maybeValue.nonEmpty)
 
@@ -122,7 +122,7 @@ class UpdatesSpec extends SqlServerSuite {
       row.updateRow()
     }
 
-    val maybeValue = Select[Instant]("SELECT v FROM tbl").option()
+    val maybeValue = Query[Instant]("SELECT v FROM tbl").option()
 
     assert(maybeValue.nonEmpty)
 
@@ -142,7 +142,7 @@ class UpdatesSpec extends SqlServerSuite {
       row.updateRow()
     }
 
-    val maybeValue = Select[HierarchyId]("SELECT v.ToString() FROM tbl").option()
+    val maybeValue = Query[HierarchyId]("SELECT v.ToString() FROM tbl").option()
 
     assert(maybeValue.nonEmpty)
 
@@ -162,7 +162,7 @@ class UpdatesSpec extends SqlServerSuite {
       row.updateRow()
     }
 
-    val maybeRow = Select[Option[Int]]("SELECT v FROM tbl").iterator.toStream.headOption
+    val maybeRow = Query[Option[Int]]("SELECT v FROM tbl").iterator.toStream.headOption
 
     assert(maybeRow.nonEmpty, "There was a row")
 

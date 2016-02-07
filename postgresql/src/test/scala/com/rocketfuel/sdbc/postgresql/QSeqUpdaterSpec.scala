@@ -16,7 +16,7 @@ class QSeqUpdaterSpec
         row.updateRow()
     }
 
-    val selected = Select[Seq[Option[Int]]]("SELECT ints FROM tbl").iterator().toSeq
+    val selected = Query[Seq[Option[Int]]]("SELECT ints FROM tbl").iterator().toSeq
 
     assertResult(Seq(QSeqUpdaterSpec.updated))(selected)
 

@@ -1,72 +1,67 @@
-package com.rocketfuel.sdbc.cassandra.implementation
+package com.rocketfuel.sdbc.base.jdbc
 
-import com.datastax.driver.core
-import com.rocketfuel.sdbc.base.{CompiledStatement, Logging}
-import com.rocketfuel.sdbc.cassandra._
-import scala.concurrent.{ExecutionContext, Future}
+import java.io.Closeable
+import java.lang.Process
+import java.sql._
+import com.rocketfuel.sdbc.base
+import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
+import scala.concurrent.{Future, ExecutionContext}
 import scalaz.concurrent.Task
 import scalaz.stream._
 import shapeless.ops.hlist._
-import shapeless.ops.record.{Keys, MapValues}
-import shapeless.{HList, LabelledGeneric}
+import shapeless.ops.record.{MapValues, Keys}
+import shapeless.{LabelledGeneric, HList}
 
 trait Query {
-  self: Cassandra =>
+  self: DBMS =>
 
-  case class Query[T] private [cassandra] (
+  abstract class Query[R <: Row, T] private[jdbc](
     override val statement: CompiledStatement,
-    override val queryOptions: QueryOptions,
     override val parameterValues: Map[String, ParameterValue]
-  )(implicit val converter: RowConverter[T]
-  ) extends ParameterizedQuery[Query[T]]
-    with HasQueryOptions
-    with Logging {
-    query =>
+  )(implicit val converter: RowConverter[R, T]
+  ) extends ParameterizedQuery[Query[R, T]]
+  with Logging {
 
-    override def prepareStatement()(implicit connection: Connection): PreparedStatement = {
-      connection.prepare(queryText).bind()
-    }
-
-    override protected def subclassConstructor(parameterValues: Map[String, ParameterValue]): Query[T] = {
-      copy(parameterValues = parameterValues)
+    private def prepareStatement()(implicit connection: Connection): PreparedStatement = {
+      connection.prepareStatement(statement.queryText)
     }
 
     private def bind(
-      preparedStatement: core.PreparedStatement,
+      preparedStatement: PreparedStatement,
       parameterValues: Map[String, ParameterValue]
-    ): core.BoundStatement = {
-      val forBinding = preparedStatement.bind()
-
+    ): PreparedStatement = {
       for ((parameterName, parameterIndices) <- statement.parameterPositions) {
         val parameterValue = parameterValues(parameterName)
         for (parameterIndex <- parameterIndices) {
-          parameterValue.set(forBinding, parameterIndex)
+          parameterValue.set(preparedStatement, parameterIndex)
         }
       }
 
-      queryOptions.set(forBinding)
-
-      forBinding
+      preparedStatement
     }
 
-    private def convertRow(row: core.Row): T = {
-      converter(Row(row))
+    private def executeStatement(
+      extraParameters: Parameters
+    )(implicit connection: Connection): PreparedStatement = {
+      val withExtraParameters = setParameters(extraParameters)
+
+      logExecution(withExtraParameters)
+
+      val prepared = prepareStatement()
+      val bound = bind(prepared, withExtraParameters)
+
+      bound.execute()
+      bound
     }
 
     object io {
 
-      private def prepare(parameters: Map[String, ParameterValue])(implicit session: Session): core.BoundStatement = {
-        val prepared = session.prepare(query.queryText)
-
-        bind(prepared, parameters)
+      def execute(parameters: (String, ParameterValue)*)(implicit connection: Connection): Statement = {
+        executeStatement(parameters: Parameters)
       }
 
-      def execute(parameters: (String, ParameterValue)*)(implicit session: Session): core.ResultSet = {
-        execute(parameters: Parameters)
-      }
-
-      def execute(parameters: Map[String, ParameterValue])(implicit session: Session): core.ResultSet = {
-        execute(parameters: Parameters)
+      def execute(parameters: Map[String, ParameterValue])(implicit connection: Connection): Statement = {
+        executeStatement(parameters: Parameters)
       }
 
       def execute[
@@ -75,14 +70,14 @@ trait Query {
         ReprKeys <: HList,
         MappedRepr <: HList
       ](parameters: A
-      )(implicit session: Session,
+      )(implicit connection: Connection,
         genericA: LabelledGeneric.Aux[A, Repr],
         keys: Keys.Aux[Repr, ReprKeys],
         valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
         ktl: ToList[ReprKeys, Symbol],
         vtl: ToList[MappedRepr, ParameterValue]
-      ): core.ResultSet = {
-        execute(parameters: Parameters)
+      ): Statement = {
+        executeStatement(parameters: Parameters)
       }
 
       def execute[
@@ -90,28 +85,20 @@ trait Query {
         ReprKeys <: HList,
         MappedRepr <: HList
       ](parameters: Repr
-      )(implicit session: Session,
+      )(implicit connection: Connection,
         keys: Keys.Aux[Repr, ReprKeys],
         valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
         ktl: ToList[ReprKeys, Symbol],
         vtl: ToList[MappedRepr, ParameterValue]
-      ): core.ResultSet = {
-        execute(parameters: Parameters)
+      ): Statement = {
+        executeStatement(parameters: Parameters).getMoreResults
       }
 
-      private[implementation] def execute(additionalParameters: Parameters)(implicit session: Session): core.ResultSet = {
-        val parameters = setParameters(additionalParameters)
-        logExecution(parameters)
-
-        val prepared = prepare(parameters)
-        session.execute(prepared)
+      def iterator(parameters: (String, ParameterValue)*)(implicit connection: Connection): Iterator[T] = {
+        executeStatement()
       }
 
-      def iterator(parameters: (String, ParameterValue)*)(implicit session: Session): Iterator[T] = {
-        iterator(parameters: Parameters)
-      }
-
-      def iterator(parameters: Map[String, ParameterValue])(implicit session: Session): Iterator[T] = {
+      def iterator(parameters: Map[String, ParameterValue])(implicit connection: Connection): Iterator[T] = {
         iterator(parameters: Parameters)
       }
 
@@ -144,7 +131,7 @@ trait Query {
       ): Iterator[T] = {
         iterator(parameters: Parameters)
       }
-      
+
       private[implementation] def iterator(additionalParameters: Parameters)(implicit session: Session): Iterator[T] = {
         val results = execute(additionalParameters)
         Row.iterator(results).map(converter)
@@ -214,10 +201,10 @@ trait Query {
       }
 
       def execute[
-        A,
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
+      A,
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
       ](parameters: A
       )(implicit session: Session,
         ec: ExecutionContext,
@@ -231,9 +218,9 @@ trait Query {
       }
 
       def execute[
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
       ](parameters: Repr
       )(implicit session: Session,
         ec: ExecutionContext,
@@ -244,7 +231,7 @@ trait Query {
       ): Future[core.ResultSet] = {
         execute(parameters: Parameters)
       }
-      
+
       private[implementation] def execute(additionalParameters: Parameters)(implicit session: Session, ec: ExecutionContext): Future[core.ResultSet] = {
         val parameters = setParameters(additionalParameters)
         logExecution(parameters)
@@ -264,10 +251,10 @@ trait Query {
       }
 
       def iterator[
-        A,
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
+      A,
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
       ](parameters: A
       )(implicit session: Session,
         ec: ExecutionContext,
@@ -281,9 +268,9 @@ trait Query {
       }
 
       def iterator[
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
       ](parameters: Repr
       )(implicit session: Session,
         ec: ExecutionContext,
@@ -294,7 +281,7 @@ trait Query {
       ): Future[Iterator[T]] = {
         iterator(parameters: Parameters)
       }
-  
+
       private[implementation] def iterator(parameterValues: Parameters)(implicit session: Session, ec: ExecutionContext): Future[Iterator[T]] = {
         for {
           result <- execute(parameterValues)
@@ -312,10 +299,10 @@ trait Query {
       }
 
       def option[
-        A,
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
+      A,
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
       ](parameters: A
       )(implicit session: Session,
         ec: ExecutionContext,
@@ -329,9 +316,9 @@ trait Query {
       }
 
       def option[
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
       ](parameters: Repr
       )(implicit session: Session,
         ec: ExecutionContext,
@@ -372,10 +359,10 @@ trait Query {
       }
 
       def execute[
-        A,
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
+      A,
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
       ](parameters: A
       )(implicit session: Session,
         genericA: LabelledGeneric.Aux[A, Repr],
@@ -388,9 +375,9 @@ trait Query {
       }
 
       def execute[
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
       ](parameters: Repr
       )(implicit session: Session,
         keys: Keys.Aux[Repr, ReprKeys],
@@ -400,7 +387,7 @@ trait Query {
       ): Task[core.ResultSet] = {
         execute(parameters: Parameters)
       }
-      
+
       private[implementation] def execute(additionalParameters: Parameters)(implicit session: Session): Task[core.ResultSet] = {
         val parameters = setParameters(additionalParameters)
         logExecution(parameters)
@@ -410,7 +397,7 @@ trait Query {
           result <- toTask(session.executeAsync(prepared))
         } yield result
       }
-      
+
       def iterator(parameters: (String, ParameterValue)*)(implicit session: Session): Task[Iterator[T]] = {
         iterator(parameters: Parameters)
       }
@@ -420,10 +407,10 @@ trait Query {
       }
 
       def iterator[
-        A,
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
+      A,
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
       ](parameters: A
       )(implicit session: Session,
         genericA: LabelledGeneric.Aux[A, Repr],
@@ -436,9 +423,9 @@ trait Query {
       }
 
       def iterator[
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
       ](parameters: Repr
       )(implicit session: Session,
         keys: Keys.Aux[Repr, ReprKeys],
@@ -466,10 +453,10 @@ trait Query {
       }
 
       def option[
-        A,
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
+      A,
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
       ](parameters: A
       )(implicit session: Session,
         genericA: LabelledGeneric.Aux[A, Repr],
@@ -482,9 +469,9 @@ trait Query {
       }
 
       def option[
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
       ](parameters: Repr
       )(implicit session: Session,
         keys: Keys.Aux[Repr, ReprKeys],
@@ -514,10 +501,10 @@ trait Query {
     }
 
     def stream[
-      A,
-      Repr <: HList,
-      ReprKeys <: HList,
-      MappedRepr <: HList
+    A,
+    Repr <: HList,
+    ReprKeys <: HList,
+    MappedRepr <: HList
     ](parameters: A
     )(implicit session: Session,
       genericA: LabelledGeneric.Aux[A, Repr],
@@ -530,9 +517,9 @@ trait Query {
     }
 
     def stream[
-      Repr <: HList,
-      ReprKeys <: HList,
-      MappedRepr <: HList
+    Repr <: HList,
+    ReprKeys <: HList,
+    MappedRepr <: HList
     ](parameters: Repr
     )(implicit session: Session,
       keys: Keys.Aux[Repr, ReprKeys],
@@ -562,15 +549,13 @@ trait Query {
 
   object Query {
 
-    def apply[T](
+    def updatable[T](
       queryText: String,
-      hasParameters: Boolean = true,
-      queryOptions: QueryOptions = QueryOptions.default
-    )(implicit converter: RowConverter[T]
-    ): Query[T] = {
+      hasParameters: Boolean = true
+    )(implicit converter: RowConverter[UpdatableRow, T]
+    ): Query[UpdatableRow, T] = {
       Query[T](
         CompiledStatement(queryText, hasParameters),
-        queryOptions,
         Map.empty[String, ParameterValue]
       )
     }

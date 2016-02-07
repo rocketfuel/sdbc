@@ -9,7 +9,7 @@ class RichResultSetSpec
   with BeforeAndAfterEach {
 
   test("seq() works on a single result") {implicit connection =>
-    val results = Select[Int]("SELECT CAST(1 AS int)").iterator().toSeq
+    val results = Query[Int]("SELECT CAST(1 AS int)").iterator().toSeq
     assert(results == Seq(1))
   }
 
@@ -26,7 +26,7 @@ class RichResultSetSpec
 
     assert(insertions.sum == randoms.size)
 
-    val results = Select[Int]("SELECT x FROM tbl").iterator().toSeq
+    val results = Query[Int]("SELECT x FROM tbl").iterator().toSeq
     assert(results == randoms)
   }
 

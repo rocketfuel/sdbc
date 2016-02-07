@@ -1,6 +1,7 @@
 package com.rocketfuel.sdbc.postgresql.implementation
 
 import com.rocketfuel.sdbc.base.jdbc
+import com.rocketfuel.sdbc.base.jdbc.statement.SeqParameter
 import java.nio.ByteBuffer
 import java.time._
 import java.util.UUID
@@ -8,7 +9,7 @@ import org.json4s._
 import scodec.bits.ByteVector
 
 private[sdbc] trait ArrayTypes {
-  self: jdbc.DBMS with jdbc.SeqParameter =>
+  self: jdbc.DBMS with SeqParameter =>
 
   implicit val smallintTypeName = ArrayTypeName[Short]("int2")
 

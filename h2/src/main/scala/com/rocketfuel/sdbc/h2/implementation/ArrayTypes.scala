@@ -1,5 +1,6 @@
 package com.rocketfuel.sdbc.h2.implementation
 
+import com.rocketfuel.sdbc.base.jdbc.statement.SeqParameter
 import java.nio.ByteBuffer
 import java.sql.Types
 import java.time.{Instant, LocalDate, LocalTime}
@@ -11,7 +12,7 @@ import org.h2.value.DataType
 import scodec.bits.ByteVector
 
 trait ArrayTypes {
-  self: jdbc.DBMS with jdbc.SeqParameter =>
+  self: jdbc.DBMS with SeqParameter =>
 
   private def nameOfJdbcType(jdbcType: Int): String = {
     DataType.getDataType(DataType.convertSQLTypeToValueType(jdbcType)).name

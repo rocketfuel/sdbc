@@ -11,8 +11,6 @@ trait ParameterValue {
 
   type Connection
 
-  def prepareStatement(statement: String)(implicit connection: Connection): PreparedStatement
-
   protected def setNone(
     preparedStatement: PreparedStatement,
     parameterIndex: Int

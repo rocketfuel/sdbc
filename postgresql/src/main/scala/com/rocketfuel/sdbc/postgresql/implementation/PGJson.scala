@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.postgresql.implementation
 
-import com.rocketfuel.sdbc.base.jdbc.ParameterValue
+import com.rocketfuel.sdbc.base.jdbc.statement.ParameterValue
 import java.sql.PreparedStatement
 import org.json4s.jackson.JsonMethods
 import org.json4s.JValue

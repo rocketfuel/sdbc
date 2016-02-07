@@ -2,15 +2,17 @@ package com.rocketfuel.sdbc.base
 
 trait Index {
 
-  type Row
+  trait RowIndexOps {
 
-  protected def getColumnCount(row: Row): Int
+    def columnIndexes: Map[String, Int]
 
-  protected def containsColumn(row: Row, columnName: String): Boolean
+    def columnNames: IndexedSeq[String]
 
-  protected def getColumnIndex(row: Row, columnName: String): Int
+    def columnCount: Int
 
-  trait Index extends PartialFunction[Row, Int] {
+  }
+
+  trait Index extends PartialFunction[RowIndexOps, Int] {
 
     def +(toAdd: Int): Index = {
       this match {
@@ -35,32 +37,32 @@ trait Index {
   }
 
   case class IntIndex(columnIndex: Int) extends Index {
-    override def isDefinedAt(row: Row): Boolean = {
-      columnIndex < getColumnCount(row)
+    override def isDefinedAt(row: RowIndexOps): Boolean = {
+      columnIndex < row.columnCount
     }
 
-    override def apply(row: Row): Int = columnIndex
+    override def apply(row: RowIndexOps): Int = columnIndex
   }
 
   case class StringIndex(columnLabel: String) extends Index {
-    override def isDefinedAt(row: Row): Boolean = {
-      containsColumn(row, columnLabel)
+    override def isDefinedAt(row: RowIndexOps): Boolean = {
+      row.columnNames.contains(columnLabel)
     }
 
-    override def apply(row: Row): Int = {
-      getColumnIndex(row, columnLabel)
+    override def apply(row: RowIndexOps): Int = {
+      row.columnIndexes(columnLabel)
     }
   }
 
   case class AdditiveIndex(ix: Index, toAdd: Int) extends Index {
-    override def isDefinedAt(row: Row): Boolean = {
+    override def isDefinedAt(row: RowIndexOps): Boolean = {
       ix.isDefinedAt(row) && {
         val baseIx = ix(row)
-        baseIx + toAdd < getColumnCount(row)
+        baseIx + toAdd < row.columnCount
       }
     }
 
-    override def apply(row: Row): Int = {
+    override def apply(row: RowIndexOps): Int = {
       ix(row) + toAdd
     }
   }

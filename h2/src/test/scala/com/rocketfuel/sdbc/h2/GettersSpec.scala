@@ -17,7 +17,7 @@ class GettersSpec
   )(implicit converter: RowConverter[Option[T]]
   ): Unit = {
     (if (ignore) this.ignore _ else test _)(query, Seq.empty) { implicit connection =>
-      val result = Select[Option[T]](query).option().flatten
+      val result = Query[Option[T]](query).option().flatten
       (expectedValue, result) match {
         case (Some(expectedArray: Array[_]), Some(resultArray: Array[_])) =>
           assert(expectedArray.sameElements(resultArray))

@@ -35,7 +35,7 @@ class UpdatersSpec
         row.updateRow()
       }
 
-      val maybeValue = Select[T](s"SELECT v FROM $tableName").option()
+      val maybeValue = Query[T](s"SELECT v FROM $tableName").option()
 
       assert(maybeValue.nonEmpty)
 
@@ -113,7 +113,7 @@ class UpdatersSpec
       row.updateRow()
     }
 
-    val maybeRow = Select[Option[Int]]("SELECT v FROM tbl").iterator.toStream.headOption
+    val maybeRow = Query[Option[Int]]("SELECT v FROM tbl").iterator.toStream.headOption
 
     assert(maybeRow.nonEmpty, "There was a row")
 

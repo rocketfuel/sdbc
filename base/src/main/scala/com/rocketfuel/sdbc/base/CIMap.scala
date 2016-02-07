@@ -7,9 +7,9 @@ import scala.collection.immutable.TreeMap
  */
 object CIMap {
 
-  def empty[B]: Map[String, B] = TreeMap.empty[String, B](CaseInsensitiveOrdering)
+  def empty[B]: TreeMap[String, B] = TreeMap.empty[String, B](CaseInsensitiveOrdering)
 
-  def apply[B](elems: (String, B)*): Map[String, B] = {
+  def apply[B](elems: (String, B)*): TreeMap[String, B] = {
     TreeMap(elems: _*)(CaseInsensitiveOrdering)
   }
 

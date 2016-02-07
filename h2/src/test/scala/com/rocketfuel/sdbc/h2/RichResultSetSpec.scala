@@ -9,7 +9,7 @@ class RichResultSetSpec
   with BeforeAndAfterEach {
 
   test("iterator() works on a single result") {implicit connection =>
-    val results = Select[Int]("SELECT 1").iterator().toSeq
+    val results = Query[Int]("SELECT 1").iterator().toSeq
     assertResult(Seq(1))(results)
   }
 
@@ -26,7 +26,7 @@ class RichResultSetSpec
 
     assertResult(randoms.size)(insertions.sum)
 
-    val results = Select[Int]("SELECT x FROM tbl ORDER BY id ASC").iterator().toSeq
+    val results = Query[Int]("SELECT x FROM tbl ORDER BY id ASC").iterator().toSeq
 
     assertResult(randoms)(results)
   }
@@ -67,7 +67,7 @@ class RichResultSetSpec
 
     batch.iterator()
 
-    val result = Select[Int]("SELECT x FROM tbl ORDER BY id ASC").iterator().toVector
+    val result = Query[Int]("SELECT x FROM tbl ORDER BY id ASC").iterator().toVector
 
     assertResult(randoms)(result)
   }

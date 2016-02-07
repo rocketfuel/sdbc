@@ -13,59 +13,103 @@ trait Queryable {
   }
 
   object Queryable {
-    object io {
-      def execute[Key](key: Key)(implicit queryable: Queryable[Key, _], session: Session): core.ResultSet = {
-        queryable.query(key).io.execute()
-      }
 
-      def iterator[Key, Value](key: Key)(implicit queryable: Queryable[Key, Value], session: Session): Iterator[Value] = {
+    object io {
+      def iterator[Key, Value](
+        key: Key
+      )(implicit queryable: Queryable[Key, Value],
+        session: Session
+      ): Iterator[Value] = {
         queryable.query(key).io.iterator()
       }
 
-      def option[Key, Value](key: Key)(implicit queryable: Queryable[Key, Value], session: Session): Option[Value] = {
+      def option[Key, Value](
+        key: Key
+      )(implicit queryable: Queryable[Key, Value],
+        session: Session
+      ): Option[Value] = {
         queryable.query(key).io.option()
       }
     }
 
     object future {
-      def execute[Key](key: Key)(implicit queryable: Queryable[Key, _], session: Session, executionContext: ExecutionContext): Future[core.ResultSet] = {
-        queryable.query(key).future.execute()
-      }
-
-      def iterator[Key, Value](key: Key)(implicit queryable: Queryable[Key, Value], session: Session, executionContext: ExecutionContext): Future[Iterator[Value]] = {
+      def iterator[Key, Value](
+        key: Key
+      )(implicit queryable: Queryable[Key, Value],
+        session: Session,
+        executionContext: ExecutionContext
+      ): Future[Iterator[Value]] = {
         queryable.query(key).future.iterator()
       }
 
-      def option[Key, Value](key: Key)(implicit queryable: Queryable[Key, Value], session: Session, executionContext: ExecutionContext): Future[Option[Value]] = {
+      def option[Key, Value](
+        key: Key
+      )(implicit queryable: Queryable[Key, Value],
+        session: Session,
+        executionContext: ExecutionContext
+      ): Future[Option[Value]] = {
         queryable.query(key).future.option()
       }
     }
 
     object task {
-      def execute[Key](key: Key)(implicit queryable: Queryable[Key, _], session: Session): Task[core.ResultSet] = {
-        queryable.query(key).task.execute()
-      }
-
-      def iterator[Key, Value](key: Key)(implicit queryable: Queryable[Key, Value], session: Session): Task[Iterator[Value]] = {
+      def iterator[Key, Value](
+        key: Key
+      )(implicit queryable: Queryable[Key, Value],
+        session: Session
+      ): Task[Iterator[Value]] = {
         queryable.query(key).task.iterator()
       }
 
-      def option[Key, Value](key: Key)(implicit queryable: Queryable[Key, Value], session: Session): Task[Option[Value]] = {
+      def option[Key, Value](
+        key: Key
+      )(implicit queryable: Queryable[Key, Value],
+        session: Session
+      ): Task[Option[Value]] = {
         queryable.query(key).task.option()
       }
     }
 
-    def stream[Key, Value](key: Key)(implicit queryable: Queryable[Key, Value], session: Session): Process[Task, Value] = {
+    def stream[Key, Value](
+      key: Key
+    )(implicit queryable: Queryable[Key, Value],
+      session: Session
+    ): Process[Task, Value] = {
       queryable.query(key).stream()
     }
 
-    def streams[Key, Value](cluster: core.Cluster)(implicit queryable: Queryable[Key, Value]): Channel[Task, Key, Process[Task, Value]] = {
+    def streams[Key, Value](
+      implicit cluster: core.Cluster,
+      queryable: Queryable[Key, Value]
+    ): Channel[Task, Key, Process[Task, Value]] = {
+      val req = toTask(cluster.connectAsync())
+      def release(session: Session): Task[Unit] = {
+        toTask(session.closeAsync()).map(Function.const(()))
+      }
       channel.lift[Task, Key, Process[Task, Value]] { key =>
         Task.delay {
-          Process.await(toTask(cluster.connectAsync())) {implicit session =>
-            stream[Key, Value](key).onComplete(Process.eval_(toTask(session.closeAsync())))
+          scalaz.stream.io.iteratorR[Session, Value](req)(release) {implicit session =>
+            queryable.query(key).task.iterator()
           }
         }
+      }
+    }
+
+    def streamsWithKeyspace[Key, Value](
+      implicit cluster: core.Cluster,
+      queryable: Queryable[Key, Value]
+    ): Channel[Task, (String, Key), Process[Task, Value]] = {
+      def release(session: Session): Task[Unit] = {
+        toTask(session.closeAsync()).map(Function.const(()))
+      }
+      channel.lift[Task, (String, Key), Process[Task, Value]] {
+        case (keyspace, key) =>
+          val req = toTask(cluster.connectAsync(keyspace))
+          Task.delay {
+            scalaz.stream.io.iteratorR[Session, Value](req)(release) {implicit session =>
+              queryable.query(key).task.iterator()
+            }
+          }
       }
     }
 

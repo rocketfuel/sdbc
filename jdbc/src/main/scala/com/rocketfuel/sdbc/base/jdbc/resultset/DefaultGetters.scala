@@ -1,4 +1,6 @@
-package com.rocketfuel.sdbc.base.jdbc
+package com.rocketfuel.sdbc.base.jdbc.resultset
+
+import com.rocketfuel.sdbc.base.jdbc._
 
 trait DefaultGetters
   extends Getter

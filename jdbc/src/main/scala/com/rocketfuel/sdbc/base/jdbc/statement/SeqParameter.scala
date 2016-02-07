@@ -1,6 +1,7 @@
-package com.rocketfuel.sdbc.base.jdbc
+package com.rocketfuel.sdbc.base.jdbc.statement
 
 import com.rocketfuel.sdbc.base.box
+import com.rocketfuel.sdbc.base.jdbc.DBMS
 import java.sql.{Array => JdbcArray, _}
 import scala.xml.{Elem, NodeSeq}
 

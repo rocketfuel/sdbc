@@ -1,14 +1,14 @@
-package com.rocketfuel.sdbc.base.jdbc
+package com.rocketfuel.sdbc.base.jdbc.statement
 
 import java.io.{InputStream, Reader}
 import java.lang
 import java.net.URL
 import java.nio.ByteBuffer
-import java.sql.{Date => JdbcDate, Array => _, _}
+import java.sql.{Array => _, Date => JdbcDate, _}
 import java.time._
 import java.time.format.DateTimeFormatter
 import java.util.UUID
-import scala.xml.{NodeSeq, Node}
+import scala.xml.{Node, NodeSeq}
 import scodec.bits.ByteVector
 
 trait LongParameter {

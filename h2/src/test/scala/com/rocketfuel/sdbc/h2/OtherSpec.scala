@@ -15,7 +15,7 @@ class OtherSpec
       "obj" -> Serialized(original)
     ).execute()
 
-    val result = Select[Serialized]("SELECT obj FROM tbl").option()
+    val result = Query[Serialized]("SELECT obj FROM tbl").option()
 
     assertResult(Some(original))(result.map(_.value))
 

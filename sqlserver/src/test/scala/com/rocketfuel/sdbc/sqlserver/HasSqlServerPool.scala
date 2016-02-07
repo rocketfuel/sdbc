@@ -46,7 +46,7 @@ trait HasSqlServerPool {
       connection.setAutoCommit(true)
 
       val databases =
-        Select[String]("SELECT name FROM sysdatabases WHERE name LIKE @catalogPrefix").
+        Query[String]("SELECT name FROM sysdatabases WHERE name LIKE @catalogPrefix").
         on("catalogPrefix" -> (sqlTestCatalogPrefix + "%")).
         iterator().
         toSeq

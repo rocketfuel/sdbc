@@ -1,5 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc
 
+import com.rocketfuel.sdbc.base.jdbc.resultset.UpdatableRow
+import com.rocketfuel.sdbc.base.jdbc.statement.ParameterValue
 import java.lang
 import java.nio.ByteBuffer
 import java.sql.{Time, Date, Timestamp}
@@ -12,8 +14,7 @@ import scodec.bits.ByteVector
 
 trait Updater {
   self: UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   trait Updater[-T] {
 
@@ -61,8 +62,7 @@ trait Updater {
 trait LongUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val LongUpdater = new Updater[Long] {
     override def update(row: UpdatableRow, columnIndex: Int, x: Long): Unit = {
@@ -82,8 +82,7 @@ trait LongUpdater {
 trait IntUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val IntUpdater = new Updater[Int] {
     override def update(row: UpdatableRow, columnIndex: Int, x: Int): Unit = {
@@ -102,8 +101,7 @@ trait IntUpdater {
 trait ShortUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val ShortUpdater = new Updater[Short] {
     override def update(row: UpdatableRow, columnIndex: Int, x: Short): Unit = {
@@ -121,8 +119,7 @@ trait ShortUpdater {
 trait ByteUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val ByteUpdater = new Updater[Byte] {
     override def update(row: UpdatableRow, columnIndex: Int, x: Byte): Unit = {
@@ -140,8 +137,7 @@ trait ByteUpdater {
 trait BytesUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val ArrayByteUpdater = new Updater[Array[Byte]] {
     override def update(row: UpdatableRow, columnIndex: Int, x: Array[Byte]): Unit = {
@@ -172,8 +168,7 @@ trait BytesUpdater {
 trait DoubleUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val DoubleUpdater = new Updater[Double] {
     override def update(row: UpdatableRow, columnIndex: Int, x: Double): Unit = {
@@ -190,9 +185,7 @@ trait DoubleUpdater {
 
 trait FloatUpdater {
   self: Updater
-    with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with UpdatableRow =>
 
   implicit val FloatUpdater = new Updater[Float] {
     override def update(row: UpdatableRow, columnIndex: Int, x: Float): Unit = {
@@ -210,8 +203,7 @@ trait FloatUpdater {
 trait BigDecimalUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val JavaBigDecimalUpdater = new Updater[java.math.BigDecimal] {
     override def update(row: UpdatableRow, columnIndex: Int, x: java.math.BigDecimal): Unit = {
@@ -230,8 +222,7 @@ trait BigDecimalUpdater {
 trait TimestampUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val TimestampUpdater = new Updater[Timestamp] {
     override def update(row: UpdatableRow, columnIndex: Int, x: Timestamp): Unit = {
@@ -243,8 +234,7 @@ trait TimestampUpdater {
 trait DateUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val DateUpdater = new Updater[Date] {
     override def update(row: UpdatableRow, columnIndex: Int, x: Date): Unit = {
@@ -256,8 +246,7 @@ trait DateUpdater {
 trait TimeUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val TimeUpdater = new Updater[Time] {
     override def update(row: UpdatableRow, columnIndex: Int, x: Time): Unit = {
@@ -269,8 +258,7 @@ trait TimeUpdater {
 trait LocalDateTimeUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val LocalDateTimeUpdater = new Updater[LocalDateTime] {
     override def update(row: UpdatableRow, columnIndex: Int, x: LocalDateTime): Unit = {
@@ -282,8 +270,7 @@ trait LocalDateTimeUpdater {
 trait InstantUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val InstantUpdater = new Updater[Instant] {
     override def update(row: UpdatableRow, columnIndex: Int, x: Instant): Unit = {
@@ -295,8 +282,7 @@ trait InstantUpdater {
 trait LocalDateUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val LocalDateUpdater = new Updater[LocalDate] {
     override def update(row: UpdatableRow, columnIndex: Int, x: LocalDate): Unit = {
@@ -308,8 +294,7 @@ trait LocalDateUpdater {
 trait LocalTimeUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val LocalTimeUpdater = new Updater[LocalTime] {
     override def update(row: UpdatableRow, columnIndex: Int, x: LocalTime): Unit = {
@@ -321,8 +306,7 @@ trait LocalTimeUpdater {
 trait BooleanUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val BooleanUpdater = new Updater[Boolean] {
     override def update(row: UpdatableRow, columnIndex: Int, x: Boolean): Unit = {
@@ -340,8 +324,7 @@ trait BooleanUpdater {
 trait StringUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val StringUpdater = new Updater[String] {
     override def update(row: UpdatableRow, columnIndex: Int, x: String): Unit = {
@@ -353,8 +336,7 @@ trait StringUpdater {
 trait UUIDUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val UUIDUpdater = new Updater[UUID] {
     override def update(row: UpdatableRow, columnIndex: Int, x: UUID): Unit = {
@@ -367,8 +349,7 @@ trait UUIDUpdater {
 trait InputStreamUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val InputStreamUpdater = new Updater[InputStream] {
     override def update(row: UpdatableRow, columnIndex: Int, x: InputStream): Unit = {
@@ -380,8 +361,7 @@ trait InputStreamUpdater {
 trait ReaderUpdater {
   self: Updater
     with UpdatableRow
-    with ParameterValue
-    with MutableRow =>
+    with ParameterValue =>
 
   implicit val ReaderUpdater = new Updater[Reader] {
     override def update(row: UpdatableRow, columnIndex: Int, x: Reader): Unit = {
@@ -393,8 +373,7 @@ trait ReaderUpdater {
 trait XmlUpdater {
   self: Updater
   with UpdatableRow
-  with ParameterValue
-  with MutableRow =>
+  with ParameterValue =>
 
   implicit val NodeSeqUpdater: Updater[NodeSeq] = new Updater[NodeSeq] {
     override def update(row: UpdatableRow, columnIndex: Int, x: NodeSeq): Unit = {

@@ -56,7 +56,7 @@ trait HasPostgreSqlPool {
       connection.setAutoCommit(true)
 
       val databases =
-        Select[String]("SELECT datname FROM pg_database WHERE datname LIKE @catalogPrefix").
+        Query[String]("SELECT datname FROM pg_database WHERE datname LIKE @catalogPrefix").
         on("catalogPrefix" -> (pgTestCatalogPrefix + "%")).
         iterator().toSeq
 

@@ -77,10 +77,10 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): Select[ImmutableRow] = {
+      ): Query[ImmutableRow] = {
         val parameterValues = toParameterValues(a)
 
-        Select[ImmutableRow](compiled, Map.empty[String, ParameterValue]).on(parameterValues: _*)
+        Query[ImmutableRow](compiled, Map.empty[String, ParameterValue]).on(parameterValues: _*)
       }
     }
 

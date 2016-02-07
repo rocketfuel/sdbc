@@ -23,7 +23,7 @@ trait ParameterizedQuery {
     *
     * {{{"@_i_am_busy"}}}
     */
-  trait ParameterizedQuery[Self <: ParameterizedQuery[Self]] {
+  trait ParameterizedQuery[Self <: ParameterizedQuery[Self]] extends Logging {
     def statement: CompiledStatement
 
     def parameterValues: Map[String, ParameterValue]
@@ -53,14 +53,18 @@ trait ParameterizedQuery {
     }
 
     protected def setParameters(parameters: Parameters): Map[String, ParameterValue] = {
-      parameters.parameters.foldLeft(parameterValues) {
-        case (accum, kvp) =>
-          if (statement.parameterPositions.contains(kvp._1)) accum + kvp
-          else accum
-      }
+      val parametersHavingPositions =
+        parameters.parameters.filter(kvp => statement.parameterPositions.contains(kvp._1))
+      parameterValues ++ parametersHavingPositions
     }
 
     protected def subclassConstructor(parameterValues: Map[String, ParameterValue]): Self
+
+    def prepareStatement()(implicit connection: Connection): PreparedStatement
+
+    protected def logExecution(parameters: Map[String, ParameterValue]): Unit = {
+      logger.debug(s"""Executing "$originalQueryText" with parameters $parameters.""")
+    }
 
   }
 

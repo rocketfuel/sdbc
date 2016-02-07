@@ -1,18 +1,15 @@
-package com.rocketfuel.sdbc.base.jdbc
+package com.rocketfuel.sdbc.base.jdbc.statement
 
-import java.sql
 import com.rocketfuel.sdbc.base
+import java.sql
 
 trait ParameterValue
   extends base.ParameterValue
   with base.ParameterizedQuery {
-    self: base.jdbc.Connection =>
 
   override type PreparedStatement = sql.PreparedStatement
 
-  override def prepareStatement(statement: String)(implicit connection: Connection): PreparedStatement = {
-    connection.prepareStatement(statement)
-  }
+  override type Connection = sql.Connection
 
   override def setNone(preparedStatement: PreparedStatement, parameterIndex: Int): PreparedStatement = {
     preparedStatement.setNull(parameterIndex, sql.Types.NULL)

@@ -1,5 +1,7 @@
 package com.rocketfuel.sdbc.h2.implementation
 
+import com.rocketfuel.sdbc.base.jdbc.resultset.DefaultGetters
+import com.rocketfuel.sdbc.base.jdbc.statement.{SeqParameter, DefaultParameters}
 import java.nio.file.Path
 import java.sql.DriverManager
 import com.rocketfuel.sdbc.base.CISet
@@ -8,10 +10,10 @@ import com.rocketfuel.sdbc.h2
 
 private[sdbc] abstract class H2
   extends jdbc.DBMS
-  with jdbc.DefaultGetters
-  with jdbc.DefaultParameters
+  with DefaultGetters
+  with DefaultParameters
   with jdbc.DefaultUpdaters
-  with jdbc.SeqParameter
+  with SeqParameter
   with ArrayTypes
   with SerializedParameter {
 

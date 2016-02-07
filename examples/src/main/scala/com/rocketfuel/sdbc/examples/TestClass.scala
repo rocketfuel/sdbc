@@ -16,25 +16,25 @@ object TestClass {
   case object All
 
   implicit val selectableByValue = new Selectable[Value, TestClass] {
-    val query = Select[TestClass]("SELECT * FROM test_class WHERE value = @value")
+    val query = Query[TestClass]("SELECT * FROM test_class WHERE value = @value")
 
-    override def select(key: Value): Select[TestClass] = {
+    override def select(key: Value): Query[TestClass] = {
       query.on("value" -> key.value)
     }
   }
 
   implicit val selectableById = new Selectable[Id, TestClass] {
-    val query = Select[TestClass]("SELECT * FROM test_class WHERE id = @id")
+    val query = Query[TestClass]("SELECT * FROM test_class WHERE id = @id")
 
-    override def select(key: Id): Select[TestClass] = {
+    override def select(key: Id): Query[TestClass] = {
       query.on("id" -> key.id)
     }
   }
 
   implicit val selectableAll = new Selectable[All.type, TestClass] {
-    val query = Select[TestClass]("SELECT * FROM test_class")
+    val query = Query[TestClass]("SELECT * FROM test_class")
 
-    override def select(key: All.type): Select[TestClass] = {
+    override def select(key: All.type): Query[TestClass] = {
       query
     }
   }

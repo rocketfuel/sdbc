@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.postgresql.implementation
 
-import com.rocketfuel.sdbc.base.jdbc.ParameterValue
+import com.rocketfuel.sdbc.base.jdbc.statement.ParameterValue
 import java.sql.{PreparedStatement, Time}
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -8,6 +8,7 @@ import org.postgresql.util.PGobject
 
 /**
   * This gives us better precision than the JDBC time type.
+ *
   * @param localTime
   */
 private[sdbc] class PGLocalTime(

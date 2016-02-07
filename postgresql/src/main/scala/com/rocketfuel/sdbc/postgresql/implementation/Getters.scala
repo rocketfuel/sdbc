@@ -1,5 +1,6 @@
 package com.rocketfuel.sdbc.postgresql.implementation
 
+import com.rocketfuel.sdbc.base.jdbc.resultset._
 import java.net.InetAddress
 import java.sql.{SQLException, SQLDataException}
 import java.time.{Duration => JavaDuration, _}

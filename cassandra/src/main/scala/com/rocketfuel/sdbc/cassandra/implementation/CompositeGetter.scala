@@ -67,6 +67,8 @@ trait CompositeGetter {
 
     implicit val BoxedDoubleCompositeGetter: CompositeGetter[java.lang.Double] = of[java.lang.Double](row => ix => row.getDouble(ix))
 
+    implicit val BigIntegerCompositeGetter: CompositeGetter[java.math.BigInteger] = of[java.math.BigInteger](row => ix => row.getVarint(ix))
+
     implicit val InetCompositeGetter: CompositeGetter[InetAddress] = of[InetAddress](row => ix => row.getInet(ix))
 
     implicit val StringCompositeGetter: CompositeGetter[String] = of[String](row => ix => row.getString(ix))

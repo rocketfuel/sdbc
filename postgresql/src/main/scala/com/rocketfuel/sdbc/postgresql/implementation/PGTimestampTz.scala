@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.postgresql.implementation
 
-import com.rocketfuel.sdbc.base.jdbc.ParameterValue
+import com.rocketfuel.sdbc.base.jdbc.statement.ParameterValue
 import java.time.OffsetDateTime
 import org.postgresql.util.PGobject
 

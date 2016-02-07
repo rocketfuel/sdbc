@@ -1,31 +1,26 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 import com.rocketfuel.sdbc.base
+import com.rocketfuel.sdbc.base.jdbc.resultset._
+import com.rocketfuel.sdbc.base.jdbc.statement.ParameterValue
 import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.pool.HikariPool
+import java.sql
 
 abstract class DBMS
   extends ParameterValue
   with HikariImplicits
-  with Connection
   with Pool
-  with Batch
-  with Update
-  with Select
-  with Execute
-  with UpdaterImplicits
+  with Query
   with SelectForUpdate
   with SelectForUpdatable
-  with base.Selectable
-  with base.Updatable
-  with base.Batchable
-  with base.Executable
   with StringContextMethods
   with ResultSetImplicits
+  with StatementImplicits
   with JdbcProcess
   with Getter
   with Updater
   with Row
-  with MutableRow
   with ImmutableRow
   with UpdatableRow
   with CompositeGetter
@@ -58,11 +53,32 @@ abstract class DBMS
    * is created. EG add a type mapping.
    *
    * By default this method does nothing.
-   * @param connection
+    *
+    * @param connection
    */
   def initializeConnection(connection: java.sql.Connection): Unit = {
 
   }
+
+  type Statement = sql.PreparedStatement
+
+  type CallableStatement = sql.CallableStatement
+
+  type Blob = sql.Blob
+
+  type SQLXML = sql.SQLXML
+
+  type Savepoint = sql.Savepoint
+
+  type Clob = sql.Clob
+
+  type NClob = sql.NClob
+
+  type DatabaseMetaData = sql.DatabaseMetaData
+
+  type SQLWarning = sql.SQLWarning
+
+  type Struct = sql.Struct
 
   DBMS.register(this)
 

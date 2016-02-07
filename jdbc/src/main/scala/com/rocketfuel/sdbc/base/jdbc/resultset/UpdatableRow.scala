@@ -1,15 +1,21 @@
-package com.rocketfuel.sdbc.base.jdbc
+package com.rocketfuel.sdbc.base.jdbc.resultset
 
+import com.rocketfuel.sdbc.base.jdbc.DBMS
 import java.io.{InputStream, Reader}
 import java.math.BigDecimal
+import java.net.URL
 import java.sql.{Array => JdbcArray, _}
+import java.util
+import java.util.Calendar
 
 trait UpdatableRow {
   self: DBMS =>
 
   class UpdatableRow private[sdbc](
-    override protected[sdbc] val underlying: ResultSet
-  ) extends MutableRow(underlying) {
+    val underlying: ResultSet,
+    override val columnNames: IndexedSeq[String],
+    override val columnIndexes: Map[String, Int]
+  ) extends Row() {
 
     def update[T](columnIndex: Int, x: T)(implicit updater: Updater[T]): Unit = {
       updater.update(this, columnIndex, x)
@@ -18,6 +24,199 @@ trait UpdatableRow {
     def update[T](columnLabel: String, x: T)(implicit updater: Updater[T]): Unit = {
       updater.update(this, columnLabel, x)
     }
+
+    override def toSeq: IndexedSeq[Option[Any]] = Row.toSeq(underlying)
+
+    override def toMap: Map[String, Option[Any]] = Row.toMap(toSeq, getMetaData)
+
+    /**
+      * Get a copy of the row that is safe to use after the underlying ResultSet is closed.
+      *
+      * @return
+      */
+    def toImmutable: ImmutableRow = {
+      new ImmutableRow(
+        columnNames = columnNames,
+        columnIndexes = columnIndexes,
+        getMetaData = getMetaData,
+        getRow = getRow,
+        toSeq = toSeq
+      )
+    }
+
+    def getType: Int = underlying.getType
+
+    def isBeforeFirst: Boolean = underlying.isBeforeFirst
+
+    override def getTimestamp(columnIndex: Int): Timestamp = underlying.getTimestamp(columnIndex + 1)
+
+    override def getTimestamp(columnLabel: String): Timestamp = underlying.getTimestamp(columnLabel: String)
+
+    def getTimestamp(columnIndex: Int, cal: Calendar): Timestamp = underlying.getTimestamp(columnIndex + 1, cal: Calendar)
+
+    def getTimestamp(columnLabel: String, cal: Calendar): Timestamp = underlying.getTimestamp(columnLabel: String, cal: Calendar)
+
+    def clearWarnings(): Unit = underlying.clearWarnings()
+
+    def isAfterLast: Boolean = underlying.isAfterLast
+
+    def getBinaryStream(columnIndex: Int): InputStream = underlying.getBinaryStream(columnIndex + 1)
+
+    def getBinaryStream(columnLabel: String): InputStream = underlying.getBinaryStream(columnLabel: String)
+
+    def isLast: Boolean = underlying.isLast
+
+    def getNClob(columnIndex: Int): NClob = underlying.getNClob(columnIndex + 1)
+
+    def getNClob(columnLabel: String): NClob = underlying.getNClob(columnLabel: String)
+
+    def getCharacterStream(columnIndex: Int): Reader = underlying.getCharacterStream(columnIndex + 1)
+
+    def getCharacterStream(columnLabel: String): Reader = underlying.getCharacterStream(columnLabel: String)
+
+    override def getDouble(columnIndex: Int): Double = underlying.getDouble(columnIndex + 1)
+
+    override def getDouble(columnLabel: String): Double = underlying.getDouble(columnLabel: String)
+
+    override def getArray(columnIndex: Int): JdbcArray = underlying.getArray(columnIndex + 1)
+
+    override def getArray(columnLabel: String): JdbcArray = underlying.getArray(columnLabel: String)
+
+    def isFirst: Boolean = underlying.isFirst
+
+    override def getURL(columnIndex: Int): URL = underlying.getURL(columnIndex + 1)
+
+    override def getURL(columnLabel: String): URL = underlying.getURL(columnLabel: String)
+
+    override def getMetaData: ResultSetMetaData = underlying.getMetaData
+
+    def getRowId(columnIndex: Int): RowId = underlying.getRowId(columnIndex + 1)
+
+    def getRowId(columnLabel: String): RowId = underlying.getRowId(columnLabel: String)
+
+    override def getBigDecimal(columnIndex: Int): BigDecimal = underlying.getBigDecimal(columnIndex + 1)
+
+    override def getBigDecimal(columnLabel: String): BigDecimal = underlying.getBigDecimal(columnLabel: String)
+
+    override def getFloat(columnIndex: Int): Float = underlying.getFloat(columnIndex + 1)
+
+    override def getFloat(columnLabel: String): Float = underlying.getFloat(columnLabel: String)
+
+    def getClob(columnIndex: Int): Clob = underlying.getClob(columnIndex + 1)
+
+    def getClob(columnLabel: String): Clob = underlying.getClob(columnLabel: String)
+
+    override def getRow: Int = {
+      underlying.getRow - 1
+    }
+
+    override def getLong(columnIndex: Int): Long = underlying.getLong(columnIndex + 1)
+
+    override def getLong(columnLabel: String): Long = underlying.getLong(columnLabel: String)
+
+    def getHoldability: Int = underlying.getHoldability
+
+    def refreshRow(): Unit = underlying.refreshRow()
+
+    def getNString(columnIndex: Int): String = underlying.getNString(columnIndex + 1)
+
+    def getNString(columnLabel: String): String = underlying.getNString(columnLabel: String)
+
+    def getConcurrency: Int = underlying.getConcurrency
+
+    def getFetchSize: Int = underlying.getFetchSize
+
+    def setFetchSize(rows: Int): Unit = underlying.setFetchSize(rows: Int)
+
+    override def getTime(columnIndex: Int): Time = underlying.getTime(columnIndex + 1)
+
+    override def getTime(columnLabel: String): Time = underlying.getTime(columnLabel: String)
+
+    def getTime(columnIndex: Int, cal: Calendar): Time = underlying.getTime(columnIndex + 1, cal: Calendar)
+
+    def getTime(columnLabel: String, cal: Calendar): Time = underlying.getTime(columnLabel: String, cal: Calendar)
+
+    override def getByte(columnIndex: Int): Byte = underlying.getByte(columnIndex + 1)
+
+    override def getByte(columnLabel: String): Byte = underlying.getByte(columnLabel: String)
+
+    override def getBoolean(columnIndex: Int): Boolean = underlying.getBoolean(columnIndex + 1)
+
+    override def getBoolean(columnLabel: String): Boolean = underlying.getBoolean(columnLabel: String)
+
+    def getFetchDirection: Int = underlying.getFetchDirection
+
+    def getAsciiStream(columnIndex: Int): InputStream = underlying.getAsciiStream(columnIndex + 1)
+
+    def getAsciiStream(columnLabel: String): InputStream = underlying.getAsciiStream(columnLabel: String)
+
+    override def getObject(columnIndex: Int): AnyRef = underlying.getObject(columnIndex + 1)
+
+    override def getObject(columnLabel: String): AnyRef = underlying.getObject(columnLabel: String)
+
+    def getObject(columnIndex: Int, map: util.Map[String, Class[_]]): AnyRef = underlying.getObject(columnIndex + 1, map: util.Map[String, Class[_]])
+
+    def getObject(columnLabel: String, map: util.Map[String, Class[_]]): AnyRef = underlying.getObject(columnLabel: String, map: util.Map[String, Class[_]])
+
+    def getObject[T](columnIndex: Int, `type`: Class[T]): T = underlying.getObject[T](columnIndex + 1, `type`: Class[T])
+
+    def getObject[T](columnLabel: String, `type`: Class[T]): T = underlying.getObject[T](columnLabel: String, `type`: Class[T])
+
+    override def getShort(columnIndex: Int): Short = underlying.getShort(columnIndex + 1)
+
+    override def getShort(columnLabel: String): Short = underlying.getShort(columnLabel: String)
+
+    def getNCharacterStream(columnIndex: Int): Reader = underlying.getNCharacterStream(columnIndex + 1)
+
+    def getNCharacterStream(columnLabel: String): Reader = underlying.getNCharacterStream(columnLabel: String)
+
+    def close(): Unit = underlying.close()
+
+    def wasNull: Boolean = underlying.wasNull
+
+    def getRef(columnIndex: Int): Ref = underlying.getRef(columnIndex + 1)
+
+    def getRef(columnLabel: String): Ref = underlying.getRef(columnLabel: String)
+
+    def isClosed: Boolean = underlying.isClosed
+
+    def findColumn(columnLabel: String): Int = {
+      underlying.findColumn(columnLabel: String) - 1
+    }
+
+    def getWarnings: SQLWarning = underlying.getWarnings
+
+    override def getDate(columnIndex: Int): Date = underlying.getDate(columnIndex + 1)
+
+    override def getDate(columnLabel: String): Date = underlying.getDate(columnLabel: String)
+
+    def getDate(columnIndex: Int, cal: Calendar): Date = underlying.getDate(columnIndex + 1, cal: Calendar)
+
+    def getDate(columnLabel: String, cal: Calendar): Date = underlying.getDate(columnLabel: String, cal: Calendar)
+
+    def getCursorName: String = underlying.getCursorName
+
+    def getStatement: java.sql.Statement = underlying.getStatement
+
+    override def getSQLXML(columnIndex: Int): SQLXML = underlying.getSQLXML(columnIndex + 1)
+
+    override def getSQLXML(columnLabel: String): SQLXML = underlying.getSQLXML(columnLabel: String)
+
+    override def getInt(columnIndex: Int): Int = underlying.getInt(columnIndex + 1)
+
+    override def getInt(columnLabel: String): Int = underlying.getInt(columnLabel: String)
+
+    def getBlob(columnIndex: Int): Blob = underlying.getBlob(columnIndex + 1)
+
+    def getBlob(columnLabel: String): Blob = underlying.getBlob(columnLabel: String)
+
+    override def getBytes(columnIndex: Int): Array[Byte] = underlying.getBytes(columnIndex + 1)
+
+    override def getBytes(columnLabel: String): Array[Byte] = underlying.getBytes(columnLabel: String)
+
+    override def getString(columnIndex: Int): String = underlying.getString(columnIndex + 1)
+
+    override def getString(columnLabel: String): String = underlying.getString(columnLabel: String)
 
     def updateArray(columnIndex: Int, x: JdbcArray): Unit = underlying.updateArray(columnIndex + 1, x)
 
@@ -213,6 +412,32 @@ trait UpdatableRow {
 
     def updateNull(columnLabel: String): Unit = underlying.updateNull(columnLabel)
 
+  }
+
+  object UpdatableRow {
+    def apply(resultSet: ResultSet): UpdatableRow = {
+      val columnNames = Row.columnNames(resultSet.getMetaData)
+      val columnIndexes = Row.columnIndexes(columnNames)
+
+      new UpdatableRow(
+        underlying = resultSet,
+        columnNames = columnNames,
+        columnIndexes = columnIndexes
+      )
+    }
+
+    def iterator(resultSet: ResultSet): Iterator[UpdatableRow] = {
+      val columnNames = Row.columnNames(resultSet.getMetaData)
+      val columnIndexes = Row.columnIndexes(columnNames)
+
+      resultSet.iterator().map { resultSet =>
+        new UpdatableRow(
+          underlying = resultSet,
+          columnNames = columnNames,
+          columnIndexes = columnIndexes
+        )
+      }
+    }
   }
 
 }

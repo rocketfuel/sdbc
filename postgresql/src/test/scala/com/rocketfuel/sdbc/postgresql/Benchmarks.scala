@@ -296,7 +296,7 @@ class Benchmarks
         |(?, ?, ?)
       """.stripMargin
 
-    val select = Select[TestTable]("SELECT * FROM test ORDER BY id;", hasParameters = false)
+    val select = Query[TestTable]("SELECT * FROM test ORDER BY id;", hasParameters = false)
 
     val drop =
       Execute("DROP TABLE test;", hasParameters = false)

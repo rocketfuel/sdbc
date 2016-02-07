@@ -1,5 +1,7 @@
 package com.rocketfuel.sdbc.sqlserver.implementation
 
+import com.rocketfuel.sdbc.base.jdbc.resultset.DefaultGetters
+import com.rocketfuel.sdbc.base.jdbc.statement.OffsetDateTimeAsStringParameter
 import java.time._
 import java.util.UUID
 import com.rocketfuel.sdbc.base.jdbc._

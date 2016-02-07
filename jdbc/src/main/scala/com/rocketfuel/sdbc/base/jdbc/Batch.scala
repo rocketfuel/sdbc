@@ -2,9 +2,7 @@ package com.rocketfuel.sdbc.base.jdbc
 
 import java.sql.{SQLFeatureNotSupportedException, PreparedStatement}
 import com.rocketfuel.sdbc.base
-import shapeless.ops.hlist._
-import shapeless.ops.record.{MapValues, Keys}
-import shapeless.{LabelledGeneric, HList}
+import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
 
 trait Batch {
   self: DBMS =>
@@ -21,12 +19,11 @@ trait Batch {
     * @param parameterValueBatches
     */
   case class Batch private[jdbc](
-    statement: base.CompiledStatement,
+    statement: CompiledStatement,
     parameterValues: Map[String, ParameterValue],
     parameterValueBatches: Seq[Map[String, ParameterValue]]
-  ) extends base.Batch[Connection]
-  with ParameterizedQuery[Batch]
-  with base.Logging {
+  ) extends ParameterizedQuery[Batch]
+    with Logging {
 
     def addBatch(parameterValues: (String, ParameterValue)*): Batch = {
       val newBatch = setParameters(parameterValues: _*)
@@ -38,58 +35,27 @@ trait Batch {
       )
     }
 
-    def addProductBatch[
-      A,
-      Repr <: HList,
-      ReprKeys <: HList,
-      MappedRepr <: HList
-    ](param: A
-    )(implicit genericA: LabelledGeneric.Aux[A, Repr],
-      keys: Keys.Aux[Repr, ReprKeys],
-      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
-      ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, ParameterValue]
-    ): Batch = {
-      val newBatch = setParameters(productParameters(param): _*)
-
-      Batch(
-        statement,
-        Map.empty,
-        parameterValueBatches :+ newBatch
-      )
-    }
-
-    def addRecordBatch[
-      Repr <: HList,
-      MappedRepr <: HList,
-      ReprKeys <: HList
-    ](param: Repr
-    )(implicit keys: Keys.Aux[Repr, ReprKeys],
-      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
-      ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, ParameterValue]
-    ): Batch = {
-      val newBatch = setParameters(recordParameters(param): _*)
-
-      Batch(
-        statement,
-        Map.empty,
-        parameterValueBatches :+ newBatch
-      )
-    }
-
-    protected def prepareBatches()(implicit connection: Connection): PreparedStatement = {
-      val prepared = prepareStatement(queryText)
+    protected def prepare()(implicit connection: Connection): PreparedStatement = {
+      val prepared = connection.prepareStatement(queryText)
       for (batch <- parameterValueBatches) {
-        bind(prepared, batch, parameterPositions)
+        for ((name, maybeValue) <- batch) {
+          for (index <- parameterPositions(name)) {
+            maybeValue match {
+              case None =>
+                parameterSetter.setNone(prepared, index + 1)
+              case Some(value) =>
+                parameterSetter.setAny(prepared, index + 1, value)
+            }
+          }
+        }
         prepared.addBatch()
       }
       prepared
     }
 
     def seq()(implicit connection: Connection): IndexedSeq[Long] = {
-      logger.debug( s"""Batching "$originalQueryText".""")
-      val prepared = prepareBatches()
+      logger.debug(s"""Batching "$originalQueryText".""")
+      val prepared = prepare()
       val result = try {
         prepared.executeLargeBatch()
       } catch {
@@ -107,6 +73,7 @@ trait Batch {
 
     /**
       * Get the total count of updated or inserted rows.
+      *
       * @param connection
       * @return
       */
@@ -115,7 +82,7 @@ trait Batch {
     }
 
     override protected def subclassConstructor(
-      statement: base.CompiledStatement,
+      statement: CompiledStatement,
       parameterValues: Map[String, ParameterValue]
     ): Batch = {
       Batch(statement, parameterValues, Vector.empty)
@@ -128,7 +95,7 @@ trait Batch {
       hasParameters: Boolean = true
     ): Batch = {
       Batch(
-        statement = base.CompiledStatement(queryText, hasParameters),
+        statement = CompiledStatement(queryText, hasParameters),
         parameterValues = Map.empty[String, ParameterValue],
         parameterValueBatches = Vector.empty[Map[String, ParameterValue]]
       )

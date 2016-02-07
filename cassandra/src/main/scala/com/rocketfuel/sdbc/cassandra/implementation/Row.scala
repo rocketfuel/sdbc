@@ -10,24 +10,18 @@ import com.datastax.driver.core
 import com.datastax.driver.core.ColumnDefinitions
 import com.google.common.reflect.TypeToken
 import com.rocketfuel.sdbc.base
+import scala.collection.convert.decorateAsScala._
 
 trait Row extends base.Index {
   self: Cassandra =>
 
-  override def getColumnCount(row: Row): Int = row.getColumnDefinitions.size()
-
-  override def getColumnIndex(row: Row, columnName: String): Int = {
-    row.getColumnDefinitions.getIndexOf(columnName) match {
-      case -1 => throw new NoSuchElementException("key not found: " + columnName)
-      case columnIndex => columnIndex
-    }
-  }
-
-  override def containsColumn(row: Row, columnName: String): Boolean = {
-    row.getColumnDefinitions.contains(columnName)
-  }
-
-  case class Row(underlying: core.Row) extends core.Row {
+  case class Row private[implementation] (
+    underlying: core.Row,
+    override val columnNames: IndexedSeq[String],
+    override val columnIndexes: Map[String, Int],
+    override val columnCount: Int
+  ) extends core.Row
+    with RowIndexOps {
 
     def apply[T](ix: Index)(implicit getter: CompositeGetter[T]): T = {
       getter(this, ix(this))
@@ -132,6 +126,38 @@ trait Row extends base.Index {
     override def getObject(name: String): AnyRef = underlying.getObject(name: String)
 
     override def getSet[T](name: String, elementsType: TypeToken[T]): util.Set[T] = underlying.getSet[T](name: String, elementsType: TypeToken[T])
+  }
+
+  object Row {
+    def apply(row: core.Row): Row = {
+      val columnNames: IndexedSeq[String] = {
+        import scala.collection.convert.wrapAsScala._
+        row.getColumnDefinitions.asList().toVector.map(_.getName)
+      }
+
+      val columnIndexes: Map[String, Int] = {
+        columnNames.zipWithIndex.toMap
+      }
+
+      val columnCount: Int = columnIndexes.size
+
+      Row(row, columnNames, columnIndexes, columnCount)
+    }
+
+    def iterator(results: core.ResultSet): Iterator[Row] = {
+      val columnNames: IndexedSeq[String] = {
+        import scala.collection.convert.wrapAsScala._
+        results.getColumnDefinitions.asList().toVector.map(_.getName)
+      }
+
+      val columnIndexes: Map[String, Int] = {
+        columnNames.zipWithIndex.toMap
+      }
+
+      val columnCount: Int = columnIndexes.size
+
+      results.iterator().asScala.map(row => Row(row, columnNames, columnIndexes, columnCount))
+    }
   }
 
 }
