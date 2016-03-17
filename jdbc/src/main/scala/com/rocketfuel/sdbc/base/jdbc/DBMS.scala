@@ -1,10 +1,8 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.jdbc.resultset._
-import com.rocketfuel.sdbc.base.jdbc.statement.ParameterValue
+import com.rocketfuel.sdbc.base.jdbc.statement.{StatementConverter, ParameterValue}
 import com.zaxxer.hikari.HikariConfig
-import com.zaxxer.hikari.pool.HikariPool
 import java.sql
 
 abstract class DBMS
@@ -12,12 +10,11 @@ abstract class DBMS
   with HikariImplicits
   with Pool
   with Query
-  with SelectForUpdate
-  with SelectForUpdatable
+  with Queryable
+  with Batch
   with StringContextMethods
   with ResultSetImplicits
-  with StatementImplicits
-  with JdbcProcess
+  with StatementConverter
   with Getter
   with Updater
   with Row
@@ -86,18 +83,18 @@ abstract class DBMS
 
 object DBMS {
 
-  private val dataSources: collection.mutable.Map[String, DBMS] = collection.mutable.Map.empty
+  private val dataSources: collection.mutable.Map[String, DBMS] = collection.concurrent.TrieMap.empty[String, DBMS]
 
   private val jdbcSchemes: collection.mutable.Map[String, DBMS] = {
     import scala.collection.convert.decorateAsScala._
     //Scala's collections don't contain an ordered mutable map,
     //so just use java's.
-    new java.util.TreeMap[String, DBMS](base.CaseInsensitiveOrdering).asScala
+    new java.util.concurrent.ConcurrentSkipListMap[String, DBMS](String.CASE_INSENSITIVE_ORDER).asScala
   }
 
   private val productNames: collection.mutable.Map[String, DBMS] = collection.mutable.Map.empty
 
-  private val jdbcURIRegex = "(?i)jdbc:(.+):.*".r
+  private val jdbcURIRegex = "(?i)^jdbc:(.+):".r
 
   private [jdbc] def register(dbms: DBMS): Unit = {
     this.synchronized {

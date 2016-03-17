@@ -182,5 +182,44 @@ trait ParameterValue {
     }
   }
 
+  case class ParameterBatches(parameterBatches: Seq[Map[String, ParameterValue]])
+
+  
+  object ParameterBatches {
+    val empty = ParameterBatches(Vector.empty)
+
+    implicit def products[
+      A,
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
+    ](ts: A*
+    )(implicit genericA: LabelledGeneric.Aux[A, Repr],
+      keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, ParameterValue]
+    ): ParameterBatches = {
+      val asGeneric = ts.map(genericA.to)
+      records(asGeneric: _*)
+    }
+
+    implicit def records[
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
+    ](ts: Repr*
+    )(implicit keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, ParameterValue]
+    ): ParameterBatches = {
+      val reprKeys = keys().toList.map(_.name)
+      val mappedTs = ts.map(_.mapValues(ToParameterValue))
+      val batches = mappedTs.map(t => reprKeys.zip(t.toList).toMap)
+      ParameterBatches(batches)
+    }
+  }
+
 
 }

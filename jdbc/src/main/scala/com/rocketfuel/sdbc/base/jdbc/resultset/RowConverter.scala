@@ -6,7 +6,7 @@ trait RowConverter {
   self: DBMS =>
 
 //  @implicitNotFound("Import a DBMS or define a function from Row to A.")
-  trait RowConverter[R <: Row, A] extends (R => A)
+  trait RowConverter[-R <: Row, A] extends (R => A)
 
   object RowConverter extends LowerPriorityRowConverterImplicits {
 

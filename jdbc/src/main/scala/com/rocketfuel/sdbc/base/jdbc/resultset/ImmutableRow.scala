@@ -14,7 +14,7 @@ trait ImmutableRow {
     * closed.
     *
     * You can construct an ImmutableRow by calling the UpdatableRow's asImmutable method.
- *
+    *
     * @param columnNames
     * @param getMetaData
     * @param getRow

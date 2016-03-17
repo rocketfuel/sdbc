@@ -5,7 +5,6 @@ name := "base"
 description := "SDBC is a database API for Scala."
 
 libraryDependencies ++= Seq(
-  "org.scalaz.stream" %% "scalaz-stream" % "0.8",
   //Logging
   "org.slf4j" % "slf4j-api" % "1.7.13",
   "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.4.1" % "test",
@@ -18,7 +17,7 @@ libraryDependencies ++= Seq(
   "com.chuusai" %% "shapeless" % "2.2.5",
   "org.scalatest" %% "scalatest" % "2.2.5" % "test",
   "org.scalacheck" %% "scalacheck" % "1.12.5" % "test",
-  "org.scalaz" %% "scalaz-core" % "7.1.5" % "test",
+  "org.scalaz" %% "scalaz-core" % "7.2.1" % "test",
   "org.apache.commons" % "commons-lang3" % "3.4" % "test"
 )
 

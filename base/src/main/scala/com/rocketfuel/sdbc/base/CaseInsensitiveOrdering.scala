@@ -5,6 +5,6 @@ object CaseInsensitiveOrdering extends Ordering[String] {
     x: String,
     y: String
   ): Int = {
-    String.CASE_INSENSITIVE_ORDER.compare(x, y)
+    x.compareToIgnoreCase(y)
   }
 }

@@ -1,5 +1,9 @@
 package com.rocketfuel.sdbc.base
 
+import shapeless.ops.hlist._
+import shapeless.ops.record.{MapValues, Keys}
+import shapeless.{LabelledGeneric, HList}
+
 trait ParameterizedQuery {
   self: ParameterValue =>
 
@@ -23,7 +27,8 @@ trait ParameterizedQuery {
     *
     * {{{"@_i_am_busy"}}}
     */
-  trait ParameterizedQuery[Self <: ParameterizedQuery[Self]] extends Logging {
+  trait ParameterizedQuery[Self <: ParameterizedQuery[Self]] {
+
     def statement: CompiledStatement
 
     def parameterValues: Map[String, ParameterValue]
@@ -43,28 +48,54 @@ trait ParameterizedQuery {
 
     def clear: Self = subclassConstructor(parameterValues = Map.empty)
 
-    def assign(parameters: Parameters): Self = {
-      subclassConstructor(parameterValues = setParameters(parameters))
+    protected def on(additionalParameters: Parameters): Self = {
+      val withAdditionalParameters = setParameters(additionalParameters.parameters)
+      subclassConstructor(parameterValues = withAdditionalParameters)
     }
 
-    def assign(parameters: (String, ParameterValue)*): Self = {
-      val asParameters: Parameters = parameters
-      assign(asParameters)
+    def on(additionalParameters: Map[String, ParameterValue]): Self = {
+      on(additionalParameters: Parameters)
     }
 
-    protected def setParameters(parameters: Parameters): Map[String, ParameterValue] = {
+    def on(additionalParameters: (String, ParameterValue)*): Self = {
+      on(additionalParameters: Parameters)
+    }
+
+    def on[
+      P,
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
+    ](additionalParameters: P
+    )(implicit genericA: LabelledGeneric.Aux[P, Repr],
+      keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, ParameterValue]
+    ): Self = {
+      on(additionalParameters: Parameters)
+    }
+
+    def on[
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
+    ](additionalParameters: Repr
+    )(implicit keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, ParameterValue]
+    ): Self = {
+      on(additionalParameters: Parameters)
+    }
+
+    protected def setParameters(parameters: Map[String, ParameterValue]): Map[String, ParameterValue] = {
       val parametersHavingPositions =
-        parameters.parameters.filter(kvp => statement.parameterPositions.contains(kvp._1))
+        parameters.filter(kvp => statement.parameterPositions.contains(kvp._1))
       parameterValues ++ parametersHavingPositions
     }
 
     protected def subclassConstructor(parameterValues: Map[String, ParameterValue]): Self
-
-    def prepareStatement()(implicit connection: Connection): PreparedStatement
-
-    protected def logExecution(parameters: Map[String, ParameterValue]): Unit = {
-      logger.debug(s"""Executing "$originalQueryText" with parameters $parameters.""")
-    }
 
   }
 

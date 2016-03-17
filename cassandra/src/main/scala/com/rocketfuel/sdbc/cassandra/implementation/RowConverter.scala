@@ -1,11 +1,12 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
+import com.datastax.driver.core.Row
 import scala.annotation.implicitNotFound
 
 trait RowConverter {
   self: Cassandra =>
 
-  //@implicitNotFound("Define an implicit function from Row to A, or make A a Product (i.e., a tuple or case class).")
+  @implicitNotFound("Define an implicit function from Row to A, or make A a Product (i.e., a tuple or case class).")
   trait RowConverter[A] extends (Row => A)
 
   object RowConverter extends LowerPriorityRowConverterImplicits {

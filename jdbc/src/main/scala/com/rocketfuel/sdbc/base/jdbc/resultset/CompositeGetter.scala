@@ -9,7 +9,7 @@ trait CompositeGetter extends Getter {
 
   /**
     * Like doobie's Composite, but only the getter part.
- *
+    *
     * @tparam Row
     * @tparam A
     */
@@ -63,7 +63,7 @@ trait CompositeGetter extends Getter {
   trait LowerPriorityCompositeGetter {
 
     implicit def product[H, T <: HList, HTRowUpperBound, HRow, TRow, HH >: HRow <: HTRowUpperBound, TT >: TRow <: HTRowUpperBound](implicit
-      H: CompositeGet1ter[HRow, H],
+      H: CompositeGetter[HRow, H],
       T: CompositeGetter[TRow, T]
     ): CompositeGetter[HTRowUpperBound, H :: T] =
       new CompositeGetter[HTRowUpperBound, H :: T] {

@@ -3,6 +3,9 @@ package com.rocketfuel.sdbc.base.jdbc
 import java.sql.{SQLFeatureNotSupportedException, PreparedStatement}
 import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
+import shapeless.ops.hlist._
+import shapeless.ops.record.{MapValues, Keys}
+import shapeless.{LabelledGeneric, HList}
 
 trait Batch {
   self: DBMS =>
@@ -16,36 +19,137 @@ trait Batch {
     *
     * @param statement
     * @param parameterValues
-    * @param parameterValueBatches
+    * @param batches
     */
   case class Batch private[jdbc](
     statement: CompiledStatement,
     parameterValues: Map[String, ParameterValue],
-    parameterValueBatches: Seq[Map[String, ParameterValue]]
-  ) extends ParameterizedQuery[Batch]
-    with Logging {
+    batches: Seq[Map[String, ParameterValue]]
+  ) extends ParameterizedQuery[Batch] {
 
-    def addBatch(parameterValues: (String, ParameterValue)*): Batch = {
-      val newBatch = setParameters(parameterValues: _*)
+    protected def addBatch(additionalParameters: Parameters): Batch = {
+      val newBatch = setParameters(additionalParameters.parameters)
 
       Batch(
         statement,
         Map.empty,
-        parameterValueBatches :+ newBatch
+        batches :+ newBatch
       )
     }
 
-    protected def prepare()(implicit connection: Connection): PreparedStatement = {
-      val prepared = connection.prepareStatement(queryText)
-      for (batch <- parameterValueBatches) {
-        for ((name, maybeValue) <- batch) {
-          for (index <- parameterPositions(name)) {
-            maybeValue match {
-              case None =>
-                parameterSetter.setNone(prepared, index + 1)
-              case Some(value) =>
-                parameterSetter.setAny(prepared, index + 1, value)
-            }
+    def addBatch(additionalParameters: Map[String, ParameterValue]): Batch = {
+      addBatch(additionalParameters: Parameters)
+    }
+
+    def addBatch(additionalParameters: (String, ParameterValue)*): Batch = {
+      addBatch(additionalParameters: Parameters)
+    }
+
+    def addBatch[
+      P,
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
+    ](additionalParameters: P
+    )(implicit genericA: LabelledGeneric.Aux[P, Repr],
+      keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, ParameterValue]
+    ): Batch = {
+      addBatch(additionalParameters: Parameters)
+    }
+
+    def addBatch[
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
+    ](additionalParameters: Repr
+    )(implicit keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, ParameterValue]
+    ): Batch = {
+      addBatch(additionalParameters: Parameters)
+    }
+
+    def run()(implicit connection: Connection): IndexedSeq[Long] = {
+      Batch.run(statement, batches)
+    }
+
+    override protected def subclassConstructor(
+      parameterValues: Map[String, ParameterValue]
+    ): Batch = {
+      copy(parameterValues = parameterValues)
+    }
+  }
+
+  object Batch
+    extends Logging {
+
+    def apply(
+      queryText: String,
+      hasParameters: Boolean = true
+    ): Batch = {
+      Batch(
+        statement = CompiledStatement(queryText, hasParameters),
+        parameterValues = Map.empty[String, ParameterValue],
+        batches = Vector.empty[Map[String, ParameterValue]]
+      )
+    }
+
+    def run(
+      queryText: String,
+      batches: Seq[Map[String, ParameterValue]]
+    )(implicit connection: Connection): IndexedSeq[Long] = {
+      val statement = CompiledStatement(queryText)
+      run(statement, batches)
+    }
+
+    def run[
+      P,
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
+    ](queryText: String,
+      batches: Seq[P]
+    )(implicit connection: Connection,
+      genericA: LabelledGeneric.Aux[P, Repr],
+      keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, ParameterValue]
+    ): IndexedSeq[Long] = {
+      val statement = CompiledStatement(queryText)
+      run(statement, batches.map(batch => (batch: Parameters).parameters))
+    }
+
+    def run[
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
+    ](queryText: String,
+      batches: Seq[Repr]
+    )(implicit connection: Connection,
+      keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, ParameterValue]
+    ): IndexedSeq[Long] = {
+      val statement = CompiledStatement(queryText)
+      run(statement, batches.map(batch => (batch: Parameters).parameters))
+    }
+
+    protected def prepare(
+      compiledStatement: CompiledStatement,
+      batches: Seq[Map[String, ParameterValue]]
+    )(implicit connection: Connection
+    ): PreparedStatement = {
+      val prepared = connection.prepareStatement(compiledStatement.queryText)
+      for (batch <- batches) {
+        for ((name, value) <- batch) {
+          for (index <- compiledStatement.parameterPositions(name)) {
+            value.set(prepared, index)
           }
         }
         prepared.addBatch()
@@ -53,9 +157,16 @@ trait Batch {
       prepared
     }
 
-    def seq()(implicit connection: Connection): IndexedSeq[Long] = {
-      logger.debug(s"""Batching "$originalQueryText".""")
-      val prepared = prepare()
+    private[jdbc] def run(
+      compiledStatement: CompiledStatement,
+      batches: Seq[Map[String, ParameterValue]]
+    )(implicit connection: Connection
+    ): IndexedSeq[Long] = {
+
+      val prepared = prepare(compiledStatement, batches)
+
+      logRun(compiledStatement)
+
       val result = try {
         prepared.executeLargeBatch()
       } catch {
@@ -67,39 +178,12 @@ trait Batch {
       result.toVector
     }
 
-    override def iterator()(implicit connection: Connection): Iterator[Long] = {
-      seq().toIterator
+    private def logRun(
+      compiledStatement: CompiledStatement
+    ): Unit = {
+      logger.debug(s"""Executing batch of "${compiledStatement.originalQueryText}".""")
     }
 
-    /**
-      * Get the total count of updated or inserted rows.
-      *
-      * @param connection
-      * @return
-      */
-    def sum()(implicit connection: Connection): Long = {
-      seq().sum
-    }
-
-    override protected def subclassConstructor(
-      statement: CompiledStatement,
-      parameterValues: Map[String, ParameterValue]
-    ): Batch = {
-      Batch(statement, parameterValues, Vector.empty)
-    }
-  }
-
-  object Batch {
-    def apply(
-      queryText: String,
-      hasParameters: Boolean = true
-    ): Batch = {
-      Batch(
-        statement = CompiledStatement(queryText, hasParameters),
-        parameterValues = Map.empty[String, ParameterValue],
-        parameterValueBatches = Vector.empty[Map[String, ParameterValue]]
-      )
-    }
   }
 
 }

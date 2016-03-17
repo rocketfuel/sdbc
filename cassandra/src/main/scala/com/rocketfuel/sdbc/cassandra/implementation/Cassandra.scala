@@ -10,7 +10,6 @@ private[sdbc] abstract class Cassandra
   with StringContextMethods
   with Query
   with Queryable
-  with Row
   with RowConverter
   with CompositeGetter
   with TupleValue

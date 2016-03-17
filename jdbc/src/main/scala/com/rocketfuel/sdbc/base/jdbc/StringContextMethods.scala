@@ -17,7 +17,7 @@ trait StringContextMethods {
     ](a: A
     )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
       toList: ToList[MappedA, ParameterValue]
-    ): Parameters = {
+    ): Map[String, ParameterValue] = {
       a.
         map(ToParameterValue).
         toList.
@@ -25,21 +25,7 @@ trait StringContextMethods {
         map {
           case (parameter, ix) =>
             (ix.toString, parameter)
-        } toSeq
-    }
-
-    object batch extends ProductArgs {
-      def applyProduct[
-        A <: HList,
-        MappedA <: HList
-      ](a: A
-      )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
-        toList: ToList[MappedA, ParameterValue]
-      ): Batch = {
-        val parameterValues = toParameterValues(a)
-
-        Batch(compiled, Map.empty, Seq.empty).addBatch(parameterValues: _*)
-      }
+        } toMap
     }
 
     object execute extends ProductArgs {
@@ -49,10 +35,10 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): Execute = {
+      ): Query[Unit] = {
         val parameterValues = toParameterValues(a)
 
-        Execute(compiled, Map.empty[String, ParameterValue]).on(parameterValues: _*)
+        Query[Unit](compiled, parameterValues)
       }
     }
 
@@ -63,10 +49,10 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): Update = {
+      ): Query[UpdateCount] = {
         val parameterValues = toParameterValues(a)
 
-        Update(compiled, Map.empty[String, ParameterValue]).on(parameterValues: _*)
+        Query[UpdateCount](compiled, parameterValues)
       }
     }
 
@@ -80,7 +66,7 @@ trait StringContextMethods {
       ): Query[ImmutableRow] = {
         val parameterValues = toParameterValues(a)
 
-        Query[ImmutableRow](compiled, Map.empty[String, ParameterValue]).on(parameterValues: _*)
+        Query[ImmutableRow](compiled, parameterValues)
       }
     }
 
@@ -91,10 +77,10 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): SelectForUpdate = {
+      ): Query[UpdatableRow] = {
         val parameterValues = toParameterValues(a)
 
-        SelectForUpdate(compiled, Map.empty[String, ParameterValue]).on(parameterValues: _*)
+        Query[UpdatableRow](compiled, parameterValues)
       }
     }
 

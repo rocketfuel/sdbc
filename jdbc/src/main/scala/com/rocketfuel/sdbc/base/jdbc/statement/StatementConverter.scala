@@ -1,95 +1,155 @@
 package com.rocketfuel.sdbc.base.jdbc.statement
 
 import com.rocketfuel.sdbc.base.jdbc.DBMS
-import java.sql.SQLFeatureNotSupportedException
+import java.sql.{SQLFeatureNotSupportedException, ResultSet, Statement}
 import shapeless.{HNil, ::, HList}
 
 trait StatementConverter {
   self: DBMS =>
 
-  sealed trait StatementExecutionResult[T] {
-    val get: T
-  }
-
-  case class IteratorResult[A](get: Iterator[A]) extends StatementExecutionResult[Iterator[A]]
-
-  case object EmptyResult extends StatementExecutionResult[Unit] {
-    override val get: Unit = ()
-  }
-
-  case class UpdateResult(get: Int) extends StatementExecutionResult[Int]
-
-  case class LargeUpdateResult(get: Long) extends StatementExecutionResult[Long]
-
-  case class CompoundResult[T](get: T) extends StatementExecutionResult[T]
-
-  //  @implicitNotFound("Import a DBMS or define a function from Statement to A.")
   trait StatementConverter[A] extends (Statement => A)
 
-  object StatementConverter extends LowerPriorityStatementConverterImplicits {
+  case class UpdateCount(count: Long)
+
+  object StatementConverter extends LowerPriorityStatementConverter {
 
     def apply[A](implicit statementConverter: StatementConverter[A]): StatementConverter[A] = statementConverter
 
+    implicit val unit: StatementConverter[Unit] =
+      new StatementConverter[Unit] {
+        override def apply(v1: Statement): Unit = {
+          v1.getMoreResults()
+          ()
+        }
+      }
+
+    implicit val update: StatementConverter[UpdateCount] = {
+      (v1: Statement) =>
+        val count = try {
+          v1.getLargeUpdateCount
+        } catch {
+          case _: UnsupportedOperationException |
+               SQLFeatureNotSupportedException =>
+            v1.getUpdateCount
+        }
+        v1.getMoreResults()
+        if (count == -1) None.get else UpdateCount(count)
+    }
+
+    implicit def convertedRowIterator[
+      R >: ImmutableRow,
+      A
+    ](implicit converter: RowConverter[R, A]
+    ): StatementConverter[Iterator[A]] = {
+      (v1: Statement) =>
+        ImmutableRow.iterator(results(v1)).map(converter)
+    }
+
+    implicit def convertedRowVector[
+      R >: ImmutableRow,
+      A
+    ](implicit converter: RowConverter[R, A]
+    ): StatementConverter[Vector[A]] = {
+      (v1: Statement) => {
+        convertedRowIterator[R, A](converter)(v1).toVector
+      }
+    }
+
+    implicit def convertedRowOption[
+      R >: ImmutableRow,
+      A
+    ](implicit converter: RowConverter[R, A]
+    ): StatementConverter[Option[A]] = {
+      (v1: Statement) => {
+        convertedRowIterator[R, A](converter)(v1).toStream.headOption
+      }
+    }
+
+    implicit def convertedRowSingleton[
+      R >: ImmutableRow,
+      A
+    ](implicit converter: RowConverter[R, A]
+    ): StatementConverter[A] =  {
+      (v1: Statement) => {
+        convertedRowIterator[R, A](converter)(v1).toStream.head
+      }
+    }
+
+    implicit def convertedUpdatableRowIterator[A](implicit
+      converter: RowConverter[UpdatableRow, A]
+    ): StatementConverter[Iterator[A]] = {
+      (v1: Statement) => {
+          UpdatableRow.iterator(results(v1)).map(converter)
+        }
+      }
+
+    implicit def convertedUpdatableRowVector[A](implicit
+      converter: RowConverter[UpdatableRow, A]
+    ): StatementConverter[Vector[A]] = {
+        (v1: Statement) => {
+          convertedUpdatableRowIterator[A](converter)(v1).toVector
+        }
+      }
+
+    implicit def convertedUpdatableRowOption[A](implicit
+      converter: RowConverter[UpdatableRow, A]
+    ): StatementConverter[Option[A]] = {
+        (v1: Statement) => {
+          convertedUpdatableRowIterator[A](converter)(v1).toStream.headOption
+        }
+      }
+
+    implicit def convertedUpdatableRowSingleton[A](implicit
+      converter: RowConverter[UpdatableRow, A]
+    ): StatementConverter[A] = {
+        (v1: Statement) => {
+          convertedUpdatableRowIterator[A](converter)(v1).toStream.head
+        }
+      }
+
+  }
+
+  trait LowerPriorityStatementConverter {
     implicit def ofFunction[A](f: Statement => A): StatementConverter[A] =
       new StatementConverter[A] {
         override def apply(v1: Statement): A = f(v1)
       }
 
-    implicit val long: StatementConverter[Long] = {
-      (statement: Statement) =>
-        try {
-          statement.getLargeUpdateCount
-        } catch {
-          case _: UnsupportedOperationException |
-               SQLFeatureNotSupportedException =>
-            statement.getUpdateCount.toLong
+    implicit val results: StatementConverter[ResultSet] = {
+        (v1: Statement) => {
+          val results = Option(v1.getResultSet()).get
+          v1.getMoreResults(Statement.KEEP_CURRENT_RESULT)
+          results
         }
+      }
+
+    implicit val immutableResults: StatementConverter[ImmutableRow] = {
+        (v1: Statement) => {
+          ImmutableRow.iterator(results(v1))
+        }
+      }
+
+    implicit val updatableResults: StatementConverter[UpdatableRow] = {
+      (v1: Statement) => {
+        UpdatableRow.iterator(results(v1))
+      }
     }
 
-    implicit val int: StatementConverter[Int] = {
-      (statement: Statement) =>
-        statement.getUpdateCount
-    }
+    implicit val emptyProduct: StatementConverter[HNil] =
+      new StatementConverter[HNil] {
+        override def apply(v1: Statement): HNil = HNil
+      }
 
-    implicit val unit: StatementConverter[Unit] = {
-      (statement: Statement) => ()
-    }
-
-    implicit def iterator[R >: ImmutableRow, A](implicit rowConverter: RowConverter[R, A]): StatementConverter[Iterator[A]] = {
-      (statement: Statement) =>
-        ImmutableRow.iterator(statement.getResultSet).map(rowConverter)
-    }
-
-  }
-
-  /**
-    * Automatically generated statement converters are to be used
-    * only if there isn't an explicit statement converter.
-    */
-  trait LowerPriorityStatementConverterImplicits {
     implicit def product[H, T <: HList](implicit
       H: StatementConverter[H],
       T: StatementConverter[T]
-    ): CompositeGetter[HTRowUpperBound, H :: T] =
-      new CompositeGetter[HTRowUpperBound, H :: T] {
-        override def apply(row: HTRowUpperBound, ix: Index): H :: T = {
-          val head = H(row.asInstanceOf[HRow], ix)
-          val tail = T(row.asInstanceOf[TRow], ix + H.length)
-          head :: tail
+    ): StatementConverter[H :: T] = {
+      new StatementConverter[H :: T] {
+        override def apply(v1: Statement): H :: T = {
+          H(v1) :: T(v1)
         }
-
-        override val length: Int = H.length + T.length
       }
-
-    implicit def emptyProduct[R]: StatementC =
-      new CompositeGetter[Row, HNil] {
-
-        override def apply(v1: Row, v2: Index): HNil = {
-          HNil
-        }
-
-        override val length: Int = 0
-      }
+    }
   }
 
 }
