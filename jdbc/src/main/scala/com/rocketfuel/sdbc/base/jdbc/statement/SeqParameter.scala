@@ -42,7 +42,7 @@ trait SeqParameter {
     implicit def ofParameterOption[T](implicit parameter: Parameter[T], arrayType: ArrayTypeName[Seq[Option[T]]]): SeqParameter[Option[T]] = {
       val mapF: Option[T] => AnyRef = parameter match {
         case p: DerivedParameter[_] =>
-          elem => elem.map(p.conversion andThen box).orNull
+          elem => elem.map(p.conversion andThen box)
         case _ =>
           elem => elem.map(box).orNull
       }
@@ -115,36 +115,12 @@ trait SeqParameter {
     )
   }
 
-  implicit def seqGetter[T](implicit getter: Getter[T]): Getter[Seq[T]] =
-    (row: Row, index: Index) => {
-      for {
-        array <- Option(row.getArray(index(row)))
-      } yield {
-        val mappedArray = array.getResultSet.iterator().map { row =>
-          row[T](1)
-        }
-        mappedArray.toSeq
-      }
-    }
-
-  implicit def seqOptionGetter[T](implicit getter: Getter[T]): Getter[Seq[Option[T]]] =
-    (row: Row, index: Index) => {
-      for {
-        array <- Option(row.getArray(index(row)))
-      } yield {
-        val mappedArray = array.getResultSet.iterator().map { row =>
-          row[Option[T]](1)
-        }
-        mappedArray.toSeq
-      }
-    }
-
 }
 
 /**
   * Use this instead of SQLXMLParameter when the DBMS has both arrays and XML.
   */
-trait SeqWithXmlParameter extends SeqParameter {
+trait XmlParameter {
   self: DBMS with StringParameter =>
 
   implicit val NodeSeqParameter: Parameter[NodeSeq] = {

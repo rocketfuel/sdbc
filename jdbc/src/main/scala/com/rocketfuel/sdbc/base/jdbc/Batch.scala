@@ -1,7 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import java.sql.{SQLFeatureNotSupportedException, PreparedStatement}
-import com.rocketfuel.sdbc.base
+import java.sql.SQLFeatureNotSupportedException
 import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
 import shapeless.ops.hlist._
 import shapeless.ops.record.{MapValues, Keys}

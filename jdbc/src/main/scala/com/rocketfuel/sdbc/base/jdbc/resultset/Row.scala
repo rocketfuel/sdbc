@@ -9,7 +9,8 @@ import java.sql.{Array => JdbcArray, _}
 trait Row extends base.Index {
   self: DBMS =>
 
-  abstract class Row private[jdbc]() extends RowIndexOps {
+  abstract class Row private[jdbc]()
+    extends RowIndexOps {
 
     override def columnCount: Int = getMetaData.getColumnCount
 

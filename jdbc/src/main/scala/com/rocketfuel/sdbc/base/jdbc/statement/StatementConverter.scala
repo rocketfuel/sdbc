@@ -1,8 +1,9 @@
 package com.rocketfuel.sdbc.base.jdbc.statement
 
 import com.rocketfuel.sdbc.base.jdbc.DBMS
-import java.sql.{SQLFeatureNotSupportedException, ResultSet, Statement}
-import shapeless.{HNil, ::, HList}
+import java.sql._
+import scala.collection.generic.CanBuildFrom
+import shapeless.{::, Generic, HList, HNil, Lazy}
 
 trait StatementConverter {
   self: DBMS =>
@@ -29,15 +30,15 @@ trait StatementConverter {
           v1.getLargeUpdateCount
         } catch {
           case _: UnsupportedOperationException |
-               SQLFeatureNotSupportedException =>
-            v1.getUpdateCount
+               _: SQLFeatureNotSupportedException =>
+            v1.getUpdateCount.toLong
         }
         v1.getMoreResults()
         if (count == -1) None.get else UpdateCount(count)
     }
 
     implicit def convertedRowIterator[
-      R >: ImmutableRow,
+      R >: ImmutableRow <: Row,
       A
     ](implicit converter: RowConverter[R, A]
     ): StatementConverter[Iterator[A]] = {
@@ -45,14 +46,20 @@ trait StatementConverter {
         ImmutableRow.iterator(results(v1)).map(converter)
     }
 
-    implicit def convertedRowVector[
-      R >: ImmutableRow,
-      A
-    ](implicit converter: RowConverter[R, A]
-    ): StatementConverter[Vector[A]] = {
-      (v1: Statement) => {
-        convertedRowIterator[R, A](converter)(v1).toVector
-      }
+    implicit def convertedRowCanBuildFrom[
+      R >: ImmutableRow <: Row,
+      A,
+      F[_]
+    ](implicit converter: RowConverter[R, A],
+      canBuildFrom: CanBuildFrom[Nothing, A, F[A]]
+    ): StatementConverter[F[A]] = {
+      (v1: Statement) =>
+        val iterator = convertedRowIterator[R, A](converter)(v1)
+        val builder = canBuildFrom()
+
+        builder ++= iterator
+
+        builder.result()
     }
 
     implicit def convertedRowOption[
@@ -60,9 +67,8 @@ trait StatementConverter {
       A
     ](implicit converter: RowConverter[R, A]
     ): StatementConverter[Option[A]] = {
-      (v1: Statement) => {
-        convertedRowIterator[R, A](converter)(v1).toStream.headOption
-      }
+      (v1: Statement) =>
+        resultSetOption(v1).map(ImmutableRow.apply _ andThen converter)
     }
 
     implicit def convertedRowSingleton[
@@ -70,42 +76,24 @@ trait StatementConverter {
       A
     ](implicit converter: RowConverter[R, A]
     ): StatementConverter[A] =  {
-      (v1: Statement) => {
-        convertedRowIterator[R, A](converter)(v1).toStream.head
-      }
+      (v1: Statement) =>
+        converter(ImmutableRow(resultSetSingleton(v1)))
     }
 
-    implicit def convertedUpdatableRowIterator[A](implicit
-      converter: RowConverter[UpdatableRow, A]
-    ): StatementConverter[Iterator[A]] = {
-      (v1: Statement) => {
-          UpdatableRow.iterator(results(v1)).map(converter)
-        }
-      }
+    implicit val updatableRowIterator: StatementConverter[Iterator[UpdatableRow]] = {
+      (v1: Statement) =>
+        UpdatableRow.iterator(results(v1))
+    }
 
-    implicit def convertedUpdatableRowVector[A](implicit
-      converter: RowConverter[UpdatableRow, A]
-    ): StatementConverter[Vector[A]] = {
-        (v1: Statement) => {
-          convertedUpdatableRowIterator[A](converter)(v1).toVector
-        }
-      }
+    implicit val updatableRowOption: StatementConverter[Option[UpdatableRow]] = {
+      (v1: Statement) =>
+        resultSetOption(v1).map(UpdatableRow.apply)
+    }
 
-    implicit def convertedUpdatableRowOption[A](implicit
-      converter: RowConverter[UpdatableRow, A]
-    ): StatementConverter[Option[A]] = {
-        (v1: Statement) => {
-          convertedUpdatableRowIterator[A](converter)(v1).toStream.headOption
-        }
-      }
-
-    implicit def convertedUpdatableRowSingleton[A](implicit
-      converter: RowConverter[UpdatableRow, A]
-    ): StatementConverter[A] = {
-        (v1: Statement) => {
-          convertedUpdatableRowIterator[A](converter)(v1).toStream.head
-        }
-      }
+    implicit val updatableRowSingleton: StatementConverter[UpdatableRow] = {
+      (v1: Statement) =>
+        UpdatableRow(resultSetSingleton(v1))
+    }
 
   }
 
@@ -116,23 +104,27 @@ trait StatementConverter {
       }
 
     implicit val results: StatementConverter[ResultSet] = {
-        (v1: Statement) => {
+        (v1: Statement) =>
           val results = Option(v1.getResultSet()).get
           v1.getMoreResults(Statement.KEEP_CURRENT_RESULT)
           results
-        }
       }
 
-    implicit val immutableResults: StatementConverter[ImmutableRow] = {
-        (v1: Statement) => {
-          ImmutableRow.iterator(results(v1))
-        }
-      }
+    private[jdbc] val resultSetOption: StatementConverter[Option[ResultSet]] = {
+      (v1: Statement) =>
+        val results = Option(v1.getResultSet()).get
+        try {
+          if (results.next()) {
+            Some(results)
+          } else {
+            None
+          }
+        } finally v1.getMoreResults()
+    }
 
-    implicit val updatableResults: StatementConverter[UpdatableRow] = {
-      (v1: Statement) => {
-        UpdatableRow.iterator(results(v1))
-      }
+    private[jdbc] val resultSetSingleton: StatementConverter[ResultSet] =  {
+      (v1: Statement) =>
+        resultSetOption(v1).get
     }
 
     implicit val emptyProduct: StatementConverter[HNil] =
@@ -150,6 +142,16 @@ trait StatementConverter {
         }
       }
     }
+
+    implicit def generic[F, G](implicit
+      gen: Generic.Aux[F, G],
+      G: Lazy[StatementConverter[G]]
+    ): StatementConverter[F] =
+      new StatementConverter[F] {
+        override def apply(v1: Statement): F = {
+          gen.from(G.value(v1))
+        }
+      }
   }
 
 }

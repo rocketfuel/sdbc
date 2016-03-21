@@ -53,15 +53,15 @@ trait ParameterizedQuery {
       subclassConstructor(parameterValues = withAdditionalParameters)
     }
 
-    def on(additionalParameters: Map[String, ParameterValue]): Self = {
-      on(additionalParameters: Parameters)
-    }
-
     def on(additionalParameters: (String, ParameterValue)*): Self = {
       on(additionalParameters: Parameters)
     }
 
-    def on[
+    def onMap(additionalParameters: Map[String, ParameterValue]): Self = {
+      on(additionalParameters: Parameters)
+    }
+
+    def onProduct[
       P,
       Repr <: HList,
       ReprKeys <: HList,
@@ -76,7 +76,7 @@ trait ParameterizedQuery {
       on(additionalParameters: Parameters)
     }
 
-    def on[
+    def onRecord[
       Repr <: HList,
       ReprKeys <: HList,
       MappedRepr <: HList

@@ -61,6 +61,16 @@ trait Query {
       run(additionalParameters: Parameters)
     }
 
+    /**
+      * Make a copy of this query that handles the results differently.
+      * @param statementConverter
+      * @tparam B
+      * @return
+      */
+    def as[B](implicit statementConverter: StatementConverter[B]): Query[B] = {
+      Query[B](statement, parameterValues)
+    }
+
   }
 
   object Query

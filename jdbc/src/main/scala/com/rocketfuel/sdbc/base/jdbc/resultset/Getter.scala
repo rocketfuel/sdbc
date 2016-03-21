@@ -9,35 +9,26 @@ import java.nio.ByteBuffer
 import java.sql.{Date, SQLException, Time, Timestamp}
 import java.time._
 import java.util.UUID
+import scala.collection.generic.CanBuildFrom
 import scodec.bits.ByteVector
 
 trait Getter {
   self: DBMS =>
 
-  /**
-    * This is a DBMS specific type that creates getters from implicit methods
-    * in its scope. The getter methods should go in the DBMS object.
-    *
-    * @tparam T
-    */
-  case class Getter[-R <: Row, +T] private[sdbc] (getter: base.Getter[R, Index, T])
-    extends base.Getter[R, Index, T] {
-
-    override def apply(row: R, index: Index): Option[T] = {
-      getter(row, index)
-    }
-
-  }
+  trait Getter[-R <: Row, +T] extends base.Getter[R, Index, T]
 
   object Getter {
+
     def apply[R <: Row, T](implicit getter: Getter[R, T]): Getter[R, T] = getter
 
-    implicit def ofFunction[R <: Row, T](getter: base.Getter[R, Index, T]): Getter[T, R] = {
-      Getter[R, T](getter)
+    implicit def ofFunction[R <: Row, T](getter: base.Getter[R, Index, T]): Getter[R, T] = {
+      new Getter[R, T] {
+        override def apply(v1: R, v2: Index): Option[T] = getter(v1, v2)
+      }
     }
 
     implicit def ofParser[R <: Row, T](parser: String => T)(implicit stringGetter: Getter[R, String]): Getter[R, T] = {
-      Getter((row: R, index: Index) => stringGetter.getter(row, index).map(parser))
+      (row: R, index: Index) => stringGetter(row, index).map(parser)
     }
 
     def ofVal[R <: Row, T <: AnyVal](valGetter: (R, Int) => T): Getter[R, T] = {
@@ -46,6 +37,7 @@ trait Getter {
         if (row.wasNull) None
         else Some(value)
     }
+
   }
 
   trait Parser[-R <: Row, +T] extends base.Getter[R, Index, T] {
@@ -134,29 +126,26 @@ trait BytesGetter {
 }
 
 trait SeqGetter {
-  self: DBMS
-    with BytesGetter =>
+  self: DBMS =>
 
-  implicit def toSeqGetter[T](implicit getter: CompositeGetter[Row, T]): Getter[Row, Seq[T]] = {
+  implicit def canBuildFromGetter[F[_], T](
+    implicit getter: CompositeGetter[Row, T],
+    canBuildFrom: CanBuildFrom[Nothing, T, F[T]]
+  ): Getter[Row, F[T]] = {
     (row: Row, ix: Index) =>
+      val builder = canBuildFrom()
       for {
         a <- Option(row.getArray(ix(row)))
       } yield {
-        val arrayIterator = a.getResultSet().iterator()
+        val arrayIterator = ImmutableRow.iterator(a.getResultSet())
         val arrayValues = for {
           arrayRow <- arrayIterator
         } yield {
           arrayRow[T](1)
         }
-        arrayValues.toVector
+        builder ++= arrayValues
+        builder.result()
       }
-  }
-
-  //Override what would be the inferred Seq[Byte] getter, because you can't use ResultSet#getArray
-  //to get the bytes.
-  implicit val SeqByteGetter: Getter[Row, Seq[Byte]] = {
-    (row: Row, ix: Index) =>
-      ByteVectorGetter(row, ix).map(_.toSeq)
   }
 
 }

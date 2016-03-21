@@ -1,5 +1,6 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
+import com.datastax.driver.core.Row
 import java.net.InetAddress
 import java.util.{UUID, Date}
 
@@ -16,6 +17,7 @@ trait CompositeGetter {
 
   /**
     * Like doobie's Composite, but only the getter part.
+ *
     * @tparam A
     */
   trait CompositeGetter[A] extends ((Row, Int) => A) {

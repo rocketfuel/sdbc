@@ -2,8 +2,8 @@ package com.rocketfuel.sdbc.postgresql.implementation
 
 import com.rocketfuel.sdbc.base.CISet
 import com.rocketfuel.sdbc.base.jdbc._
-import com.rocketfuel.sdbc.base.jdbc.statement.SeqWithXmlParameter
-import com.rocketfuel.sdbc.postgresql.{LTree, Cidr}
+import com.rocketfuel.sdbc.base.jdbc.statement.{SeqParameter, XmlParameter}
+import com.rocketfuel.sdbc.postgresql.{Cidr, LTree}
 import java.sql.SQLException
 import org.postgresql.PGConnection
 import org.postgresql.core.BaseConnection
@@ -14,7 +14,8 @@ private[sdbc] abstract class PostgreSql
   with IntervalImplicits
   with Getters
   with Updaters
-  with SeqWithXmlParameter
+  with XmlParameter
+  with SeqParameter
   with ArrayTypes {
 
   override def dataSourceClassName = "org.postgresql.ds.PGSimpleDataSource"

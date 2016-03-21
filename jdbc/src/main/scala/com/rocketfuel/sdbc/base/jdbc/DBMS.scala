@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 import com.rocketfuel.sdbc.base.jdbc.resultset._
-import com.rocketfuel.sdbc.base.jdbc.statement.{StatementConverter, ParameterValue}
+import com.rocketfuel.sdbc.base.jdbc.statement.{ParameterValue, StatementConverter}
 import com.zaxxer.hikari.HikariConfig
 import java.sql
 

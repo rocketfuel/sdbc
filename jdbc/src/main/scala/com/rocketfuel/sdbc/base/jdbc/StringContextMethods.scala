@@ -63,10 +63,10 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): Query[ImmutableRow] = {
+      ): Query[Iterator[ImmutableRow]] = {
         val parameterValues = toParameterValues(a)
 
-        Query[ImmutableRow](compiled, parameterValues)
+        Query[Iterator[ImmutableRow]](compiled, parameterValues)
       }
     }
 
@@ -77,10 +77,10 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): Query[UpdatableRow] = {
+      ): Query[Iterator[UpdatableRow]] = {
         val parameterValues = toParameterValues(a)
 
-        Query[UpdatableRow](compiled, parameterValues)
+        Query[Iterator[UpdatableRow]](compiled, parameterValues)
       }
     }
 

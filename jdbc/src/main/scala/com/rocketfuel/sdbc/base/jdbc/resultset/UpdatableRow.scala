@@ -11,11 +11,30 @@ import java.util.Calendar
 trait UpdatableRow {
   self: DBMS =>
 
+  /**
+    * An UpdatableRow has the methods of Row, and additionally methods that require that
+    * the underlying ResultSet is open and on the correct row.
+    *
+    * UpdatableRow should generally only be used within the context of UpdatableRow.iterator(ResultSet).
+    * @param underlying
+    * @param columnNames
+    * @param columnIndexes
+    */
   class UpdatableRow private[sdbc](
     val underlying: ResultSet,
     override val columnNames: IndexedSeq[String],
     override val columnIndexes: Map[String, Int]
-  ) extends Row() {
+  ) extends Row()
+    with Wrapper {
+
+    override def unwrap[T](iface: Class[T]): T = {
+      if (iface.isInstance(underlying)) underlying.asInstanceOf[T]
+      else underlying.unwrap[T](iface)
+    }
+
+    override def isWrapperFor(iface: Class[_]): Boolean = {
+      iface.isInstance(underlying)
+    }
 
     def update[T](columnIndex: Int, x: T)(implicit updater: Updater[T]): Unit = {
       updater.update(this, columnIndex, x)

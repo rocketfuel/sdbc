@@ -1,12 +1,13 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 import com.rocketfuel.sdbc.base.CISet
-import com.rocketfuel.sdbc.base.jdbc.resultset.DefaultGetters
+import com.rocketfuel.sdbc.base.jdbc.resultset.{DefaultGetters, SeqGetter}
 import com.rocketfuel.sdbc.base.jdbc.statement.DefaultParameters
 
 class TestDbms extends DBMS
   with DefaultParameters
   with DefaultGetters
+  with SeqGetter
   with DefaultUpdaters {
 
   override def dataSourceClassName: String = classOf[TestDataSource].getCanonicalName

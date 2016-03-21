@@ -1,7 +1,8 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
-import com.datastax.driver.core.Row
+import com.datastax.driver.core.{ResultSet, Row}
 import scala.annotation.implicitNotFound
+import scala.collection.generic.CanBuildFrom
 
 trait RowConverter {
   self: Cassandra =>
@@ -36,6 +37,54 @@ trait RowConverter {
           converter(row, 0)
         }
       }
+  }
+
+  trait ResultSetConverter[A] extends (ResultSet => A)
+
+  object ResultSetConverter {
+
+    def apply[A](implicit resultSetConverter: ResultSetConverter[A]): ResultSetConverter[A] = resultSetConverter
+
+    implicit def fromFunction[A](implicit
+      resultSetConverter: ResultSet => A
+    ): ResultSetConverter[A] = {
+      new ResultSetConverter[A] {
+        override def apply(v1: ResultSet): A = {
+          resultSetConverter(v1)
+        }
+      }
+    }
+
+    implicit val unit: ResultSetConverter[Unit] = {
+      (resultSet: ResultSet) => ()
+    }
+
+    implicit val option: ResultSetConverter[Option[Row]] = {
+      (rs: ResultSet) => Option(rs.one())
+    }
+
+    implicit val singleton: ResultSetConverter[Row] = {
+      (rs: ResultSet) => option(rs).get
+    }
+
+    implicit val iterator: ResultSetConverter[Iterator[Row]] = {
+      import collection.convert.decorateAsScala._
+      (rs: ResultSet) => rs.iterator().asScala
+    }
+
+    implicit def buildFromIterator[F[_]](implicit
+      cb: CanBuildFrom[Iterator[Row], Row, F[Row]]
+    ): ResultSetConverter[F[Row]] = {
+      def toF(rs: ResultSet): F[Row] = {
+        val iterator = iterator(rs)
+        val builder = cb(iterator)
+        for (row <- iterator) builder += row
+        builder.result()
+      }
+
+      fromFunction(toF)
+    }
+
   }
 
 }

@@ -3,51 +3,112 @@ package com.rocketfuel.sdbc.base.jdbc
 import org.scalatest.FunSuite
 import shapeless._
 import TestDbms._
-import shapeless.record.Record
 
 /**
  * Test cases taken from https://github.com/tpolecat/doobie/blob/c8a273c365edf5a583621fbfd77a49297986d82f/core/src/test/scala/doobie/util/composite.scala
  */
 class CompositeGetterSpec
-  extends FunSuite {
+  extends FunSuite
+  with TypesForTesting {
 
-  case class Woozle(a: (String, Int), b: Int :: String :: HNil, c: Boolean)
-
-  test("CompositeGetter[Int]") {
-    CompositeGetter[Int]
-    assertCompiles("CompositeGetter[Int]")
+  test("CompositeGetter[Row, Int]") {
+    assertCompiles("CompositeGetter[Row, Int]")
   }
 
-  test("CompositeGetter[(Int, Int)]") {
-    assertCompiles("CompositeGetter[(Int, Int)]")
+  test("CompositeGetter[Row, (Int, Int)]") {
+    assertCompiles("CompositeGetter[Row, (Int, Int)]")
   }
 
-  test("CompositeGetter[(Int, Int, String)]") {
-    assertCompiles("CompositeGetter[(Int, Int, String)]")
+  test("CompositeGetter[Row, (Int, Int, String)]") {
+    assertCompiles("CompositeGetter[Row, (Int, Int, String)]")
   }
 
-  test("CompositeGetter[(Int, (Int, String))]") {
-    assertCompiles("CompositeGetter[(Int, (Int, String))]")
+  test("CompositeGetter[Row, (Int, (Int, String))]") {
+    assertCompiles("CompositeGetter[Row, (Int, (Int, String))]")
   }
 
-  test("CompositeGetter[Woozle]") {
-    assertCompiles("CompositeGetter[Woozle]")
+  test("CompositeGetter[Row, Woozle]") {
+    assertCompiles("CompositeGetter[Row, Woozle]")
   }
 
-  test("CompositeGetter[(Woozle, String)]") {
-    assertCompiles("CompositeGetter[(Woozle, String)]")
+  test("CompositeGetter[Row, (Woozle, String)]") {
+    assertCompiles("CompositeGetter[Row, (Woozle, String)]")
   }
 
-  test("CompositeGetter[(Int, Woozle :: Woozle :: String :: HNil)]") {
-    assertCompiles("CompositeGetter[(Int, Woozle :: Woozle :: String :: HNil)]")
+  test("CompositeGetter[Row, (Int, Woozle :: Woozle :: String :: HNil)]") {
+    assertCompiles("CompositeGetter[Row, (Int, Woozle :: Woozle :: String :: HNil)]")
   }
 
-  test("shapeless record") {
-    type DL = (Int, String)
-    type A = Record.`'foo -> Int, 'bar -> String, 'baz -> DL, 'quz -> Woozle`.T
+  test("CompositeGetter[Row, Record]") {
+    assertCompiles("CompositeGetter[Row, R]")
+    assertCompiles("CompositeGetter[Row, (R, R)]")
+  }
+  
+  test("CompositeGetter[ImmutableRow, Int]") {
+    assertCompiles("CompositeGetter[ImmutableRow, Int]")
+  }
 
-    assertCompiles("CompositeGetter[A]")
-    assertCompiles("CompositeGetter[(A, A)]")
+  test("CompositeGetter[ImmutableRow, (Int, Int)]") {
+    assertCompiles("CompositeGetter[ImmutableRow, (Int, Int)]")
+  }
+
+  test("CompositeGetter[ImmutableRow, (Int, Int, String)]") {
+    assertCompiles("CompositeGetter[ImmutableRow, (Int, Int, String)]")
+  }
+
+  test("CompositeGetter[ImmutableRow, (Int, (Int, String))]") {
+    assertCompiles("CompositeGetter[ImmutableRow, (Int, (Int, String))]")
+  }
+
+  test("CompositeGetter[ImmutableRow, Woozle]") {
+    assertCompiles("CompositeGetter[ImmutableRow, Woozle]")
+  }
+
+  test("CompositeGetter[ImmutableRow, (Woozle, String)]") {
+    assertCompiles("CompositeGetter[ImmutableRow, (Woozle, String)]")
+  }
+
+  test("CompositeGetter[ImmutableRow, (Int, Woozle :: Woozle :: String :: HNil)]") {
+    assertCompiles("CompositeGetter[ImmutableRow, (Int, Woozle :: Woozle :: String :: HNil)]")
+  }
+
+  test("CompositeGetter[ImmutableRow, Record]") {
+    assertCompiles("CompositeGetter[ImmutableRow, R]")
+    assertCompiles("CompositeGetter[ImmutableRow, (R, R)]")
+  }
+
+  test("CompositeGetter[UpdatableRow, Int]") {
+    assertCompiles("CompositeGetter[UpdatableRow, Int]")
+  }
+
+  test("CompositeGetter[UpdatableRow, (Int, Int)]") {
+    assertCompiles("CompositeGetter[UpdatableRow, (Int, Int)]")
+  }
+
+  test("CompositeGetter[UpdatableRow, (Int, Int, String)]") {
+    assertCompiles("CompositeGetter[UpdatableRow, (Int, Int, String)]")
+  }
+
+  test("CompositeGetter[UpdatableRow, (Int, (Int, String))]") {
+    assertCompiles("CompositeGetter[UpdatableRow, (Int, (Int, String))]")
+  }
+
+  test("CompositeGetter[UpdatableRow, Woozle]") {
+    assertCompiles("CompositeGetter[UpdatableRow, Woozle]")
+  }
+
+  test("CompositeGetter[UpdatableRow, (Woozle, String)]") {
+    testNames
+    assertCompiles("CompositeGetter[UpdatableRow, (Woozle, String)]")
+  }
+
+  test("CompositeGetter[UpdatableRow, (Int, Woozle :: Woozle :: String :: HNil)]") {
+    assertCompiles("CompositeGetter[UpdatableRow, (Int, Woozle :: Woozle :: String :: HNil)]")
+  }
+
+  test("CompositeGetter[UpdatableRow, R]") {
+    assertCompiles("CompositeGetter[UpdatableRow, R]")
+    assertCompiles("CompositeGetter[UpdatableRow, (R, R)]")
   }
 
 }
