@@ -13,6 +13,7 @@ abstract class DBMS
   with Queryable
   with Batch
   with StringContextMethods
+  with ConnectionMethods
   with ResultSetImplicits
   with StatementConverter
   with Getter

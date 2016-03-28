@@ -1,108 +1,20 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
-import shapeless.ops.hlist._
-import shapeless.ops.record.{MapValues, Keys}
-import shapeless.{LabelledGeneric, HList}
+import com.rocketfuel.sdbc.base.{CompiledStatement, Logging}
+import shapeless.ops.hlist.ToList
+import shapeless.ops.record.{Keys, MapValues}
+import shapeless.syntax.std.tuple._
+import shapeless.ops.tuple.{IsComposite, Mapper}
+import shapeless._
+import shapeless.ops.hlist
+import shapeless.syntax.HListOps
 
 trait Query {
   self: DBMS =>
 
-  case class Query[A] private[jdbc](
-    override val statement: CompiledStatement,
-    override val parameterValues: Map[String, ParameterValue]
-  )(implicit statementConverter: StatementConverter[A]
-  ) extends ParameterizedQuery[Query[A]] {
+  Query[(Unit, Unit, Iterator[ImmutableRow]), Result[(Result.Unit, Result.Unit, Result.ImmutableIterator)]]
 
-    override def subclassConstructor(parameterValues: Map[String, ParameterValue]): Query[A] = {
-      copy(parameterValues = parameterValues)
-    }
-
-    protected def run(additionalParameters: Parameters)(implicit connection: Connection): A = {
-      val withAdditionalParameters = setParameters(additionalParameters.parameters)
-      Query.run(statement, withAdditionalParameters)
-    }
-
-    def run(additionalParameters: (String, ParameterValue)*)(implicit connection: Connection): A = {
-      run(additionalParameters: Parameters)
-    }
-
-    def run(additionalParameters: Map[String, ParameterValue])(implicit connection: Connection): A = {
-      run(additionalParameters: Parameters)
-    }
-
-    def run[
-      P,
-      Repr <: HList,
-      ReprKeys <: HList,
-      MappedRepr <: HList
-    ](additionalParameters: P
-    )(implicit connection: Connection,
-      genericA: LabelledGeneric.Aux[P, Repr],
-      keys: Keys.Aux[Repr, ReprKeys],
-      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
-      ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, ParameterValue]
-    ): A = {
-      run(additionalParameters: Parameters)
-    }
-
-    def run[
-      Repr <: HList,
-      ReprKeys <: HList,
-      MappedRepr <: HList
-    ](additionalParameters: Repr
-    )(implicit connection: Connection,
-      keys: Keys.Aux[Repr, ReprKeys],
-      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
-      ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, ParameterValue]
-    ): A = {
-      run(additionalParameters: Parameters)
-    }
-
-    /**
-      * Make a copy of this query that handles the results differently.
-      * @param statementConverter
-      * @tparam B
-      * @return
-      */
-    def as[B](implicit statementConverter: StatementConverter[B]): Query[B] = {
-      Query[B](statement, parameterValues)
-    }
-
-  }
-
-  object Query
-    extends Logging {
-
-    def apply[A](
-      queryText: String,
-      hasParameters: Boolean = true
-    )(implicit statementConverter: StatementConverter[A]
-    ): Query[A] = {
-      Query(
-        statement = CompiledStatement(queryText, hasParameters),
-        parameterValues = Map.empty[String, ParameterValue]
-      )
-    }
-
-    def run[A](
-      queryText: String,
-      parameters: (String, ParameterValue)*
-    )(implicit connection: Connection,
-      statementConverter: StatementConverter[A]
-    ): A = {
-      val statement = CompiledStatement(queryText)
-      run(statement, parameters.toMap)
-    }
-
-    private[jdbc] def prepareStatement(
-      compiledStatement: CompiledStatement
-    )(implicit connection: Connection
-    ): PreparedStatement = {
-      connection.prepareStatement(compiledStatement.queryText)
-    }
+  object Run extends Logging {
 
     private[jdbc] def bind(
       preparedStatement: PreparedStatement,
@@ -126,7 +38,7 @@ trait Query {
     ): Statement = {
       logRun(compiledStatement, parameterValues)
 
-      val prepared = prepareStatement(compiledStatement)
+      val prepared = connection.prepareStatement(compiledStatement.queryText)
       val bound = bind(prepared, compiledStatement, parameterValues)
 
       bound.execute()
@@ -138,6 +50,58 @@ trait Query {
       parameters: Map[String, ParameterValue]
     ): Unit = {
       logger.debug(s"""Executing "${compiledStatement.originalQueryText}" with parameters $parameters.""")
+    }
+
+    def unapply[InnerResult, OuterResult <: Result[InnerResult]](
+      query: Query[InnerResult, OuterResult]
+    )(implicit connection: Connection
+    ): Option[(java.lang.AutoCloseable, InnerResult)] = {
+      val executedStatement = run(query.statement, query.parameterValues)
+      val results = query.statementConverter(executedStatement)
+
+      val closeable = new AutoCloseable {
+        override def close(): Unit = executedStatement.close()
+      }
+
+      Some((closeable, results))
+    }
+
+  }
+
+  class Query[InnerResult, OuterResult <: Result[InnerResult]] private[jdbc](
+    override val statement: CompiledStatement,
+    override val parameterValues: Map[String, ParameterValue]
+  )(implicit val statementConverter: StatementConverter[InnerResult, OuterResult]
+  ) extends ParameterizedQuery[Query[InnerResult, OuterResult]] {
+
+    override def subclassConstructor(parameterValues: Map[String, ParameterValue]): Query[InnerResult, OuterResult] = {
+      new Query[InnerResult, OuterResult](statement, parameterValues)
+    }
+
+    /**
+      * Make a copy of this query that handles the results differently.
+      *
+      * @param statementConverter
+      * @tparam B
+      * @return
+      */
+    def as[InnerResult, OuterResult <: Result[InnerResult]](implicit statementConverter: StatementConverter[InnerResult, OuterResult]): Query[InnerResult, OuterResult] = {
+      new Query[InnerResult, OuterResult](statement, parameterValues)
+    }
+
+  }
+
+  object Query {
+
+    def apply[InnerResult, OuterResult <: Result[InnerResult]](
+      queryText: String,
+      hasParameters: Boolean = true
+    )(implicit statementConverter: StatementConverter[InnerResult, OuterResult]
+    ): Query[InnerResult, OuterResult] = {
+      new Query[InnerResult, OuterResult](
+        statement = CompiledStatement(queryText, hasParameters),
+        parameterValues = Map.empty[String, ParameterValue]
+      )
     }
 
   }

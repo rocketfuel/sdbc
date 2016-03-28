@@ -3,12 +3,11 @@ package com.rocketfuel.sdbc.base.jdbc
 import org.scalatest.FunSuite
 import shapeless._
 import shapeless.syntax.singleton._
-import scalaz.Scalaz._
 
 class SettersSpec
   extends FunSuite {
 
-  val q = TestDbms.Query[Unit]("@_1 @_2")
+  val q = TestDbms.Query[Unit, TestDbms.Result.Unit]("@_1 @_2")
 
   test("set a pair") {
     assertCompiles("""q.on("_1" -> 3)""")

@@ -27,10 +27,10 @@ abstract class JdbcProcessSuite
 
   case class LongKey(key: Long)
 
-  implicit val LongInsertable = new Updatable[LongKey] {
-    val update = Update("INSERT INTO tbl (i) VALUES (@key)")
+  implicit val LongInsertable = new QueryForUpdatable[LongKey] {
+    val update = QueryForUpdate("INSERT INTO tbl (i) VALUES (@key)")
 
-    override def update(key: LongKey): Update = {
+    override def update(key: LongKey): QueryForUpdate = {
       update.onProduct(key)
     }
   }

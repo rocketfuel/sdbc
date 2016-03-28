@@ -36,7 +36,7 @@ trait Batch {
       )
     }
 
-    def addBatch(additionalParameters: Map[String, ParameterValue]): Batch = {
+    def addBatchMap(additionalParameters: Map[String, ParameterValue]): Batch = {
       addBatch(additionalParameters: Parameters)
     }
 
@@ -44,7 +44,7 @@ trait Batch {
       addBatch(additionalParameters: Parameters)
     }
 
-    def addBatch[
+    def addBatchProduct[
       P,
       Repr <: HList,
       ReprKeys <: HList,
@@ -59,7 +59,7 @@ trait Batch {
       addBatch(additionalParameters: Parameters)
     }
 
-    def addBatch[
+    def addBatchRecord[
       Repr <: HList,
       ReprKeys <: HList,
       MappedRepr <: HList

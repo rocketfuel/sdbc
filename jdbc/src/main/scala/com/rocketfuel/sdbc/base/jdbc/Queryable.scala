@@ -3,16 +3,18 @@ package com.rocketfuel.sdbc.base.jdbc
 trait Queryable {
   self: DBMS =>
 
-  trait Queryable[Key, Result] {
-    def query(key: Key): Query[Result]
+  trait Queryable[Key, InnerResult, OuterResult <: Result[InnerResult]] {
+    def query(key: Key): Query[InnerResult, OuterResult]
   }
 
-  def run[Key, Result](
+  def run[Key, InnerResult, OuterResult <: Result[InnerResult]](
     key: Key
-  )(implicit queryable: Queryable[Key, Result],
+  )(implicit queryable: Queryable[Key, InnerResult, OuterResult],
     connection: Connection
-  ): Result = {
-    queryable.query(key).run()
+  ) = {
+    val Run(closer, result) = queryable.query(key)
+    try result
+    finally closer.close()
   }
 
 }

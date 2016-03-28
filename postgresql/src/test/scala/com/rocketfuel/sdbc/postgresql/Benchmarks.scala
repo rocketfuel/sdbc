@@ -65,14 +65,14 @@ class Benchmarks
 
   override protected def beforeEach(): Unit = {
     withPg {implicit connection =>
-      TestTable.create.update()
+      TestTable.create.run()
       connection.commit()
     }
   }
 
   override protected def afterEach(): Unit = {
     withPg {implicit connection =>
-      TestTable.drop.execute()
+      TestTable.drop.run()
       connection.commit()
     }
   }
@@ -102,7 +102,7 @@ class Benchmarks
       connection.commit()
 
     }{
-      TestTable.truncate.execute()
+      TestTable.truncate.run()
       connection.commit()
     }
 
@@ -112,7 +112,7 @@ class Benchmarks
   ignore("test JDBC select") {implicit connection =>
     val batch = values.foldLeft(TestTable.batchInsert){case (b, v) => v.addBatch(b)}
 
-    batch.iterator()
+    batch.run()
 
     val selectedRows = Array.ofDim[TestTable](rowCount)
 
@@ -136,7 +136,7 @@ class Benchmarks
   }
 
   ignore("time JDBC select") {implicit connection =>
-    values.foldLeft(TestTable.batchInsert){case (b, v) => v.addBatch(b)}.iterator()
+    values.foldLeft(TestTable.batchInsert){case (b, v) => v.addBatch(b)}.run()
 
     connection.commit()
 
@@ -161,10 +161,10 @@ class Benchmarks
   ignore("time com.rocketfuel.sql batch insert") {implicit connection =>
 
     val insertDuration = averageTime(repetitions) {
-      values.foldLeft(TestTable.batchInsert){case (b, v) => v.addBatch(b)}.iterator()
+      values.foldLeft(TestTable.batchInsert){case (b, v) => v.addBatch(b)}.run()
       connection.commit()
     }{
-      TestTable.truncate.execute()
+      TestTable.truncate.run()
       connection.commit()
     }
 
@@ -176,7 +176,7 @@ class Benchmarks
 
     val batch = values.foldLeft(TestTable.batchInsert){case (b, v) => v.addBatch(b)}
 
-    val insertedRows = batch.iterator()
+    val insertedRows = batch.run()
 
     connection.commit()
 
@@ -186,12 +186,12 @@ class Benchmarks
 
   ignore("time com.rocketfuel.sql select") {implicit connection =>
 
-    values.foldLeft(TestTable.batchInsert){case (b, v) => v.addBatch(b)}.iterator()
+    values.foldLeft(TestTable.batchInsert){case (b, v) => v.addBatch(b)}.run()
 
     connection.commit()
 
     val selectDuration = averageTime(repetitions) {
-      TestTable.select.iterator()
+      TestTable.select.run()
     }(() => ())
 
     println(s"com.rocketfuel.sql select took $selectDuration ms.")
@@ -200,11 +200,11 @@ class Benchmarks
 
   ignore("test com.rocketfuel.sql select") {implicit connection =>
 
-    values.foldLeft(TestTable.batchInsert){case (b, v) => v.addBatch(b)}.iterator()
+    values.foldLeft(TestTable.batchInsert){case (b, v) => v.addBatch(b)}.run()
 
     connection.commit()
 
-    val selectedRows = TestTable.select.iterator().toSeq
+    val selectedRows = TestTable.select.run().toSeq
 
     for ((TestTable(_, str1, uuid, str2), TestTable(_, str1_, uuid_, str2_)) <- values.zip(selectedRows)) {
       assert(str1 == str1_)
@@ -266,7 +266,7 @@ class Benchmarks
          |);
        """.stripMargin
 
-      Update(queryText, hasParameters = false)
+      Query[Unit](queryText, hasParameters = false)
     }
 
     val insert = {
@@ -276,7 +276,7 @@ class Benchmarks
           |VALUES
           |($str1, $uuid, $str2)
         """.stripMargin
-      Update(queryText)
+      Query[Unit](queryText)
     }
 
     val batchInsert = {
@@ -296,13 +296,13 @@ class Benchmarks
         |(?, ?, ?)
       """.stripMargin
 
-    val select = Query[TestTable]("SELECT * FROM test ORDER BY id;", hasParameters = false)
+    val select = Query[Iterator[TestTable]]("SELECT * FROM test ORDER BY id;", hasParameters = false)
 
     val drop =
-      Execute("DROP TABLE test;", hasParameters = false)
+      Query[Unit]("DROP TABLE test;", hasParameters = false)
 
     val truncate =
-      Execute("TRUNCATE TABLE test RESTART IDENTITY;")
+      Query[Unit]("TRUNCATE TABLE test RESTART IDENTITY;")
 
   }
 

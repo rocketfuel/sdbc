@@ -21,14 +21,14 @@ class TestClassSpec
   val after = "bye"
 
   test("insert and select works") { implicit connection =>
-    assertResult(1)(H2.update(TestClass.Value(before)))
+    assertResult(1)(H2.queryForUpdate(TestClass.Value(before)))
     val rows = H2.iterator(TestClass.All).toSeq
     assert(rows.exists(_.value == before), "The row wasn't inserted.")
   }
 
   test("select for update works") {implicit connection =>
     //insert a row
-    assertResult(1)(H2.update(TestClass.Value(before)))
+    assertResult(1)(H2.queryForUpdate(TestClass.Value(before)))
 
     //update all the values to "bye"
     val rows = H2.iteratorForUpdate(TestClass.All)

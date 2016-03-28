@@ -3,6 +3,7 @@ package com.rocketfuel.sdbc.base.jdbc
 import com.rocketfuel.sdbc.base
 import shapeless._
 import shapeless.ops.hlist.{Mapper, ToList}
+import shapeless.ops.tuple
 
 trait StringContextMethods {
   self: DBMS =>
@@ -35,10 +36,10 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): Query[Unit] = {
+      ): Query[Unit, Result.Unit] = {
         val parameterValues = toParameterValues(a)
 
-        Query[Unit](compiled, parameterValues)
+        new Query[Unit, Result.Unit](compiled, parameterValues)
       }
     }
 
@@ -49,38 +50,24 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): Query[UpdateCount] = {
+      ): Query[Long, Result.UpdateCount] = {
         val parameterValues = toParameterValues(a)
 
-        Query[UpdateCount](compiled, parameterValues)
+        new Query[Long, Result.UpdateCount](compiled, parameterValues)
       }
     }
 
-    object select extends ProductArgs {
+    object query extends ProductArgs {
       def applyProduct[
         A <: HList,
         MappedA <: HList
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): Query[Iterator[ImmutableRow]] = {
+      ): Query[Iterator[ImmutableRow], Result.ImmutableIterator] = {
         val parameterValues = toParameterValues(a)
 
-        Query[Iterator[ImmutableRow]](compiled, parameterValues)
-      }
-    }
-
-    object selectForUpdate extends ProductArgs {
-      def applyProduct[
-        A <: HList,
-        MappedA <: HList
-      ](a: A
-      )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
-        toList: ToList[MappedA, ParameterValue]
-      ): Query[Iterator[UpdatableRow]] = {
-        val parameterValues = toParameterValues(a)
-
-        Query[Iterator[UpdatableRow]](compiled, parameterValues)
+        new Query[Iterator[ImmutableRow], Result.ImmutableIterator](compiled, parameterValues)(StatementConverter.immutableIterator)
       }
     }
 

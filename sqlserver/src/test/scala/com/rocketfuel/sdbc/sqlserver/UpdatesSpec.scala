@@ -20,9 +20,9 @@ class UpdatesSpec extends SqlServerSuite {
     converter: CompositeGetter[T]
   ): Unit = {
     test(s"Update ${ctag.runtimeClass.getName}") {implicit connection =>
-      Update(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v $typeName)").update()
+      QueryForUpdate(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v $typeName)").update()
 
-      Update("INSERT INTO tbl (v) VALUES ($before)").on("before" -> before).update()
+      QueryForUpdate("INSERT INTO tbl (v) VALUES ($before)").on("before" -> before).update()
 
       for (row <- selectForUpdate"SELECT * FROM tbl".iterator()) {
         row("v") = after
@@ -86,7 +86,7 @@ class UpdatesSpec extends SqlServerSuite {
     * http://sourceforge.net/p/jtds/feature-requests/73/
     */
   test("Update java.sql.Timestamp") {implicit connection =>
-    Update(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v datetime2)").update()
+    QueryForUpdate(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v datetime2)").update()
 
     update"INSERT INTO tbl (v) VALUES (${new Timestamp(0)})".update()
 
@@ -111,7 +111,7 @@ class UpdatesSpec extends SqlServerSuite {
     * http://sourceforge.net/p/jtds/feature-requests/73/
     */
   test("Update java.time.Instant") {implicit connection =>
-    Update(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v datetime2)").update()
+    QueryForUpdate(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v datetime2)").update()
 
     update"INSERT INTO tbl (v) VALUES (${Instant.ofEpochMilli(0)})".update()
 
@@ -133,7 +133,7 @@ class UpdatesSpec extends SqlServerSuite {
     val before = HierarchyId()
     val after = HierarchyId(1, 2)
 
-    Update(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v hierarchyid)").update()
+    QueryForUpdate(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v hierarchyid)").update()
 
     update"INSERT INTO tbl (v) VALUES ($before)".update()
 
@@ -153,7 +153,7 @@ class UpdatesSpec extends SqlServerSuite {
     val before = Some(1)
     val after = None
 
-    Update(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v int)").update()
+    QueryForUpdate(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v int)").update()
 
     update"INSERT INTO tbl (v) VALUES ($before)".update()
 

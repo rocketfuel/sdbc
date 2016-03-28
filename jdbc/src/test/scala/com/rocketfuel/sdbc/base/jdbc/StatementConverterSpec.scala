@@ -2,6 +2,7 @@ package com.rocketfuel.sdbc.base.jdbc
 
 import org.scalatest.FunSuite
 import TestDbms._
+import java.sql.ResultSet
 
 class StatementConverterSpec
   extends FunSuite
@@ -39,8 +40,12 @@ class StatementConverterSpec
     assertCompiles("StatementConverter[Vector[Seq[Seq[Int]]]]")
   }
 
-  test("(Unit, UpdateCount)") {
-    assertCompiles("StatementConverter[(Unit, UpdateCount)]")
+  test("ResultSet") {
+    assertCompiles("StatementConverter[ResultSet]")
+  }
+
+  test("(Unit, UpdateCount, ResultSet)") {
+    assertCompiles("StatementConverter[(Unit, UpdateCount, ResultSet)]")
   }
 
 }

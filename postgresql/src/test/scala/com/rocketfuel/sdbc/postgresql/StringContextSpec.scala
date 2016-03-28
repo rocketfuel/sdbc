@@ -216,7 +216,7 @@ class StringContextSpec extends FunSuite {
 
   test("Int interpolation works with select") {
     val i = 3
-    val s = select"$i"
+    val s = query"$i"
 
     assertResult(Map("0" -> ParameterValue.of(i)))(s.parameterValues)
   }
@@ -224,6 +224,13 @@ class StringContextSpec extends FunSuite {
   test("Int interpolation works with update") {
     val i = 3
     val s = update"$i"
+
+    assertResult(Map("0" -> ParameterValue.of(i)))(s.parameterValues)
+  }
+
+  test("Int interpolation works with selectForUpdate") {
+    val i = 3
+    val s = queryForUpdate"$i"
 
     assertResult(Map("0" -> ParameterValue.of(i)))(s.parameterValues)
   }

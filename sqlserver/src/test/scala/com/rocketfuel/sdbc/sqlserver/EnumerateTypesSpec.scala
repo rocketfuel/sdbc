@@ -36,7 +36,7 @@ class EnumerateTypesSpec extends SqlServerSuite {
 
   ignore("list type map") {implicit connection =>
 
-    Update(
+    QueryForUpdate(
       """CREATE TABLE tbl (
         | i int,
         | bo bit,

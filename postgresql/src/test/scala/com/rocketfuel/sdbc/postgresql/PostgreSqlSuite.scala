@@ -17,9 +17,9 @@ abstract class PostgreSqlSuite
 
   override def pgConfigKey: String = "pg"
 
-  def testSelect[T](query: String, expectedValue: Option[T])(implicit converter: RowConverter[Option[T]]): Unit = {
+  def testSelect[T](query: String, expectedValue: Option[T])(implicit converter: RowConverter[Row, Option[T]]): Unit = {
     test(query) { implicit connection =>
-      val result = Query[Option[T]](query).option().get
+      val result = Query[Option[T]](query).run()
       (expectedValue, result) match {
         case (Some(expectedOffset: OffsetDateTime), Some(resultOffset: OffsetDateTime)) =>
           assertResult(expectedOffset.toInstant)(resultOffset.toInstant)
@@ -27,8 +27,8 @@ abstract class PostgreSqlSuite
           assertResult(expectedInstant)(resultInstant)
         case (Some(x), Some(y)) =>
           assertResult(x)(y)
-        case (None, None) => true
-        case _ => false
+        case (None, None) => assert(true)
+        case _ => assert(false)
       }
     }
   }

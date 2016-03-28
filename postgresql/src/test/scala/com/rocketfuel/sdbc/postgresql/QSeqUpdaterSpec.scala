@@ -6,17 +6,16 @@ class QSeqUpdaterSpec
   extends PostgreSqlSuite {
 
   test("Updating an int[] works") {implicit connection =>
-    Update("CREATE TABLE tbl (id serial PRIMARY KEY, ints int[])").update()
+    Query[Unit]("CREATE TABLE tbl (id serial PRIMARY KEY, ints int[])").run()
 
-    Update("INSERT INTO tbl (ints) VALUES (@ints)").on("ints" -> QSeqUpdaterSpec.original).update()
+    Query[Unit]("INSERT INTO tbl (ints) VALUES (@ints)").on("ints" -> QSeqUpdaterSpec.original).run()
 
-    SelectForUpdate("SELECT id, ints FROM tbl").iterator().foreach {
-      row =>
-        row("ints") = QSeqUpdaterSpec.updated
-        row.updateRow()
+    for (row <- QueryForUpdate("SELECT id, ints FROM tbl").run()) {
+      row("ints") = QSeqUpdaterSpec.updated
+      row.updateRow()
     }
 
-    val selected = Query[Seq[Option[Int]]]("SELECT ints FROM tbl").iterator().toSeq
+    val selected = Query[Seq[Seq[Option[Int]]]]("SELECT ints FROM tbl").run()
 
     assertResult(Seq(QSeqUpdaterSpec.updated))(selected)
 

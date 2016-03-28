@@ -39,10 +39,10 @@ object TestClass {
     }
   }
 
-  implicit val insertValue = new Updatable[Value] {
-    val query = Update("INSERT INTO test_class (value) VALUES (@value)")
+  implicit val insertValue = new QueryForUpdatable[Value] {
+    val query = QueryForUpdate("INSERT INTO test_class (value) VALUES (@value)")
 
-    override def update(key: Value): Update = {
+    override def update(key: Value): QueryForUpdate = {
       query.on("value" -> key.value)
     }
   }

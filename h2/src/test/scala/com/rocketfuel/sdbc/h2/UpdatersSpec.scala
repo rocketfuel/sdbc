@@ -15,7 +15,7 @@ class UpdatersSpec extends H2Suite {
   def testUpdate[T, MappedT <: HList](typeName: String)(before: T)(after: T)(implicit ctag: ClassTag[T], updater: Updater[T], converter: CompositeGetter[T], mapper: Mapper.Aux[ToParameterValue.type, T :: HNil, MappedT],
     toList: ToList[MappedT, ParameterValue]): Unit = {
     test(s"Update ${ctag.runtimeClass.getName}") {implicit connection =>
-      Update(s"CREATE TABLE tbl (id identity PRIMARY KEY, v $typeName)").update()
+      QueryForUpdate(s"CREATE TABLE tbl (id identity PRIMARY KEY, v $typeName)").update()
 
       update"INSERT INTO tbl (v) VALUES ($before)".update()
 
@@ -83,7 +83,7 @@ class UpdatersSpec extends H2Suite {
     val before = Some(1)
     val after = None
 
-    Update(s"CREATE TABLE tbl (id identity PRIMARY KEY, v int)").update()
+    QueryForUpdate(s"CREATE TABLE tbl (id identity PRIMARY KEY, v int)").update()
 
     update"INSERT INTO tbl (v) VALUES ($before)".update()
 
