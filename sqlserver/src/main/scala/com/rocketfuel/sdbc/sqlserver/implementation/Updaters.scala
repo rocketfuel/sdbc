@@ -32,7 +32,6 @@ private[sdbc] trait Updaters
   self: Updater
     with UpdatableRow
     with ParameterValue
-    with MutableRow
     with OffsetDateTimeAsStringParameter =>
 
   implicit val LocalTimeUpdater = new Updater[LocalTime] {

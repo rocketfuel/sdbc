@@ -2,6 +2,7 @@ package com.rocketfuel.sdbc.base.jdbc.resultset
 
 import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.jdbc.DBMS
+import java.io.Closeable
 import java.math.BigDecimal
 import java.net.URL
 import java.sql.{Array => JdbcArray, _}
@@ -165,12 +166,12 @@ trait ImmutableRow {
       )
     }
 
-    def iterator(resultSet: ResultSet): Iterator[ImmutableRow] = {
+    def iterator(resultSet: ResultSet): CloseableIterator[ImmutableRow] = {
       val getMetadata = resultSet.getMetaData
       val columnNames = Row.columnNames(getMetadata)
       val columnIndexes = Row.columnIndexes(columnNames)
 
-      resultSet.iterator().map { resultSet =>
+      resultSet.iterator().mapCloseable { resultSet =>
         val getRow = resultSet.getRow - 1
         val toSeq = Row.toSeq(resultSet)
 

@@ -6,7 +6,7 @@ import org.scalatest.FunSuite
 class UpdateSpec extends FunSuite {
 
   test("Identifier that appears as a word in the text can be assigned a value.") {
-    val query = Update("SELECT * FROM tbl WHERE @t < t")
+    val query = Select[UpdateCount]("SELECT * FROM tbl WHERE @t < t")
 
     assertResult(
       Map("t" -> ParameterValue.empty)
@@ -16,7 +16,7 @@ class UpdateSpec extends FunSuite {
   }
 
   test("Identifier that doesn't appear as a word in the text can't be assigned a value.") {
-    val query = Update("SELECT * FROM tbl WHERE @tt < t")
+    val query = Select[UpdateCount]("SELECT * FROM tbl WHERE @tt < t")
 
     intercept[IllegalArgumentException] {
       query.on("t" -> None)

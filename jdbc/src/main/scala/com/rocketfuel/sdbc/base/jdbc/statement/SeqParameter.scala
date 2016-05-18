@@ -25,7 +25,10 @@ trait SeqParameter {
 
   object SeqParameter {
     //Base cases for inductive SeqParameter creation.
-    implicit def ofParameter[T](implicit parameter: Parameter[T], arrayType: ArrayTypeName[Seq[T]]): SeqParameter[T] = {
+    implicit def ofParameter[T](implicit
+      parameter: Parameter[T],
+      arrayType: ArrayTypeName[Seq[T]]
+    ): SeqParameter[T] = {
       val mapF: T => AnyRef = parameter match {
         case p: DerivedParameter[_] =>
           elem => box(p.conversion(elem))
@@ -39,7 +42,10 @@ trait SeqParameter {
       )
     }
 
-    implicit def ofParameterOption[T](implicit parameter: Parameter[T], arrayType: ArrayTypeName[Seq[Option[T]]]): SeqParameter[Option[T]] = {
+    implicit def ofParameterOption[T](implicit
+      parameter: Parameter[T],
+      arrayType: ArrayTypeName[Seq[Option[T]]]
+    ): SeqParameter[Option[T]] = {
       val mapF: Option[T] => AnyRef = parameter match {
         case p: DerivedParameter[_] =>
           elem => elem.map(p.conversion andThen box).orNull
@@ -54,14 +60,20 @@ trait SeqParameter {
     }
 
     //Inductive cases.
-    implicit def ofSeqParameter[T](implicit parameter: SeqParameter[T], arrayType: ArrayTypeName[Seq[Seq[T]]]): SeqParameter[Seq[T]] = {
+    implicit def ofSeqParameter[T](implicit
+      parameter: SeqParameter[T],
+      arrayType: ArrayTypeName[Seq[Seq[T]]]
+    ): SeqParameter[Seq[T]] = {
       SeqParameter[Seq[T]](
         arrayType = arrayType,
         toArray = seq => seq.map(parameter.toArray).toArray
       )
     }
 
-    implicit def ofSeqOptionParameter[T](implicit parameter: SeqParameter[Option[T]], arrayType: ArrayTypeName[Seq[Seq[Option[T]]]]): SeqParameter[Seq[Option[T]]] = {
+    implicit def ofSeqOptionParameter[T](implicit
+      parameter: SeqParameter[Option[T]],
+      arrayType: ArrayTypeName[Seq[Seq[Option[T]]]]
+    ): SeqParameter[Seq[Option[T]]] = {
       SeqParameter[Seq[Option[T]]](
         arrayType = arrayType,
         toArray = seq => seq.map(parameter.toArray).toArray
@@ -83,7 +95,8 @@ trait SeqParameter {
 
   object ArrayTypeName {
 
-    implicit def ofSeq[T](implicit innerArrayType: ArrayTypeName[T]): ArrayTypeName[Seq[T]] = ArrayTypeName[Seq[T]](innerArrayType.name)
+    implicit def ofSeq[T](implicit innerArrayType: ArrayTypeName[T]): ArrayTypeName[Seq[T]] =
+      ArrayTypeName[Seq[T]](innerArrayType.name)
 
     implicit def ofSeqOption[T](implicit innerArrayType: ArrayTypeName[T]): ArrayTypeName[Seq[Option[T]]] =
       ArrayTypeName[Seq[Option[T]]](innerArrayType.name)
@@ -101,41 +114,68 @@ trait SeqParameter {
     }
   }
 
-  implicit def seqUpdaterOfSeqParameter[T](implicit parameter: SeqParameter[T], arrayType: ArrayTypeName[Seq[T]]): Updater[Seq[T]] = {
+  implicit def seqUpdaterOfSeqParameter[T](implicit
+    parameter: SeqParameter[T],
+    arrayType: ArrayTypeName[Seq[T]]
+  ): Updater[Seq[T]] = {
     SeqUpdater[T](
       arrayType = arrayType,
       toArray = parameter.toArray
     )
   }
 
-  implicit def seqUpdaterOfSeqOptionParameter[T](implicit parameter: SeqParameter[Option[T]], arrayType: ArrayTypeName[Seq[Option[T]]]): Updater[Seq[Option[T]]] = {
+  implicit def seqUpdaterOfSeqOptionParameter[T](implicit
+    parameter: SeqParameter[Option[T]],
+    arrayType: ArrayTypeName[Seq[Option[T]]]
+  ): Updater[Seq[Option[T]]] = {
     SeqUpdater[Option[T]](
       arrayType = arrayType,
       toArray = parameter.toArray
     )
   }
 
-  implicit def seqGetter[T](implicit getter: Getter[T]): Getter[Seq[T]] =
+  /**
+    * The existence of DbVector might appear awkward, but it fills a real need. Queries need
+    * a way to differentiate between a single result that is a collection, and a single element
+    * in a result set that is a collection.
+    *
+    * For {{{Query[Vector[Int]]()}}, would you expect the result of the result to be a single
+    * row containing a collection of integers, or would you expect it to be many rows, each
+    * having a single integer? For SDBC, I have chosen to make the multiple rows case primitive.
+    *
+    * @param seq
+    * @tparam A
+    */
+  case class DbVector[+A](override val seq: Vector[A]) extends collection.immutable.Seq[A] {
+    override def length: Int = seq.length
+
+    override def iterator: Iterator[A] = seq.iterator
+
+    override def apply(idx: Int): A =
+      seq(idx)
+  }
+
+  implicit def seqGetter[R <: Row, T](implicit getter: Getter[ImmutableRow, T]): Getter[R, DbVector[T]] =
     (row: Row, index: Index) => {
       for {
         array <- Option(row.getArray(index(row)))
       } yield {
-        val mappedArray = array.getResultSet.iterator().map { row =>
+        val mappedArray = ImmutableRow.iterator(array.getResultSet()).map { row =>
           row[T](1)
         }
-        mappedArray.toSeq
+        DbVector(mappedArray.toVector)
       }
     }
 
-  implicit def seqOptionGetter[T](implicit getter: Getter[T]): Getter[Seq[Option[T]]] =
+  implicit def seqOptionGetter[R <: Row, T](implicit getter: Getter[ImmutableRow, T]): Getter[R, DbVector[Option[T]]] =
     (row: Row, index: Index) => {
       for {
         array <- Option(row.getArray(index(row)))
       } yield {
-        val mappedArray = array.getResultSet.iterator().map { row =>
+        val mappedArray = ImmutableRow.iterator(array.getResultSet()).map { row =>
           row[Option[T]](1)
         }
-        mappedArray.toSeq
+        DbVector(mappedArray.toVector)
       }
     }
 

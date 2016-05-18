@@ -184,7 +184,7 @@ trait ParameterValue {
 
   case class ParameterBatches(parameterBatches: Seq[Map[String, ParameterValue]])
 
-  
+
   object ParameterBatches {
     val empty = ParameterBatches(Vector.empty)
 

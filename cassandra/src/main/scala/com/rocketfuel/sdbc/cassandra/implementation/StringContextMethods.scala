@@ -42,7 +42,7 @@ private[sdbc] trait StringContextMethods {
       ): Query[B] = {
         val parameterValues = toParameterValues(a)
 
-        Query(compiled, QueryOptions.default, Map.empty[String, ParameterValue]).on(parameterValues)
+        Query(compiled, QueryOptions.default, Map.empty[String, ParameterValue]).onParameters(parameterValues)
       }
     }
 

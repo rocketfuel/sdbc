@@ -58,7 +58,7 @@ class RichResultSetSpec
       val insert = Query(s"INSERT INTO $keyspace.tbl (id, x) VALUES (@id, @x)")
 
       for ((tuple, ix) <- tuples.zipWithIndex) {
-        insert.on("id" -> ix, "x" -> tuple).io.execute()
+        insert.onParameters("id" -> ix, "x" -> tuple).io.execute()
       }
 
       val results = Query[TupleValue](s"SELECT x FROM $keyspace.tbl").io.iterator().map(_[(Int, Int)]).toSeq

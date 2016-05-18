@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc.resultset
 
 import com.rocketfuel.sdbc.base.jdbc.DBMS
-import java.io.{InputStream, Reader}
+import java.io.{Closeable, InputStream, Reader}
 import java.math.BigDecimal
 import java.net.URL
 import java.sql.{Array => JdbcArray, _}
@@ -15,7 +15,8 @@ trait UpdatableRow {
     val underlying: ResultSet,
     override val columnNames: IndexedSeq[String],
     override val columnIndexes: Map[String, Int]
-  ) extends Row() {
+  ) extends Row()
+    with ResultSet {
 
     def update[T](columnIndex: Int, x: T)(implicit updater: Updater[T]): Unit = {
       updater.update(this, columnIndex, x)
@@ -34,7 +35,7 @@ trait UpdatableRow {
       *
       * @return
       */
-    def toImmutable: ImmutableRow = {
+    def immutable: ImmutableRow = {
       new ImmutableRow(
         columnNames = columnNames,
         columnIndexes = columnIndexes,
@@ -106,6 +107,14 @@ trait UpdatableRow {
 
     def getClob(columnLabel: String): Clob = underlying.getClob(columnLabel: String)
 
+    /**
+      * Returns the current row number if the underlying ResultSet supports
+      * `ResultSet#getRow()`.
+      *
+      * Unlike JDBC, SDBC's getRow is 0-indexed.
+      *
+      * @return
+      */
     override def getRow: Int = {
       underlying.getRow - 1
     }
@@ -412,6 +421,72 @@ trait UpdatableRow {
 
     def updateNull(columnLabel: String): Unit = underlying.updateNull(columnLabel)
 
+    override def next(): Boolean =
+      underlying.next()
+
+    override def beforeFirst(): Unit =
+      underlying.beforeFirst()
+
+    override def updateNClob(columnIndex: Int, nClob: NClob): Unit =
+      underlying.updateNClob(columnIndex, nClob)
+
+    override def updateNClob(columnLabel: String, nClob: NClob): Unit =
+      underlying.updateNClob(columnLabel, nClob)
+
+    override def last(): Boolean =
+      underlying.last()
+
+    override def absolute(row: Int): Boolean =
+      underlying.absolute(row + 1)
+
+    override def moveToInsertRow(): Unit =
+      underlying.moveToInsertRow()
+
+    override def afterLast(): Unit =
+      underlying.afterLast()
+
+    override def setFetchDirection(direction: Int): Unit =
+      underlying.setFetchDirection(direction)
+
+    override def relative(rows: Int): Boolean =
+      underlying.relative(rows)
+
+    override def moveToCurrentRow(): Unit =
+      underlying.moveToCurrentRow()
+
+    override def updateClob(columnIndex: Int, x: Clob): Unit =
+      underlying.updateClob(columnIndex, x)
+
+    override def updateClob(columnLabel: String, x: Clob): Unit =
+      underlying.updateClob(columnLabel, x)
+
+    override def getBigDecimal(columnIndex: Int, scale: Int): BigDecimal =
+      underlying.getBigDecimal(columnIndex, scale)
+
+    override def getBigDecimal(columnLabel: String, scale: Int): BigDecimal =
+      underlying.getBigDecimal(columnLabel, scale)
+
+    override def getUnicodeStream(columnIndex: Int): InputStream =
+      underlying.getUnicodeStream(columnIndex)
+
+    override def getUnicodeStream(columnLabel: String): InputStream =
+      underlying.getUnicodeStream(columnLabel)
+
+    override def previous(): Boolean =
+      underlying.previous()
+
+    override def first(): Boolean =
+      underlying.first()
+
+    override def unwrap[T](iface: Class[T]): T =
+      if (iface.isInstance(this)) iface.cast(this)
+      else if (iface.isInstance(underlying)) iface.cast(underlying)
+      else underlying.unwrap[T](iface)
+
+    override def isWrapperFor(iface: Class[_]): Boolean =
+      iface.isInstance(this) ||
+        iface.isInstance(underlying) ||
+        underlying.isWrapperFor(iface)
   }
 
   object UpdatableRow {
@@ -426,11 +501,11 @@ trait UpdatableRow {
       )
     }
 
-    def iterator(resultSet: ResultSet): Iterator[UpdatableRow] = {
+    def iterator(resultSet: ResultSet): CloseableIterator[UpdatableRow]  = {
       val columnNames = Row.columnNames(resultSet.getMetaData)
       val columnIndexes = Row.columnIndexes(columnNames)
 
-      resultSet.iterator().map { resultSet =>
+      resultSet.iterator().mapCloseable { resultSet =>
         new UpdatableRow(
           underlying = resultSet,
           columnNames = columnNames,
@@ -441,3 +516,4 @@ trait UpdatableRow {
   }
 
 }
+

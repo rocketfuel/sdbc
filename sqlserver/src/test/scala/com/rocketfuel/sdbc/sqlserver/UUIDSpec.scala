@@ -9,9 +9,9 @@ class UUIDSpec
   test("UUID survives a round trip") { implicit connection =>
     val uuid = Some(UUID.randomUUID())
     val selected =
-      Query[UUID]("SELECT CAST(@uuid AS uniqueidentifier)").on(
+      Select[Option[UUID]]("SELECT CAST(@uuid AS uniqueidentifier)").on(
         "uuid" -> uuid
-      ).option()
+      ).run()
 
     assertResult(uuid)(selected)
   }
@@ -19,9 +19,9 @@ class UUIDSpec
   test("UUID survives a round trip as a string") { implicit connection =>
     val uuid = Some(UUID.randomUUID())
     val selected =
-      Query[UUID]("SELECT @uuid").on(
+      Select[Option[UUID]]("SELECT @uuid").on(
         "uuid" -> uuid
-      ).option()
+      ).run()
 
     assertResult(uuid)(selected)
   }

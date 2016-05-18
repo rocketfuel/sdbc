@@ -1,26 +1,30 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
+import com.rocketfuel.sdbc.base.{CompiledStatement, Logging}
+import com.rocketfuel.sdbc.base.jdbc.statement.MultiStatementConverter
 import shapeless.ops.hlist._
-import shapeless.ops.record.{MapValues, Keys}
-import shapeless.{LabelledGeneric, HList}
+import shapeless.ops.record.{Keys, MapValues}
+import shapeless.{HList, LabelledGeneric}
 
-trait Query {
+/**
+  * Add support for queries with multiple result sets. For use with Microsoft SQL Server.
+  */
+trait MultiQuery extends MultiStatementConverter {
   self: DBMS =>
 
-  case class Query[A] private[jdbc](
+  case class MultiQuery[A] private[jdbc](
     override val statement: CompiledStatement,
     override val parameterValues: Map[String, ParameterValue]
-  )(implicit statementConverter: StatementConverter[A]
-  ) extends ParameterizedQuery[Query[A]] {
+  )(implicit statementConverter: MultiStatementConverter[A]
+  ) extends ParameterizedQuery[MultiQuery[A]] {
 
-    override def subclassConstructor(parameterValues: Map[String, ParameterValue]): Query[A] = {
+    override def subclassConstructor(parameterValues: Map[String, ParameterValue]): MultiQuery[A] = {
       copy(parameterValues = parameterValues)
     }
 
     protected def run(additionalParameters: Parameters)(implicit connection: Connection): A = {
       val withAdditionalParameters = setParameters(additionalParameters.parameters)
-      Query.run(statement, withAdditionalParameters)
+      MultiQuery.run(statement, withAdditionalParameters)
     }
 
     def run(additionalParameters: (String, ParameterValue)*)(implicit connection: Connection): A = {
@@ -63,64 +67,61 @@ trait Query {
 
   }
 
-  object Query
+  object MultiQuery
     extends Logging {
 
     def apply[A](
-      queryText: String,
-      hasParameters: Boolean = true
-    )(implicit statementConverter: StatementConverter[A]
-    ): Query[A] = {
-      Query(
-        statement = CompiledStatement(queryText, hasParameters),
+      queryText: String
+    )(implicit statementConverter: MultiStatementConverter[A]
+    ): MultiQuery[A] = {
+      MultiQuery[A](
+        statement = CompiledStatement(queryText),
         parameterValues = Map.empty[String, ParameterValue]
       )
+    }
+
+    /**
+      * Construct the query without named parameters. No escaping will
+      * need to be performed for a literal '@' to appear in the query.
+      *
+      * @param queryText
+      * @param statementConverter
+      * @tparam A
+      * @return
+      */
+    def literal[A](
+      queryText: String
+    )(implicit statementConverter: MultiStatementConverter[A]
+    ): MultiQuery[A] = {
+      MultiQuery[A](
+        statement = CompiledStatement.literal(queryText),
+        parameterValues = Map.empty[String, ParameterValue]
+      )
+    }
+
+    def run[A](
+      compiledStatement: CompiledStatement,
+      parameterValues: Map[String, ParameterValue]
+    )(implicit connection: Connection,
+      statementConverter: MultiStatementConverter[A]
+    ): A = {
+      logRun(compiledStatement, parameterValues)
+
+      val prepared = Select.prepareStatement(compiledStatement)
+      val bound = Select.bind(prepared, compiledStatement, parameterValues)
+
+      bound.execute()
+      bound
     }
 
     def run[A](
       queryText: String,
       parameters: (String, ParameterValue)*
     )(implicit connection: Connection,
-      statementConverter: StatementConverter[A]
+      statementConverter: MultiStatementConverter[A]
     ): A = {
       val statement = CompiledStatement(queryText)
       run(statement, parameters.toMap)
-    }
-
-    private[jdbc] def prepareStatement(
-      compiledStatement: CompiledStatement
-    )(implicit connection: Connection
-    ): PreparedStatement = {
-      connection.prepareStatement(compiledStatement.queryText)
-    }
-
-    private[jdbc] def bind(
-      preparedStatement: PreparedStatement,
-      compiledStatement: CompiledStatement,
-      parameterValues: Map[String, ParameterValue]
-    ): PreparedStatement = {
-      for ((parameterName, parameterIndices) <- compiledStatement.parameterPositions) {
-        val parameterValue = parameterValues(parameterName)
-        for (parameterIndex <- parameterIndices) {
-          parameterValue.set(preparedStatement, parameterIndex)
-        }
-      }
-
-      preparedStatement
-    }
-
-    private[jdbc] def run(
-      compiledStatement: CompiledStatement,
-      parameterValues: Map[String, ParameterValue]
-    )(implicit connection: Connection
-    ): Statement = {
-      logRun(compiledStatement, parameterValues)
-
-      val prepared = prepareStatement(compiledStatement)
-      val bound = bind(prepared, compiledStatement, parameterValues)
-
-      bound.execute()
-      bound
     }
 
     private def logRun(
@@ -131,5 +132,6 @@ trait Query {
     }
 
   }
+
 
 }

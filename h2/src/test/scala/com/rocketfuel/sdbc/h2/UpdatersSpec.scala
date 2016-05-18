@@ -24,7 +24,7 @@ class UpdatersSpec extends H2Suite {
         row.updateRow()
       }
 
-      val maybeValue = Query[T]("SELECT v FROM tbl").option()
+      val maybeValue = Select[T]("SELECT v FROM tbl").option()
 
       assert(maybeValue.nonEmpty)
 
@@ -92,7 +92,7 @@ class UpdatersSpec extends H2Suite {
       row.updateRow()
     }
 
-    val maybeRow = Query[Option[Int]]("SELECT v FROM tbl").iterator.toStream.headOption
+    val maybeRow = Select[Option[Int]]("SELECT v FROM tbl").iterator.toStream.headOption
 
     assert(maybeRow.nonEmpty, "There was a row")
 

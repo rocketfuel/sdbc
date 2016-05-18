@@ -17,19 +17,19 @@ class UpdatesSpec extends SqlServerSuite {
   )(implicit ctag: ClassTag[T],
     updater: Updater[T],
     setter: T => ParameterValue,
-    converter: CompositeGetter[T]
+    converter: StatementConverter[Option[T]]
   ): Unit = {
     test(s"Update ${ctag.runtimeClass.getName}") {implicit connection =>
-      Update(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v $typeName)").update()
+      Select[UpdateCount](s"CREATE TABLE tbl (id int identity PRIMARY KEY, v $typeName)").run()
 
-      Update("INSERT INTO tbl (v) VALUES ($before)").on("before" -> before).update()
+      Select[UpdateCount]("INSERT INTO tbl (v) VALUES (@before)").on("before" -> before).run()
 
-      for (row <- selectForUpdate"SELECT * FROM tbl".iterator()) {
+      for (row <- selectForUpdate"SELECT * FROM tbl".run()) {
         row("v") = after
         row.updateRow()
       }
 
-      val maybeValue = Query[T]("SELECT v FROM tbl").option()
+      val maybeValue = Select[Option[T]]("SELECT v FROM tbl").run()
 
       assert(maybeValue.nonEmpty)
 
@@ -86,18 +86,18 @@ class UpdatesSpec extends SqlServerSuite {
     * http://sourceforge.net/p/jtds/feature-requests/73/
     */
   test("Update java.sql.Timestamp") {implicit connection =>
-    Update(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v datetime2)").update()
+    Select[UpdateCount](s"CREATE TABLE tbl (id int identity PRIMARY KEY, v datetime2)").run()
 
-    update"INSERT INTO tbl (v) VALUES (${new Timestamp(0)})".update()
+    select"INSERT INTO tbl (v) VALUES (${new Timestamp(0)})".run()
 
     val after = Timestamp.from(Instant.now())
 
-    for (row <- selectForUpdate"SELECT * FROM tbl".iterator()) {
+    for (row <- selectForUpdate"SELECT * FROM tbl".run()) {
       row("v") = after
       row.updateRow()
     }
 
-    val maybeValue = Query[Timestamp]("SELECT v FROM tbl").option()
+    val maybeValue = Select[Option[Timestamp]]("SELECT v FROM tbl").run()
 
     assert(maybeValue.nonEmpty)
 
@@ -111,18 +111,18 @@ class UpdatesSpec extends SqlServerSuite {
     * http://sourceforge.net/p/jtds/feature-requests/73/
     */
   test("Update java.time.Instant") {implicit connection =>
-    Update(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v datetime2)").update()
+    Select[UpdateCount](s"CREATE TABLE tbl (id int identity PRIMARY KEY, v datetime2)").run()
 
-    update"INSERT INTO tbl (v) VALUES (${Instant.ofEpochMilli(0)})".update()
+    update"INSERT INTO tbl (v) VALUES (${Instant.ofEpochMilli(0)})".run()
 
     val after = Instant.now()
 
-    for (row <- selectForUpdate"SELECT * FROM tbl".iterator()) {
+    for (row <- selectForUpdate"SELECT * FROM tbl".run()) {
       row("v") = after
       row.updateRow()
     }
 
-    val maybeValue = Query[Instant]("SELECT v FROM tbl").option()
+    val maybeValue = Select[Option[Instant]]("SELECT v FROM tbl").run()
 
     assert(maybeValue.nonEmpty)
 
@@ -133,16 +133,16 @@ class UpdatesSpec extends SqlServerSuite {
     val before = HierarchyId()
     val after = HierarchyId(1, 2)
 
-    Update(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v hierarchyid)").update()
+    Select[UpdateCount](s"CREATE TABLE tbl (id int identity PRIMARY KEY, v hierarchyid)").run()
 
-    update"INSERT INTO tbl (v) VALUES ($before)".update()
+    update"INSERT INTO tbl (v) VALUES ($before)".run()
 
-    for (row <- selectForUpdate"SELECT id, v FROM tbl".iterator()) {
+    for (row <- selectForUpdate"SELECT id, v FROM tbl".run()) {
       row("v") = after
       row.updateRow()
     }
 
-    val maybeValue = Query[HierarchyId]("SELECT v.ToString() FROM tbl").option()
+    val maybeValue = Select[Option[HierarchyId]]("SELECT v.ToString() FROM tbl").run()
 
     assert(maybeValue.nonEmpty)
 
@@ -153,16 +153,16 @@ class UpdatesSpec extends SqlServerSuite {
     val before = Some(1)
     val after = None
 
-    Update(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v int)").update()
+    Select[UpdateCount](s"CREATE TABLE tbl (id int identity PRIMARY KEY, v int)").run()
 
-    update"INSERT INTO tbl (v) VALUES ($before)".update()
+    update"INSERT INTO tbl (v) VALUES ($before)".run()
 
-    for (row <- selectForUpdate"SELECT id, v FROM tbl".iterator()) {
+    for (row <- selectForUpdate"SELECT id, v FROM tbl".run()) {
       row("v") = after
       row.updateRow()
     }
 
-    val maybeRow = Query[Option[Int]]("SELECT v FROM tbl").iterator.toStream.headOption
+    val maybeRow = Select[Option[Option[Int]]]("SELECT v FROM tbl").run()
 
     assert(maybeRow.nonEmpty, "There was a row")
 

@@ -40,7 +40,7 @@ abstract class JdbcProcessSuite
   val inserts =
     Process.emitAll(insertSet.toSeq.map(key => LongKey(key)))
 
-  val select = Query[Long]("SELECT i FROM tbl")
+  val select = Select[Long]("SELECT i FROM tbl")
 
   override protected def beforeEach(): Unit = {
     pool.withConnection[Unit] {implicit connection =>

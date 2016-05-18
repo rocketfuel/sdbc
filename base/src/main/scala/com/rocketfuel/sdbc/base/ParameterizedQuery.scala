@@ -7,26 +7,6 @@ import shapeless.{LabelledGeneric, HList}
 trait ParameterizedQuery {
   self: ParameterValue =>
 
-  /**
-    * Given a query with named parameters beginning with '@',
-    * construct the query for use with JDBC, so that names
-    * are replaced by '?', and each parameter
-    * has a map to its positions in the query.
-    *
-    * Parameter names must start with a unicode letter or underscore, and then
-    * any character after the first one can be a unicode letter, unicode number,
-    * or underscore. A parameter that does not follow
-    * this scheme must be quoted by backticks. Parameter names
-    * are case sensitive.
-    *
-    * Examples of identifiers:
-    *
-    * {{{"@hello"}}}
-    *
-    * {{{"@`hello there`"}}}
-    *
-    * {{{"@_i_am_busy"}}}
-    */
   trait ParameterizedQuery[Self <: ParameterizedQuery[Self]] {
 
     def statement: CompiledStatement
@@ -48,20 +28,16 @@ trait ParameterizedQuery {
 
     def clear: Self = subclassConstructor(parameterValues = Map.empty)
 
-    protected def on(additionalParameters: Parameters): Self = {
-      val withAdditionalParameters = setParameters(additionalParameters.parameters)
+    def onParameters(additionalParameters: Map[String, ParameterValue]): Self = {
+      val withAdditionalParameters = setParameters(additionalParameters)
       subclassConstructor(parameterValues = withAdditionalParameters)
     }
 
-    def on(additionalParameters: Map[String, ParameterValue]): Self = {
-      on(additionalParameters: Parameters)
+    def on(additionalParameter: (String, ParameterValue), additionalParameters: (String, ParameterValue)*): Self = {
+      onParameters((additionalParameter +: additionalParameters: Parameters).parameters)
     }
 
-    def on(additionalParameters: (String, ParameterValue)*): Self = {
-      on(additionalParameters: Parameters)
-    }
-
-    def on[
+    def onProduct[
       P,
       Repr <: HList,
       ReprKeys <: HList,
@@ -73,10 +49,10 @@ trait ParameterizedQuery {
       ktl: ToList[ReprKeys, Symbol],
       vtl: ToList[MappedRepr, ParameterValue]
     ): Self = {
-      on(additionalParameters: Parameters)
+      onParameters((additionalParameters: Parameters).parameters)
     }
 
-    def on[
+    def onRecord[
       Repr <: HList,
       ReprKeys <: HList,
       MappedRepr <: HList
@@ -86,7 +62,7 @@ trait ParameterizedQuery {
       ktl: ToList[ReprKeys, Symbol],
       vtl: ToList[MappedRepr, ParameterValue]
     ): Self = {
-      on(additionalParameters: Parameters)
+      onParameters((additionalParameters: Parameters).parameters)
     }
 
     protected def setParameters(parameters: Map[String, ParameterValue]): Map[String, ParameterValue] = {

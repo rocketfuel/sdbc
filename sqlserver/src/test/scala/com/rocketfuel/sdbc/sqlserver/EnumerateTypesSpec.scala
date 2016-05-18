@@ -36,7 +36,7 @@ class EnumerateTypesSpec extends SqlServerSuite {
 
   ignore("list type map") {implicit connection =>
 
-    Update(
+    Select[Unit](
       """CREATE TABLE tbl (
         | i int,
         | bo bit,
@@ -67,7 +67,7 @@ class EnumerateTypesSpec extends SqlServerSuite {
         | x xml
         |)
       """.stripMargin
-    ).update()
+    ).run()
 
     val rs = connection.prepareStatement("SELECT * FROM tbl").executeQuery()
 

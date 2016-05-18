@@ -1,7 +1,8 @@
 package com.rocketfuel.sdbc.base.jdbc
 
+import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.jdbc.resultset._
-import com.rocketfuel.sdbc.base.jdbc.statement.{StatementConverter, ParameterValue}
+import com.rocketfuel.sdbc.base.jdbc.statement.{ParameterValue, StatementConverter}
 import com.zaxxer.hikari.HikariConfig
 import java.sql
 
@@ -9,7 +10,10 @@ abstract class DBMS
   extends ParameterValue
   with HikariImplicits
   with Pool
-  with Query
+  with Select
+  with SelectForUpdate
+  with Execute
+  with Update
   with Queryable
   with Batch
   with StringContextMethods
@@ -21,7 +25,14 @@ abstract class DBMS
   with ImmutableRow
   with UpdatableRow
   with CompositeGetter
-  with RowConverter {
+  with RowConverter
+  with QueryMethods {
+
+  type Singleton[A] = base.Singleton[A]
+
+  val Singleton = base.Singleton
+
+  type CloseableIterator[+A] = base.CloseableIterator[A]
 
   /**
    * Class name for the DataSource class.

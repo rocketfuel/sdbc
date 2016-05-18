@@ -6,7 +6,7 @@ class EnumerateTypesSpec extends PostgreSqlSuite {
 
   test("list type map") {implicit connection =>
 
-    Update(
+    Select[UpdateCount](
       """CREATE TABLE tbl (
         | s bigserial,
         | i int,
@@ -37,7 +37,7 @@ class EnumerateTypesSpec extends PostgreSqlSuite {
         | l ltree
         |)
       """.stripMargin
-    ).update()
+    ).run()
 
     val rs = connection.prepareStatement("SELECT * FROM tbl").executeQuery()
 

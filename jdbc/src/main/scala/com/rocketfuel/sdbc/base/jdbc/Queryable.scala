@@ -4,15 +4,15 @@ trait Queryable {
   self: DBMS =>
 
   trait Queryable[Key, Result] {
-    def query(key: Key): Query[Result]
+    def query(key: Key): Select[Result]
   }
 
-  def run[Key, Result](
+  def execute[Key, Result](
     key: Key
   )(implicit queryable: Queryable[Key, Result],
     connection: Connection
   ): Result = {
-    queryable.query(key).run()
+    queryable.query(key).execute()
   }
 
 }

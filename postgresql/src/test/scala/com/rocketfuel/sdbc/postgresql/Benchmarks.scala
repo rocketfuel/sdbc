@@ -3,6 +3,7 @@ package com.rocketfuel.sdbc.postgresql
 import java.sql.{PreparedStatement, ResultSet}
 import java.util.UUID
 import com.rocketfuel.sdbc.PostgreSql._
+import com.rocketfuel.sdbc.base.CloseableIterator
 import org.apache.commons.lang3.time.StopWatch
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
@@ -65,14 +66,14 @@ class Benchmarks
 
   override protected def beforeEach(): Unit = {
     withPg {implicit connection =>
-      TestTable.create.update()
+      TestTable.create.run()
       connection.commit()
     }
   }
 
   override protected def afterEach(): Unit = {
     withPg {implicit connection =>
-      TestTable.drop.execute()
+      TestTable.drop.run()
       connection.commit()
     }
   }
@@ -102,7 +103,7 @@ class Benchmarks
       connection.commit()
 
     }{
-      TestTable.truncate.execute()
+      TestTable.truncate.run()
       connection.commit()
     }
 
@@ -110,9 +111,9 @@ class Benchmarks
   }
 
   ignore("test JDBC select") {implicit connection =>
-    val batch = values.foldLeft(TestTable.batchInsert){case (b, v) => v.addBatch(b)}
+    val batch = values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}
 
-    batch.iterator()
+    batch.run()
 
     val selectedRows = Array.ofDim[TestTable](rowCount)
 
@@ -136,7 +137,7 @@ class Benchmarks
   }
 
   ignore("time JDBC select") {implicit connection =>
-    values.foldLeft(TestTable.batchInsert){case (b, v) => v.addBatch(b)}.iterator()
+    values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}.run()
 
     connection.commit()
 
@@ -161,10 +162,10 @@ class Benchmarks
   ignore("time com.rocketfuel.sql batch insert") {implicit connection =>
 
     val insertDuration = averageTime(repetitions) {
-      values.foldLeft(TestTable.batchInsert){case (b, v) => v.addBatch(b)}.iterator()
+      values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}.run()
       connection.commit()
     }{
-      TestTable.truncate.execute()
+      TestTable.truncate.run()
       connection.commit()
     }
 
@@ -174,9 +175,9 @@ class Benchmarks
 
   ignore("test com.rocketfuel.batch insert") {implicit connection =>
 
-    val batch = values.foldLeft(TestTable.batchInsert){case (b, v) => v.addBatch(b)}
+    val batch = values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}
 
-    val insertedRows = batch.iterator()
+    val insertedRows = batch.run()
 
     connection.commit()
 
@@ -186,12 +187,12 @@ class Benchmarks
 
   ignore("time com.rocketfuel.sql select") {implicit connection =>
 
-    values.foldLeft(TestTable.batchInsert){case (b, v) => v.addBatch(b)}.iterator()
+    values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}.run()
 
     connection.commit()
 
     val selectDuration = averageTime(repetitions) {
-      TestTable.select.iterator()
+      TestTable.select.run()
     }(() => ())
 
     println(s"com.rocketfuel.sql select took $selectDuration ms.")
@@ -200,11 +201,11 @@ class Benchmarks
 
   ignore("test com.rocketfuel.sql select") {implicit connection =>
 
-    values.foldLeft(TestTable.batchInsert){case (b, v) => v.addBatch(b)}.iterator()
+    values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}.run()
 
     connection.commit()
 
-    val selectedRows = TestTable.select.iterator().toSeq
+    val selectedRows = TestTable.select.run()
 
     for ((TestTable(_, str1, uuid, str2), TestTable(_, str1_, uuid_, str2_)) <- values.zip(selectedRows)) {
       assert(str1 == str1_)
@@ -220,14 +221,6 @@ class Benchmarks
     uuid: UUID,
     str2: String
   ) {
-    def addBatch(b: Batch): Batch = {
-      b.addBatch(
-        "str1" -> str1,
-        "uuid" -> uuid,
-        "str2" -> str2
-      )
-    }
-
     def addBatch(p: PreparedStatement): Unit = {
       p.setString(1, str1)
       p.setObject(2, uuid)
@@ -266,7 +259,7 @@ class Benchmarks
          |);
        """.stripMargin
 
-      Update(queryText, hasParameters = false)
+      Select.literal[UpdateCount](queryText)
     }
 
     val insert = {
@@ -274,9 +267,9 @@ class Benchmarks
         """INSERT INTO TEST
           |(str1, uuid, str2)
           |VALUES
-          |($str1, $uuid, $str2)
+          |(@str1, @uuid, @str2)
         """.stripMargin
-      Update(queryText)
+      Select[UpdateCount](queryText)
     }
 
     val batchInsert = {
@@ -296,13 +289,13 @@ class Benchmarks
         |(?, ?, ?)
       """.stripMargin
 
-    val select = Query[TestTable]("SELECT * FROM test ORDER BY id;", hasParameters = false)
+    val select = Select.literal[Vector[TestTable]]("SELECT * FROM test ORDER BY id;")
 
     val drop =
-      Execute("DROP TABLE test;", hasParameters = false)
+      Select.literal[Unit]("DROP TABLE test;")
 
     val truncate =
-      Execute("TRUNCATE TABLE test RESTART IDENTITY;")
+      Select.literal[Unit]("TRUNCATE TABLE test RESTART IDENTITY;")
 
   }
 

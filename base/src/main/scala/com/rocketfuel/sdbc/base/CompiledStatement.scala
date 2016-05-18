@@ -10,15 +10,41 @@ case class CompiledStatement private (
 
 object CompiledStatement {
 
-  def apply(queryText: String, hasParameters: Boolean = true): CompiledStatement = {
-    if (hasParameters) {
-      val parts = findParts(queryText)
-      val positions = findParameterPositions(parts)
-      val statement = partsToStatement(parts)
-      CompiledStatement(statement, queryText, positions)
-    } else {
-      CompiledStatement(queryText, queryText, Map.empty[String, Set[Int]])
-    }
+  /**
+    * Given a query with named parameters beginning with '@',
+    * construct the query for use with JDBC, so that names
+    * are replaced by '?', and each parameter
+    * has a map to its positions in the query.
+    *
+    * Parameter names must start with a unicode letter or underscore, and then
+    * any character after the first one can be a unicode letter, unicode number,
+    * or underscore. A parameter that does not follow
+    * this scheme must be quoted by backticks. Parameter names
+    * are case sensitive.
+    *
+    * Examples of identifiers:
+    *
+    * {{{"@hello"}}}
+    *
+    * {{{"@`hello there`"}}}
+    *
+    * {{{"@_i_am_busy"}}}
+    *
+    * @param queryText
+    */
+  def apply(
+    queryText: String
+  ): CompiledStatement = {
+    val parts = findParts(queryText)
+    val positions = findParameterPositions(parts)
+    val statement = partsToStatement(parts)
+    CompiledStatement(statement, queryText, positions)
+  }
+
+  def literal(
+    queryText: String
+  ): CompiledStatement = {
+    CompiledStatement(queryText, queryText, Map.empty[String, Set[Int]])
   }
 
   /**

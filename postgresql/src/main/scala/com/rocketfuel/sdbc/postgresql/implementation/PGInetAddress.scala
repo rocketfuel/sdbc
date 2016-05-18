@@ -1,7 +1,6 @@
 package com.rocketfuel.sdbc.postgresql.implementation
 
 import com.rocketfuel.sdbc.base.jdbc.statement.ParameterValue
-import com.rocketfuel.sdbc.base.jdbc.{Updater, MutableRow}
 import java.net.InetAddress
 import org.postgresql.util.PGobject
 

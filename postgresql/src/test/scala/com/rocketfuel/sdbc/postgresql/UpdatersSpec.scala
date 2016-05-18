@@ -21,21 +21,21 @@ class UpdatersSpec
   )(implicit ctag: ClassTag[T],
     updater: Updater[T],
     setter: T => ParameterValue,
-    converter: CompositeGetter[T]
+    converter: CompositeGetter[Row, T]
   ): Unit = {
     test(s"Update ${ctag.runtimeClass.getName}") {implicit connection =>
       val tableName = RandomStringUtils.randomAlphabetic(10)
 
-      Update(s"CREATE TABLE $tableName (id serial PRIMARY KEY, v $typeName)").update()
+      Select[UpdateCount](s"CREATE TABLE $tableName (id serial PRIMARY KEY, v $typeName)").run()
 
-      Update(s"INSERT INTO $tableName (v) VALUES (@before)").on("before" -> before).update()
+      Select[UpdateCount](s"INSERT INTO $tableName (v) VALUES (@before)").on("before" -> before).run()
 
-      for (row <- SelectForUpdate(s"SELECT * FROM $tableName").iterator()) {
+      for (row <- Select[CloseableIterator[UpdatableRow]](s"SELECT * FROM $tableName").run()) {
         row("v") = after
         row.updateRow()
       }
 
-      val maybeValue = Query[T](s"SELECT v FROM $tableName").option()
+      val maybeValue = Select[Option[T]](s"SELECT v FROM $tableName").run()
 
       assert(maybeValue.nonEmpty)
 
@@ -104,16 +104,16 @@ class UpdatersSpec
     val before = Some(1)
     val after = None
 
-    Update(s"CREATE TABLE tbl (id serial PRIMARY KEY, v int)").update()
+    Select[UpdateCount](s"CREATE TABLE tbl (id serial PRIMARY KEY, v int)").run()
 
-    update"INSERT INTO tbl (v) VALUES ($before)".update()
+    update"INSERT INTO tbl (v) VALUES ($before)".run()
 
-    for (row <- selectForUpdate"SELECT id, v FROM tbl".iterator()) {
+    for (row <- selectForUpdate"SELECT id, v FROM tbl".run()) {
       row("v") = after
       row.updateRow()
     }
 
-    val maybeRow = Query[Option[Int]]("SELECT v FROM tbl").iterator.toStream.headOption
+    val maybeRow = Select[Option[Option[Int]]]("SELECT v FROM tbl").run()
 
     assert(maybeRow.nonEmpty, "There was a row")
 

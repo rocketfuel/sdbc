@@ -9,7 +9,7 @@ class CompositeSetterSpec extends H2Suite {
 
     val expected = Param(1, 2, 3)
 
-    val q = Query[Param]("VALUES (@a, @b, @c)").onProduct(expected)
+    val q = Select[Param]("VALUES (@a, @b, @c)").onProduct(expected)
 
     assertResult(Some(expected))(q.option())
   }

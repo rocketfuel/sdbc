@@ -25,19 +25,19 @@ trait CompositeGetter extends Getter {
   object CompositeGetter extends LowerPriorityCompositeGetter {
     def apply[Row, A](implicit getter: CompositeGetter[Row, A]): CompositeGetter[Row, A] = getter
 
-    implicit def optionFromGetter[Row, A](implicit g: Getter[Row, A]): CompositeGetter[Row, Option[A]] = {
-      new CompositeGetter[Row, Option[A]] {
+    implicit def optionFromGetter[R <: Row, A](implicit g: Getter[R, A]): CompositeGetter[R, Option[A]] = {
+      new CompositeGetter[R, Option[A]] {
         override val length: Int = 1
 
-        override def apply(v1: Row, v2: Index): Option[A] = {
+        override def apply(v1: R, v2: Index): Option[A] = {
           g(v1, v2)
         }
       }
     }
 
-    implicit def fromGetter[Row, A](implicit g: Getter[Row, A]): CompositeGetter[Row, A] =
-      new CompositeGetter[Row, A] {
-        override def apply(v1: Row, v2: Index): A = {
+    implicit def fromGetter[R <: Row, A](implicit g: Getter[R, A]): CompositeGetter[R, A] =
+      new CompositeGetter[R, A] {
+        override def apply(v1: R, v2: Index): A = {
           g(v1, v2).get
         }
 
@@ -76,7 +76,7 @@ trait CompositeGetter extends Getter {
         override val length: Int = H.length + T.length
       }
 
-    implicit def emptyProduct[R]: CompositeGetter[Row, HNil] =
+    implicit def emptyProduct[Row]: CompositeGetter[Row, HNil] =
       new CompositeGetter[Row, HNil] {
 
         override def apply(v1: Row, v2: Index): HNil = {

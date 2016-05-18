@@ -29,7 +29,8 @@ private[sdbc] abstract class SqlServer
   extends DBMS
   with Getters
   with Updaters
-  with Setters {
+  with Setters
+  with MultiQuery {
 
   override val offsetDateTimeFormatter: DateTimeFormatter = {
     new DateTimeFormatterBuilder().

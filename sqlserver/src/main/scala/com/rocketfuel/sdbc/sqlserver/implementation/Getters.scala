@@ -13,41 +13,41 @@ private[sdbc] trait Getters
   extends DefaultGetters {
   self: DBMS with OffsetDateTimeAsStringParameter =>
 
-  override implicit val LocalTimeGetter: Getter[LocalTime] =
+  override implicit val LocalTimeGetter: Getter[Row, LocalTime] =
     (asString: String) => LocalTime.parse(asString)
 
-  implicit val OffsetDateTimeGetter: Getter[OffsetDateTime] =
+  implicit val OffsetDateTimeGetter: Getter[Row, OffsetDateTime] =
     (asString: String) => OffsetDateTime.from(offsetDateTimeFormatter.parse(asString))
 
-  override implicit val UUIDGetter: Getter[UUID] =
+  override implicit val UUIDGetter: Getter[Row, UUID] =
     (asString: String) => UUID.fromString(asString)
 
-  implicit val HierarchyIdGetter: Getter[HierarchyId] =
+  implicit val HierarchyIdGetter: Getter[Row, HierarchyId] =
     (asString: String) => HierarchyId.fromString(asString)
 
-  implicit val XMLGetter: Getter[Node] =
-    (row: Row, ix: Index) => {
-      row match {
-        case row: MutableRow =>
-          for {
-            clob <- Option(row.getClob(ix(row)))
-          } yield {
-            val stream = clob.getCharacterStream()
-            try {
-              XML.load(stream)
-            } finally {
-              util.Try(stream.close())
-            }
-          }
-        case _ =>
-          Option(row.getString(ix(row))).map(XML.loadString)
+  implicit val XMLGetterUpdatable: Getter[UpdatableRow, Node] =
+    (row: UpdatableRow, ix: Index) => {
+      for {
+        clob <- Option(row.getClob(ix(row)))
+      } yield {
+        val stream = clob.getCharacterStream()
+        try {
+          XML.load(stream)
+        } finally {
+          util.Try(stream.close())
+        }
       }
     }
+
+  implicit val XmlGetterImmutable: Getter[Row, Node] =
+    (row: Row, ix: Index) =>
+      Option(row.getString(ix(row))).map(XML.loadString)
+
 
   /**
    * The JTDS driver sometimes fails to parse timestamps, so we use our own parser.
    */
-  override implicit val InstantGetter: Getter[Instant] = {
+  override implicit val InstantGetter: Getter[Row, Instant] = {
     (row: Row, ix: Index) => {
       OffsetDateTimeGetter(row, ix).map(_.toInstant)
     }

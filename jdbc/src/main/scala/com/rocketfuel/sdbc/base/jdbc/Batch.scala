@@ -37,15 +37,15 @@ trait Batch {
       )
     }
 
-    def addBatch(additionalParameters: Map[String, ParameterValue]): Batch = {
+    def addParameters(additionalParameters: Map[String, ParameterValue]): Batch = {
       addBatch(additionalParameters: Parameters)
     }
 
-    def addBatch(additionalParameters: (String, ParameterValue)*): Batch = {
-      addBatch(additionalParameters: Parameters)
+    def add(batchParameter: (String, ParameterValue), batchParameters: (String, ParameterValue)*): Batch = {
+      addBatch(batchParameter +: batchParameters: Parameters)
     }
 
-    def addBatch[
+    def addProduct[
       P,
       Repr <: HList,
       ReprKeys <: HList,
@@ -60,7 +60,7 @@ trait Batch {
       addBatch(additionalParameters: Parameters)
     }
 
-    def addBatch[
+    def addRecord[
       Repr <: HList,
       ReprKeys <: HList,
       MappedRepr <: HList
@@ -88,11 +88,20 @@ trait Batch {
     extends Logging {
 
     def apply(
-      queryText: String,
-      hasParameters: Boolean = true
+      queryText: String
     ): Batch = {
       Batch(
-        statement = CompiledStatement(queryText, hasParameters),
+        statement = CompiledStatement(queryText),
+        parameterValues = Map.empty[String, ParameterValue],
+        batches = Vector.empty[Map[String, ParameterValue]]
+      )
+    }
+
+    def literal(
+      queryText: String
+    ): Batch = {
+      Batch(
+        statement = CompiledStatement.literal(queryText),
         parameterValues = Map.empty[String, ParameterValue],
         batches = Vector.empty[Map[String, ParameterValue]]
       )

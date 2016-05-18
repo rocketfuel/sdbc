@@ -18,7 +18,7 @@ class HasSqlServerPoolSpec
 
   def testDatabaseExists(): Boolean = {
     withSqlMaster[Boolean] { implicit connection =>
-      Query[Int]("SELECT CASE WHEN db_id(@databaseName) IS NULL THEN 0 ELSE 1 END").on("databaseName" -> sqlTestCatalogName).option().exists(_ == 1)
+      Select[Option[Option[Int]]]("SELECT CASE WHEN db_id(@databaseName) IS NULL THEN 0 ELSE 1 END").on("databaseName" -> sqlTestCatalogName).run().flatten.exists(_ == 1)
     }
   }
 
@@ -38,4 +38,3 @@ class HasSqlServerPoolSpec
     sqlMasterPool.close()
   }
 }
-

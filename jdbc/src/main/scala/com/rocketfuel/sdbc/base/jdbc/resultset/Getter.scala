@@ -20,24 +20,24 @@ trait Getter {
     *
     * @tparam T
     */
-  case class Getter[-R <: Row, +T] private[sdbc] (getter: base.Getter[R, Index, T])
-    extends base.Getter[R, Index, T] {
+  case class Getter[-Row, +T] private[sdbc] (getter: base.Getter[Row, Index, T])
+    extends base.Getter[Row, Index, T] {
 
-    override def apply(row: R, index: Index): Option[T] = {
+    override def apply(row: Row, index: Index): Option[T] = {
       getter(row, index)
     }
 
   }
 
   object Getter {
-    def apply[R <: Row, T](implicit getter: Getter[R, T]): Getter[R, T] = getter
+    def apply[Row, T](implicit getter: Getter[Row, T]): Getter[Row, T] = getter
 
-    implicit def ofFunction[R <: Row, T](getter: base.Getter[R, Index, T]): Getter[T, R] = {
+    implicit def ofFunction[R, T](getter: base.Getter[R, Index, T]): Getter[R, T] = {
       Getter[R, T](getter)
     }
 
-    implicit def ofParser[R <: Row, T](parser: String => T)(implicit stringGetter: Getter[R, String]): Getter[R, T] = {
-      Getter((row: R, index: Index) => stringGetter.getter(row, index).map(parser))
+    implicit def ofParser[Row, T](parser: String => T)(implicit stringGetter: Getter[Row, String]): Getter[Row, T] = {
+      Getter((row: Row, index: Index) => stringGetter.getter(row, index).map(parser))
     }
 
     def ofVal[R <: Row, T <: AnyVal](valGetter: (R, Int) => T): Getter[R, T] = {
@@ -137,12 +137,12 @@ trait SeqGetter {
   self: DBMS
     with BytesGetter =>
 
-  implicit def toSeqGetter[T](implicit getter: CompositeGetter[Row, T]): Getter[Row, Seq[T]] = {
+  implicit def toSeqGetter[T](implicit getter: CompositeGetter[ImmutableRow, T]): Getter[Row, Seq[T]] = {
     (row: Row, ix: Index) =>
       for {
         a <- Option(row.getArray(ix(row)))
       } yield {
-        val arrayIterator = a.getResultSet().iterator()
+        val arrayIterator = ImmutableRow.iterator(a.getResultSet())
         val arrayValues = for {
           arrayRow <- arrayIterator
         } yield {

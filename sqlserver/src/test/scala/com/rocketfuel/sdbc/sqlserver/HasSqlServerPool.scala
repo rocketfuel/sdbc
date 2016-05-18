@@ -31,7 +31,7 @@ trait HasSqlServerPool {
   protected def sqlCreateTestCatalog(): Unit = {
     if (sqlPool.isEmpty) {
       withSqlMaster { implicit connection =>
-        Execute(s"CREATE DATABASE [$sqlTestCatalogName];").execute()
+        Select[Unit](s"CREATE DATABASE [$sqlTestCatalogName];").run()
       }
 
       sqlPool = Some(Pool(sqlConfig))
@@ -46,20 +46,19 @@ trait HasSqlServerPool {
       connection.setAutoCommit(true)
 
       val databases =
-        Query[String]("SELECT name FROM sysdatabases WHERE name LIKE @catalogPrefix").
-        on("catalogPrefix" -> (sqlTestCatalogPrefix + "%")).
-        iterator().
-        toSeq
+        Select[Vector[String]]("SELECT name FROM sysdatabases WHERE name LIKE @catalogPrefix").
+          on("catalogPrefix" -> (sqlTestCatalogPrefix + "%")).
+          run()
 
       for (database <- databases) {
         util.Try {
-          Execute(
+          Select[Unit](
             s"""ALTER DATABASE [$database]
                 |SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
             """.stripMargin
-          ).execute()
+          ).run()
 
-          Execute(s"DROP DATABASE [$database]").execute()
+          Select[Unit](s"DROP DATABASE [$database]").run()
         }
       }
     }

@@ -1,6 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 import com.rocketfuel.sdbc.base
+import java.io.Closeable
 import shapeless._
 import shapeless.ops.hlist.{Mapper, ToList}
 
@@ -35,10 +36,10 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): Query[Unit] = {
+      ): Select[Unit] = {
         val parameterValues = toParameterValues(a)
 
-        Query[Unit](compiled, parameterValues)
+        Select[Unit](compiled, parameterValues)
       }
     }
 
@@ -49,10 +50,10 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): Query[UpdateCount] = {
+      ): Select[UpdateCount] = {
         val parameterValues = toParameterValues(a)
 
-        Query[UpdateCount](compiled, parameterValues)
+        Select[UpdateCount](compiled, parameterValues)
       }
     }
 
@@ -63,10 +64,10 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): Query[ImmutableRow] = {
+      ): Select[CloseableIterator[ImmutableRow]] = {
         val parameterValues = toParameterValues(a)
 
-        Query[ImmutableRow](compiled, parameterValues)
+        Select[CloseableIterator[ImmutableRow] with Closeable](compiled, parameterValues)
       }
     }
 
@@ -77,10 +78,10 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): Query[UpdatableRow] = {
+      ): Select[CloseableIterator[UpdatableRow]] = {
         val parameterValues = toParameterValues(a)
 
-        Query[UpdatableRow](compiled, parameterValues)
+        Select[CloseableIterator[UpdatableRow]](compiled, parameterValues)
       }
     }
 
