@@ -1,4 +1,4 @@
-package com.rocketfuel.sdbc.base
+package com.rocketfuel.sdbc.config
 
 import com.typesafe.config.Config
 

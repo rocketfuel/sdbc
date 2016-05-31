@@ -3,7 +3,7 @@ package com.rocketfuel.sdbc.cassandra.implementation
 import com.rocketfuel.sdbc.base.CompiledStatement
 import com.rocketfuel.sdbc.cassandra.QueryOptions
 import scalaz.concurrent.Task
-import shapeless.{ProductArgs, HList}
+import shapeless.{HList, ProductArgs}
 import shapeless.ops.hlist._
 
 private[sdbc] trait StringContextMethods {

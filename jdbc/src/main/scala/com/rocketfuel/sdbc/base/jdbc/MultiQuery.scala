@@ -1,18 +1,20 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.{CompiledStatement, Logging}
+import com.rocketfuel.sdbc.base.Logging
 import com.rocketfuel.sdbc.base.jdbc.statement.MultiStatementConverter
 import shapeless.ops.hlist._
 import shapeless.ops.record.{Keys, MapValues}
 import shapeless.{HList, LabelledGeneric}
 
 /**
-  * Add support for queries with multiple result sets. For use with Microsoft SQL Server.
+  * Add support for queries with multiple result sets, for use with DBMSs
+  * that can return more than one ResultSet per statement.
+  *
   */
 trait MultiQuery extends MultiStatementConverter {
   self: DBMS =>
 
-  case class MultiQuery[A] private[jdbc](
+  case class MultiQuery[A](
     override val statement: CompiledStatement,
     override val parameterValues: Map[String, ParameterValue]
   )(implicit statementConverter: MultiStatementConverter[A]
@@ -107,8 +109,7 @@ trait MultiQuery extends MultiStatementConverter {
     ): A = {
       logRun(compiledStatement, parameterValues)
 
-      val prepared = Select.prepareStatement(compiledStatement)
-      val bound = Select.bind(prepared, compiledStatement, parameterValues)
+      val bound = QueryMethods.executeForUpdate(compiledStatement, parameterValues)
 
       bound.execute()
       bound

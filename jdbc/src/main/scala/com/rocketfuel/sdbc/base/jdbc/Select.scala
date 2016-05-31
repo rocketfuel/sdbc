@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
+import com.rocketfuel.sdbc.base.Logging
 
 trait Select {
   self: DBMS =>
@@ -76,7 +76,7 @@ trait Select {
       StatementConverter.convertedRowIterator[Row, A].apply(executed)
     }
 
-    private[jdbc] def iterator[A](
+    def iterator[A](
       statement: CompiledStatement,
       parameterValues: Map[String, ParameterValue]
     )(implicit connection: Connection,
@@ -96,7 +96,7 @@ trait Select {
       option(statement, parameterValues)
     }
 
-    private[jdbc] def option[A](
+    def option[A](
       statement: CompiledStatement,
       parameterValues: Map[String, ParameterValue]
     )(implicit connection: Connection,

@@ -1,6 +1,5 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base
 import java.io.Closeable
 import shapeless._
 import shapeless.ops.hlist.{Mapper, ToList}
@@ -10,7 +9,7 @@ trait StringContextMethods {
 
   implicit class JdbcStringContextMethods(sc: StringContext) {
 
-    private def compiled = base.CompiledStatement(sc)
+    private def compiled = CompiledStatement(sc)
 
     private def toParameterValues[
       A <: HList,
@@ -36,10 +35,10 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): Select[Unit] = {
+      ): Execute = {
         val parameterValues = toParameterValues(a)
 
-        Select[Unit](compiled, parameterValues)
+        Execute(compiled, parameterValues)
       }
     }
 
@@ -50,10 +49,10 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): Select[UpdateCount] = {
+      ): Update = {
         val parameterValues = toParameterValues(a)
 
-        Select[UpdateCount](compiled, parameterValues)
+        Update(compiled, parameterValues)
       }
     }
 
@@ -64,10 +63,10 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): Select[CloseableIterator[ImmutableRow]] = {
+      ): Select[Row] = {
         val parameterValues = toParameterValues(a)
 
-        Select[CloseableIterator[ImmutableRow] with Closeable](compiled, parameterValues)
+        Select[Row](compiled, parameterValues)
       }
     }
 
@@ -78,10 +77,10 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): Select[CloseableIterator[UpdatableRow]] = {
+      ): SelectForUpdate[UpdatableRow] = {
         val parameterValues = toParameterValues(a)
 
-        Select[CloseableIterator[UpdatableRow]](compiled, parameterValues)
+        SelectForUpdate[UpdatableRow](compiled, parameterValues)
       }
     }
 

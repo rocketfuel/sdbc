@@ -1,11 +1,10 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import java.sql.{SQLFeatureNotSupportedException, PreparedStatement}
-import com.rocketfuel.sdbc.base
-import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
+import java.sql.SQLFeatureNotSupportedException
+import com.rocketfuel.sdbc.base.Logging
 import shapeless.ops.hlist._
-import shapeless.ops.record.{MapValues, Keys}
-import shapeless.{LabelledGeneric, HList}
+import shapeless.ops.record.{Keys, MapValues}
+import shapeless.{HList, LabelledGeneric}
 
 trait Batch {
   self: DBMS =>
@@ -25,7 +24,8 @@ trait Batch {
     statement: CompiledStatement,
     parameterValues: Map[String, ParameterValue],
     batches: Seq[Map[String, ParameterValue]]
-  ) extends ParameterizedQuery[Batch] {
+  ) extends ParameterizedQuery[Batch]
+    with Executes {
 
     protected def addBatch(additionalParameters: Parameters): Batch = {
       val newBatch = setParameters(additionalParameters.parameters)
@@ -77,6 +77,10 @@ trait Batch {
       Batch.run(statement, batches)
     }
 
+    override def execute()(implicit connection: Connection): Unit = {
+      run()
+    }
+
     override protected def subclassConstructor(
       parameterValues: Map[String, ParameterValue]
     ): Batch = {
@@ -90,8 +94,15 @@ trait Batch {
     def apply(
       queryText: String
     ): Batch = {
+      val statement = CompiledStatement(queryText)
+      apply(statement)
+    }
+
+    def apply(
+      statement: CompiledStatement
+    ): Batch = {
       Batch(
-        statement = CompiledStatement(queryText),
+        statement = statement,
         parameterValues = Map.empty[String, ParameterValue],
         batches = Vector.empty[Map[String, ParameterValue]]
       )
@@ -166,7 +177,7 @@ trait Batch {
       prepared
     }
 
-    private[jdbc] def run(
+    def run(
       compiledStatement: CompiledStatement,
       batches: Seq[Map[String, ParameterValue]]
     )(implicit connection: Connection
@@ -174,7 +185,7 @@ trait Batch {
 
       val prepared = prepare(compiledStatement, batches)
 
-      logRun(compiledStatement)
+      logRun(compiledStatement, batches)
 
       val result = try {
         prepared.executeLargeBatch()
@@ -188,9 +199,12 @@ trait Batch {
     }
 
     private def logRun(
-      compiledStatement: CompiledStatement
+      compiledStatement: CompiledStatement,
+      batches: Seq[Map[String, ParameterValue]]
     ): Unit = {
       logger.debug(s"""Executing batch of "${compiledStatement.originalQueryText}".""")
+
+      if (batches.isEmpty) logger.warn("Executing a batch query without any batches.")
     }
 
   }

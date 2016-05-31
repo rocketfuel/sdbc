@@ -23,7 +23,7 @@ trait MultiStatementConverter {
         }
       }
 
-    implicit val update: MultiStatementConverter[UpdateCount] = {
+    implicit val update: MultiStatementConverter[QueryResult.UpdateCount] = {
       (v1: Statement) =>
         val count = try {
           v1.getLargeUpdateCount
@@ -33,7 +33,7 @@ trait MultiStatementConverter {
             v1.getUpdateCount
         }
         v1.getMoreResults()
-        if (count == -1) None.get else UpdateCount(count)
+        if (count == -1) None.get else QueryResult.UpdateCount(count)
     }
 
     implicit def convertedRowIterator[

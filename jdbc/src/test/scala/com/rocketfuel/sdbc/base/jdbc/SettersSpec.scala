@@ -7,7 +7,7 @@ import shapeless.syntax.singleton._
 class SettersSpec
   extends FunSuite {
 
-  val q = TestDbms.Select[TestDbms.UpdateCount]("@hi @bye")
+  val q = TestDbms.Select[TestDbms.QueryResult.UpdateCount]("@hi @bye")
 
   val expectedParams =
     Map[String, TestDbms.ParameterValue](

@@ -21,7 +21,7 @@ private[sdbc] trait SerializedParameter {
       }
     }
 
-  implicit val SerializedGetter: Getter[Serialized] = {
+  implicit val SerializedGetter: Getter[Row, Serialized] = {
     (row: Row, ix: Index) =>
       Option(row.getObject(ix(row))).map(o => Serialized(o.asInstanceOf[AnyRef with java.io.Serializable]))
   }

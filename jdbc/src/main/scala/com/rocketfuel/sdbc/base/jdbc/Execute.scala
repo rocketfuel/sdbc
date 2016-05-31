@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.{CompiledStatement, Logging}
+import com.rocketfuel.sdbc.base.Logging
 
 trait Execute {
   self: DBMS =>
@@ -13,9 +13,9 @@ trait Execute {
     def execute()(implicit connection: Connection): Unit
   }
 
-  case class Execute private [jdbc] (
+  case class Execute(
     override val statement: CompiledStatement,
-    override val parameterValues: Map[String, ParameterValue]
+    override val parameterValues: Map[String, ParameterValue] = Map.empty
   ) extends ParameterizedQuery[Execute]
     with Executes {
 
@@ -42,8 +42,7 @@ trait Execute {
       queryText: String
     ): Execute = {
       Execute(
-        statement = CompiledStatement(queryText),
-        parameterValues = Map.empty[String, ParameterValue]
+        statement = CompiledStatement(queryText)
       )
     }
 
@@ -59,38 +58,26 @@ trait Execute {
       queryText: String
     ): Execute = {
       Execute(
-        statement = CompiledStatement.literal(queryText),
-        parameterValues = Map.empty[String, ParameterValue]
+        statement = CompiledStatement.literal(queryText)
       )
     }
 
     def execute(
       queryText: String,
-      parameterValues: Map[String, ParameterValue] = Map.empty[String, ParameterValue]
+      parameterValues: Map[String, ParameterValue]
     )(implicit connection: Connection
     ): Unit = {
       val statement = CompiledStatement(queryText)
-      logRun(statement, parameterValues)
       execute(statement, parameterValues)
     }
 
-    private[jdbc] def execute(
+    def execute(
       statement: CompiledStatement,
       parameterValues: Map[String, ParameterValue]
     )(implicit connection: Connection
     ): Unit = {
+      logRun(statement, parameterValues)
       val executed = QueryMethods.execute(statement, parameterValues)
-      executed.close()
-    }
-
-    def executeLiteral(
-      queryText: String
-    )(implicit connection: Connection
-    ): Unit = {
-      val statement = CompiledStatement.literal(queryText)
-
-      logRun(statement, Map.empty)
-      val executed = QueryMethods.execute(statement, Map.empty)
       executed.close()
     }
 

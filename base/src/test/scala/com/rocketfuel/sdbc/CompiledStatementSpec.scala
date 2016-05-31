@@ -1,5 +1,6 @@
-package com.rocketfuel.sdbc.base
+package com.rocketfuel.sdbc
 
+import com.rocketfuel.sdbc.base.CompiledStatement
 import org.scalatest.FunSuite
 
 class CompiledStatementSpec extends FunSuite {
@@ -110,12 +111,32 @@ class CompiledStatementSpec extends FunSuite {
     assert(statement.parameterPositions.contains("t"))
   }
 
-  test("Two '@' in a row are ignored.") {
+  test("Two '@' in a row are a single '@'.") {
     val queryText = "@@hello"
     val statement = CompiledStatement(queryText)
 
-    assert(statement.parameterPositions.size == 0)
-    assert(statement.queryText == queryText)
+    assert(statement.parameterPositions.isEmpty)
+    assertResult("@hello")(statement.queryText)
+  }
+
+  test("Two '@' in a row and then a parameter is a single '@' and the parameter.") {
+    val queryText = "@@@hello"
+    val statement = CompiledStatement(queryText)
+
+    assertResult(Set(0))(statement.parameterPositions("hello"))
+    assertResult("@?")(statement.queryText)
+  }
+
+  test("An even number of '@' yields half as many literal '@'") {
+    val queryText = Vector.fill(10)("@")
+    val statement = CompiledStatement(queryText.mkString)
+
+    assertResult(Vector.fill(5)("@").mkString)(statement.queryText)
+  }
+
+  test("An uneven number of '@' yields an exception.") {
+    val queryText = Vector.fill(7)("@")
+    intercept[IllegalStateException](CompiledStatement(queryText.mkString))
   }
 
 }

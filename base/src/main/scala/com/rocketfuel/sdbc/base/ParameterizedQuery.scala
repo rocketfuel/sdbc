@@ -1,8 +1,8 @@
 package com.rocketfuel.sdbc.base
 
 import shapeless.ops.hlist._
-import shapeless.ops.record.{MapValues, Keys}
-import shapeless.{LabelledGeneric, HList}
+import shapeless.ops.record.{Keys, MapValues}
+import shapeless.{HList, LabelledGeneric}
 
 trait ParameterizedQuery {
   self: ParameterValue =>

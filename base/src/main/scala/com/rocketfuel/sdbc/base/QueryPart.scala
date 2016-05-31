@@ -1,7 +1,14 @@
 package com.rocketfuel.sdbc.base
 
-private[base] sealed trait QueryPart
+private sealed trait QueryPart {
+  /**
+    * The code points that make up this part of the query.
+    */
+  val value: Vector[Int]
 
-private[base] case class Parameter(value: String) extends QueryPart
+  override def toString: String = value.flatMap(Character.toChars(_).toVector).mkString
+}
 
-private[base] case class QueryText(value: String) extends QueryPart
+private case class Parameter(value: Vector[Int]) extends QueryPart
+
+private case class QueryText(value: Vector[Int]) extends QueryPart

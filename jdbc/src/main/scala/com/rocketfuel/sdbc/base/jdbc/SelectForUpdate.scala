@@ -1,13 +1,13 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
+import com.rocketfuel.sdbc.base.Logging
 
 trait SelectForUpdate {
   self: DBMS =>
 
-  case class SelectForUpdate[A] private[jdbc](
+  case class SelectForUpdate[A](
     override val statement: CompiledStatement,
-    override val parameterValues: Map[String, ParameterValue]
+    override val parameterValues: Map[String, ParameterValue] = Map.empty
   )(implicit rowConverter: RowConverter[UpdatableRow, A]
   ) extends ParameterizedQuery[SelectForUpdate[A]]
     with Executes {
@@ -21,7 +21,7 @@ trait SelectForUpdate {
     }
 
     def option()(implicit connection: Connection): Option[A] = {
-      SelectForUpdate.option(statement, parameterValues)
+      SelectForUpdate.option[A](statement, parameterValues)
     }
 
     def execute()(implicit connection: Connection): Unit = {
@@ -65,7 +65,7 @@ trait SelectForUpdate {
 
     def iterator[A](
       queryText: String,
-      parameterValues: Map[String, ParameterValue] = Map.empty
+      parameterValues: Map[String, ParameterValue]
     )(implicit connection: Connection,
       rowConverter: RowConverter[Row, A]
     ): CloseableIterator[A] = {
@@ -74,7 +74,7 @@ trait SelectForUpdate {
       iterator(statement, parameterValues)
     }
 
-    private[jdbc] def iterator[A](
+    def iterator[A](
       statement: CompiledStatement,
       parameterValues: Map[String, ParameterValue]
     )(implicit connection: Connection,
@@ -86,7 +86,7 @@ trait SelectForUpdate {
 
     def option[A](
       queryText: String,
-      parameterValues: Map[String, ParameterValue] = Map.empty
+      parameterValues: Map[String, ParameterValue]
     )(implicit connection: Connection,
       rowConverter: RowConverter[UpdatableRow, A]
     ): Option[A] = {
@@ -95,11 +95,11 @@ trait SelectForUpdate {
       option(statement, parameterValues)
     }
 
-    private[jdbc] def option[A](
+    def option[A](
       statement: CompiledStatement,
       parameterValues: Map[String, ParameterValue]
     )(implicit connection: Connection,
-      rowConverter: RowConverter[Row, A]
+      rowConverter: RowConverter[UpdatableRow, A]
     ): Option[A] = {
       val iterator = this.iterator(statement, parameterValues)
       try {

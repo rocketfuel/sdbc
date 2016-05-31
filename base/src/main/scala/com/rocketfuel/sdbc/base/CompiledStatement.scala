@@ -1,7 +1,14 @@
 package com.rocketfuel.sdbc.base
 
-import scala.collection.immutable.Seq
+import java.util.function.IntConsumer
 
+/**
+  * Represents a query with named parameters.
+  *
+  * @param queryText is the text of the query after replacing parameter names with '?'.
+  * @param originalQueryText is the text of the query before replacing the parameter names with '?'.
+  * @param parameterPositions is the map containing the positions of each parameter name.
+  */
 case class CompiledStatement private (
   queryText: String,
   originalQueryText: String,
@@ -21,6 +28,10 @@ object CompiledStatement {
     * or underscore. A parameter that does not follow
     * this scheme must be quoted by backticks. Parameter names
     * are case sensitive.
+    *
+    * Two '@' in a row are replaced with a single '@'. This follows the same
+    * rules as [[String#replace(String, String)]], so that "@@@abc" becomes
+    * "@?".
     *
     * Examples of identifiers:
     *
@@ -52,7 +63,8 @@ object CompiledStatement {
    * the string context (they're replaced by empty strings),
    * use numbers to represent the parameter names, starting
    * from 0.
-   * @param sc
+    *
+    * @param sc
    * @return
    */
   def apply(sc: StringContext): CompiledStatement = {
@@ -73,58 +85,117 @@ object CompiledStatement {
     apply(queryText)
   }
 
-  //http://www.postgresql.org/docs/9.4/static/sql-syntax-lexical.html
-  //We use '@' to signal the beginning of named parameter.
-  //Parameters are optionally quoted by backticks. Quoted parameters can not contain backticks.
-  //Two '@' in a row are ignored.
-  private val parameterMatcher =
-    """(?U)@(?<!\@\@)(?:`([^`]+)`|([\p{L}_][\p{L}\p{N}_$]*))""".r
+  private val CodePointAt = Character.codePointAt("@", 0)
 
-  /**
-   * Split the string into its parts up to and including the first
-   * parameter, and then the parts after the parameter.
-   * @param value
-   * @return
-   */
-  private def nextParameter(value: String): (Seq[QueryPart], Option[String]) = {
-    parameterMatcher.findFirstMatchIn(value) match {
-      case None =>
-        (Seq(QueryText(value)), None)
-      case Some(m) =>
-        val beforeParameter = {
-          if (m.start == 0) {
-            Vector.empty
-          } else {
-            Vector(QueryText(value.substring(0, m.start)))
-          }
-        }
+  private val CodePointQuote = Character.codePointAt("`", 0)
 
-        val parameter = Option(m.group(1)).getOrElse(m.group(2))
+  private val CodePointUnderscore = Character.codePointAt("_", 0)
 
-        val afterParameter = {
-          if (m.end == value.length)
-            None
-          else {
-            Some(value.substring(m.end, value.length))
-          }
-        }
+  def isParameterChar(c: Int): Boolean = {
+    c == CodePointUnderscore || Character.isLetterOrDigit(c)
+  }
 
-        (beforeParameter :+ Parameter(parameter), afterParameter)
+  private case class ParamAccum(paramChars: Vector[Int], inQuote: Boolean = false) {
+    def toParameter =
+      Parameter(paramChars)
+
+    def append(codePoint: Int): ParamAccum =
+      copy(paramChars :+ codePoint)
+  }
+
+  private case class FindPartsAccum(
+    accum: Vector[QueryPart],maybeParamAccum: Option[ParamAccum],
+    literalAccum: Vector[Int]
+  ) {
+    def append(codePoint: Int): FindPartsAccum = {
+      (codePoint, maybeParamAccum) match {
+        //Begin parameter
+        case (CodePointAt, None) =>
+          copy(
+            accum = accum :+ QueryText(literalAccum),
+            maybeParamAccum = Some(ParamAccum(Vector(), false)),
+            literalAccum = Vector()
+          )
+
+        //Parameter was begun, and it is quoted
+        case (CodePointQuote, Some(ParamAccum(Vector(), false))) =>
+          copy(maybeParamAccum = Some(ParamAccum(Vector(), true)))
+
+        //unquoted Parameter was begun, and is continuing
+        case (codePoint, Some(paramAccum@ParamAccum(paramChars, false))) if isParameterChar(codePoint) =>
+          copy(maybeParamAccum = Some(paramAccum.append(codePoint)))
+
+        //quoted Parameter was begun, and is continuing
+        case (codePoint, Some(paramAccum@ParamAccum(_, true))) if codePoint != CodePointQuote =>
+          copy(maybeParamAccum = Some(paramAccum.append(codePoint)))
+
+        //We thought we were starting a parameter, but really it was a literal '@'
+        case (CodePointAt, Some(ParamAccum(Vector(), false))) =>
+          copy(
+            maybeParamAccum = None,
+            literalAccum = Vector(CodePointAt)
+          )
+
+        //We were in a parameter, but a new one is beginning
+        case (CodePointAt, Some(paramAccum@ParamAccum(_, false))) =>
+          copy(
+            accum = accum :+ paramAccum.toParameter,
+            maybeParamAccum = Some(ParamAccum(Vector(), false))
+          )
+
+        //ending a quoted parameter
+        case (CodePointQuote, Some(paramAccum@ParamAccum(_, true))) =>
+          copy(
+            accum = accum :+ paramAccum.toParameter,
+            maybeParamAccum = None
+          )
+
+        //ending an unquoted parameter
+        case (codePoint, Some(paramAccum)) =>
+          copy(
+            accum :+ paramAccum.toParameter,
+            maybeParamAccum = None,
+            literalAccum = Vector(codePoint)
+          )
+
+        //continue string literal
+        case (otherwise, None) =>
+          copy(literalAccum = literalAccum :+ otherwise)
+      }
+    }
+
+    /**
+      * Use to get the final query parts collection when the end of the query is reached.
+      *
+      * @return
+      */
+    def finish: Vector[QueryPart] = {
+      if (maybeParamAccum.exists(_.inQuote)) throw new IllegalStateException("missing end of quoted parameter")
+      if (maybeParamAccum.exists(_.paramChars.isEmpty)) throw new IllegalStateException("missing parameter name at end of query")
+      accum :+ maybeParamAccum.map(_.toParameter).getOrElse(QueryText(literalAccum))
     }
   }
 
-  private def findParts(value: String): Seq[QueryPart] = {
-    nextParameter(value) match {
-      case (parts, None) =>
-        parts
-      case (parts, Some(remainingText)) =>
-        parts ++ findParts(remainingText)
-    }
+  private object FindPartsAccum {
+    val empty = FindPartsAccum(accum = Vector(), maybeParamAccum = None, literalAccum = Vector())
   }
 
-  private def findParameterPositions(parts: Seq[QueryPart]): Map[String, Set[Int]] = {
-    parts.collect{case p: Parameter => p}.zipWithIndex.foldLeft(Map.empty[String, Set[Int]]){
-      case (positionMap, (Parameter(name), index)) =>
+  private def findParts(value: String): Vector[QueryPart] = {
+
+    val codePoints = collection.mutable.Buffer.empty[Int]
+
+    value.codePoints.forEach(new IntConsumer {
+      override def accept(value: Int): Unit = {
+        codePoints.append(value)
+      }
+    })
+
+    codePoints.foldLeft(FindPartsAccum.empty)(_.append(_)).finish
+  }
+
+  private def findParameterPositions(parts: Vector[QueryPart]): Map[String, Set[Int]] = {
+    parts.collect{case p: Parameter => p.toString}.zipWithIndex.foldLeft(Map.empty[String, Set[Int]]){
+      case (positionMap, (name, index)) =>
         positionMap.get(name) match {
           case None =>
             positionMap + (name -> Set(index))
@@ -134,10 +205,10 @@ object CompiledStatement {
     }
   }
 
-  private def partsToStatement(parts: Seq[QueryPart]): String = {
+  private def partsToStatement(parts: Vector[QueryPart]): String = {
     parts.map {
       case _: Parameter => "?"
-      case QueryText(t) => t
+      case q: QueryText => q.toString
     }.mkString
   }
 }

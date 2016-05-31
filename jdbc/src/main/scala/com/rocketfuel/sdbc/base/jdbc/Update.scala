@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.{Logging, CompiledStatement}
+import com.rocketfuel.sdbc.base.Logging
 
 trait Update {
   self: DBMS =>

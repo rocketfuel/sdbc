@@ -14,8 +14,10 @@ abstract class DBMS
   with SelectForUpdate
   with Execute
   with Update
-  with Queryable
   with Batch
+  with Selectable
+  with Updatable
+  with Batchable
   with StringContextMethods
   with ResultSetImplicits
   with StatementConverter
@@ -33,6 +35,10 @@ abstract class DBMS
   val Singleton = base.Singleton
 
   type CloseableIterator[+A] = base.CloseableIterator[A]
+
+  type CompiledStatement = base.CompiledStatement
+
+  val CompiledStatement = base.CompiledStatement
 
   /**
    * Class name for the DataSource class.
@@ -107,7 +113,7 @@ object DBMS {
 
   private val jdbcURIRegex = "(?i)^jdbc:(.+):".r
 
-  private [jdbc] def register(dbms: DBMS): Unit = {
+  def register(dbms: DBMS): Unit = {
     this.synchronized {
       dataSources(dbms.dataSourceClassName) = dbms
       for (scheme <- dbms.jdbcSchemes) {
@@ -115,6 +121,16 @@ object DBMS {
       }
       productNames(dbms.productName) = dbms
       Class.forName(dbms.driverClassName)
+    }
+  }
+
+  def deregister(dbms: DBMS): Unit = {
+    this.synchronized {
+      dataSources.remove(dbms.dataSourceClassName)
+      for (scheme <- dbms.jdbcSchemes) {
+        jdbcSchemes.remove(scheme)
+      }
+      productNames.remove(dbms.productName)
     }
   }
 

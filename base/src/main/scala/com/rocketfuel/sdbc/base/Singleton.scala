@@ -14,7 +14,7 @@ case class Singleton[A](
       case 0 =>
         get
       case _ =>
-        throw new IndexOutOfBoundsException(idx.toString)
+        throw new IndexOutOfBoundsException()
     }
 
   override def length: Int = 1

@@ -1,6 +1,5 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.CompiledStatement
 import java.sql.ResultSet
 
 private[jdbc] trait QueryMethods {

@@ -16,7 +16,7 @@ trait StatementConverter {
       override val get: Unit = ()
     }
 
-    case class UpdateCount(get: Long) extends QueryResult
+    case class UpdateCount(get: Long) extends QueryResult[Long]
 
     case class Iterator[A](
       get: CloseableIterator[A],
