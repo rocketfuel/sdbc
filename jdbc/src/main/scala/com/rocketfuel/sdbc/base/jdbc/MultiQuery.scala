@@ -109,7 +109,7 @@ trait MultiQuery extends MultiStatementConverter {
     ): A = {
       logRun(compiledStatement, parameterValues)
 
-      val bound = QueryMethods.executeForUpdate(compiledStatement, parameterValues)
+      val bound = QueryMethods.execute(compiledStatement, parameterValues)
 
       bound.execute()
       bound

@@ -1,8 +1,9 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
 import com.datastax.driver.core
-import com.rocketfuel.sdbc.base.{CompiledStatement, Logging}
+import com.rocketfuel.sdbc.base.CompiledStatement
 import com.rocketfuel.sdbc.cassandra._
+import scala.collection.convert.wrapAsScala._
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz.concurrent.Task
 import scalaz.stream._
@@ -19,19 +20,17 @@ trait Query {
     override val parameterValues: Map[String, ParameterValue]
   )(implicit val converter: RowConverter[T]
   ) extends ParameterizedQuery[Query[T]]
-    with HasQueryOptions
-    with Logging {
+    with HasQueryOptions {
     query =>
 
     override protected def subclassConstructor(parameterValues: Map[String, ParameterValue]): Query[T] = {
       copy(parameterValues = parameterValues)
     }
 
-    private def bind(
-      preparedStatement: core.PreparedStatement,
-      parameterValues: Map[String, ParameterValue]
-    ): core.BoundStatement = {
-      val forBinding = preparedStatement.bind()
+    private def prepare()(implicit session: Session): core.BoundStatement = {
+      val prepared = session.prepare(query.queryText)
+
+      val forBinding = prepared.bind()
 
       for ((parameterName, parameterIndices) <- statement.parameterPositions) {
         val parameterValue = parameterValues(parameterName)
@@ -45,143 +44,152 @@ trait Query {
       forBinding
     }
 
-      private def prepare(parameters: Map[String, ParameterValue])(implicit session: Session): core.BoundStatement = {
-        val prepared = session.prepare(query.queryText)
+    def execute()(implicit session: Session): core.ResultSet = {
+      logExecution()
 
-        bind(prepared, parameters)
+      val prepared = prepare()
+      session.execute(prepared)
+    }
+
+    def iterator()(implicit session: Session): Iterator[T] = {
+      val results = execute()
+      results.iterator().map(converter)
+    }
+
+    def option()(implicit session: Session): Option[T] = {
+      val results = execute()
+      Option(results.one()).map(converter)
+    }
+
+    object future {
+
+      def execute()(implicit session: Session, ec: ExecutionContext): Future[core.ResultSet] = {
+        logExecution()
+
+        val prepared = prepare()
+        toScalaFuture(session.executeAsync(prepared))
       }
 
-      def execute(parameters: (String, ParameterValue)*)(implicit session: Session): core.ResultSet = {
-        execute(parameters: Parameters)
+      def iterator()(implicit session: Session, ec: ExecutionContext): Future[Iterator[T]] = {
+        execute().map(_.iterator().map(converter))
       }
 
-      def execute(parameters: Map[String, ParameterValue])(implicit session: Session): core.ResultSet = {
-        execute(parameters: Parameters)
+      def option()(implicit session: Session, ec: ExecutionContext): Future[Option[T]] = {
+        for {
+          results <- execute()
+        } yield Option(results.one()).map(converter)
       }
 
-      def execute[
-        A,
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
-      ](parameters: A
-      )(implicit session: Session,
-        genericA: LabelledGeneric.Aux[A, Repr],
-        keys: Keys.Aux[Repr, ReprKeys],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
-        ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, ParameterValue]
-      ): core.ResultSet = {
-        execute(parameters: Parameters)
+    }
+
+    object task {
+
+      def execute()(implicit session: Session): Task[core.ResultSet] = {
+        logExecution()
+
+        val prepared = prepare()
+        toTask(session.executeAsync(prepared))
       }
 
-      def execute[
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
-      ](parameters: Repr
-      )(implicit session: Session,
-        keys: Keys.Aux[Repr, ReprKeys],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
-        ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, ParameterValue]
-      ): core.ResultSet = {
-        execute(parameters: Parameters)
+      def iterator()(implicit session: Session): Task[Iterator[T]] = {
+        execute().map(_.iterator().map(converter))
       }
 
-      private[implementation] def execute(additionalParameters: Parameters)(implicit session: Session): core.ResultSet = {
-        val parameters = setParameters(additionalParameters.parameters)
-        logExecution(parameters)
-
-        val prepared = prepare(parameters)
-        session.execute(prepared)
+      def option()(implicit session: Session): Task[Option[T]] = {
+        for {
+          results <- execute()
+        } yield Option(results.one()).map(converter)
       }
 
-      def iterator(parameters: (String, ParameterValue)*)(implicit session: Session): Iterator[T] = {
-        iterator(parameters: Parameters)
-      }
+    }
 
-      def iterator(parameters: Map[String, ParameterValue])(implicit session: Session): Iterator[T] = {
-        iterator(parameters: Parameters)
+    def channel(implicit
+      session: Session,
+      rowConverter: RowConverter[T]
+    ): Channel[Task, Parameters, Process[Task, T]] = {
+      scalaz.stream.channel.lift[Task, Parameters, Process[Task, T]] { parameters =>
+        Task(io.iterator(onParameters(parameters.parameters).task.iterator()))
       }
+    }
 
-      def iterator[
-        A,
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
-      ](parameters: A
-      )(implicit session: Session,
-        genericA: LabelledGeneric.Aux[A, Repr],
-        keys: Keys.Aux[Repr, ReprKeys],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
-        ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, ParameterValue]
-      ): Iterator[T] = {
-        iterator(parameters: Parameters)
+    def productChannel[
+      P,
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
+    ](implicit session: Session,
+      rowConverter: RowConverter[T],
+      genericA: LabelledGeneric.Aux[P, Repr],
+      keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, ParameterValue]
+    ): Channel[Task, P, Process[Task, T]] = {
+      scalaz.stream.channel.lift[Task, P, Process[Task, T]] {
+        product => Task(io.iterator(Task(onProduct(product).iterator())))
       }
+    }
 
-      def iterator[
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
-      ](parameters: Repr
-      )(implicit session: Session,
-        keys: Keys.Aux[Repr, ReprKeys],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
-        ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, ParameterValue]
-      ): Iterator[T] = {
-        iterator(parameters: Parameters)
+    def recordChannel[
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
+    ](implicit session: Session,
+      rowConverter: RowConverter[T],
+      keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, ParameterValue]
+    ): Channel[Task, Repr, Process[Task, T]] = {
+      scalaz.stream.channel.lift[Task, Repr, Process[Task, T]] {
+        product => Task(io.iterator(Task(onRecord(product).iterator())))
       }
+    }
 
-      private[implementation] def iterator(additionalParameters: Parameters)(implicit session: Session): Iterator[T] = {
-        val results = execute(additionalParameters)
-        results.fet
+    def sink(implicit
+      session: Session,
+      rowConverter: RowConverter[T]
+    ): Sink[Task, Parameters] = {
+      scalaz.stream.sink.lift[Task, Parameters] { parameters =>
+        Task[Unit] {
+          onParameters(parameters.parameters).task.execute()
+        }
       }
+    }
 
-      def option(parameters: (String, ParameterValue)*)(implicit session: Session): Option[T] = {
-        option(parameters: Parameters)
+    def productSink[
+      P,
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
+    ](implicit session: Session,
+      rowConverter: RowConverter[T],
+      genericA: LabelledGeneric.Aux[P, Repr],
+      keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, ParameterValue]
+    ): Sink[Task, P] = {
+      scalaz.stream.sink.lift[Task, P] {
+        product => Task(onProduct(product).execute())
       }
+    }
 
-      def option(parameters: Map[String, ParameterValue])(implicit session: Session): Option[T] = {
-        option(parameters: Parameters)
+    def recordSink[
+      Repr <: HList,
+      ReprKeys <: HList,
+      MappedRepr <: HList
+    ](implicit session: Session,
+      rowConverter: RowConverter[T],
+      keys: Keys.Aux[Repr, ReprKeys],
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      ktl: ToList[ReprKeys, Symbol],
+      vtl: ToList[MappedRepr, ParameterValue]
+    ): Sink[Task, Repr] = {
+      scalaz.stream.sink.lift[Task, Repr] {
+        product => Task(onRecord(product).execute())
       }
-
-      def option[
-        A,
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
-      ](parameters: A
-      )(implicit session: Session,
-        genericA: LabelledGeneric.Aux[A, Repr],
-        keys: Keys.Aux[Repr, ReprKeys],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
-        ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, ParameterValue]
-      ): Option[T] = {
-        option(parameters: Parameters)
-      }
-
-      def option[
-        Repr <: HList,
-        ReprKeys <: HList,
-        MappedRepr <: HList
-      ](parameters: Repr
-      )(implicit session: Session,
-        keys: Keys.Aux[Repr, ReprKeys],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
-        ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, ParameterValue]
-      ): Option[T] = {
-        option(parameters: Parameters)
-      }
-
-      private[implementation] def option(additionalParameters: Parameters)(implicit session: Session): Option[T] = {
-        val results = execute(additionalParameters)
-        Option(results.one()).map(convertRow)
-      }
+    }
 
   }
 
@@ -194,85 +202,12 @@ trait Query {
     )(implicit converter: RowConverter[T]
     ): Query[T] = {
       Query[T](
-        CompiledStatement(queryText, hasParameters),
+        if (hasParameters) CompiledStatement(queryText) else CompiledStatement.literal(queryText),
         queryOptions,
         Map.empty[String, ParameterValue]
       )
     }
 
-    object stream {
-      def ofQueries[T](implicit cluster: core.Cluster): Channel[Task, Query[T], Process[Task, T]] = {
-        val req = toTask(cluster.connectAsync())
-        def release(session: Session): Task[Unit] = {
-          toTask(session.closeAsync()).map(Function.const(()))
-        }
-        channel.lift[Task, Query[T], Process[Task, T]] { query =>
-          Task.delay {
-            scalaz.stream.io.iteratorR[Session, T](req)(release) {implicit session =>
-              query.task.iterator()
-            }
-          }
-        }
-      }
-
-      def ofQueriesWithKeyspace[T](implicit cluster: core.Cluster): Channel[Task, (String, Query[T]), Process[Task, T]] = {
-        def release(session: Session): Task[Unit] = {
-          toTask(session.closeAsync()).map(Function.const(()))
-        }
-        channel.lift[Task, (String, Query[T]), Process[Task, T]] {
-          case (keyspace, query) =>
-            val req = toTask(cluster.connectAsync(keyspace))
-            Task.delay {
-              scalaz.stream.io.iteratorR[Session, T](req)(release) {implicit session =>
-                query.task.iterator()
-              }
-            }
-        }
-      }
-
-      def ofParameters[T](
-        queryText: String,
-        hasParameters: Boolean = true,
-        queryOptions: QueryOptions = QueryOptions.default
-      )(implicit cluster: Cluster,
-        rowConverter: RowConverter[T]
-      ): Channel[Task, Parameters, Process[Task, T]] = {
-        val query = Query(queryText, hasParameters, queryOptions)
-        val req = toTask(cluster.connectAsync())
-        def release(session: Session): Task[Unit] = {
-          toTask(session.closeAsync()).map(Function.const(()))
-        }
-        channel.lift[Task, Parameters, Process[Task, T]] { parameters =>
-          Task.delay {
-            scalaz.stream.io.iteratorR[Session, T](req)(release) {implicit session =>
-              query.task.iterator(parameters)
-            }
-          }
-        }
-      }
-
-      def ofParametersWithKeyspace[T](
-        queryText: String,
-        hasParameters: Boolean = true,
-        queryOptions: QueryOptions = QueryOptions.default
-      )(implicit cluster: Cluster,
-        rowConverter: RowConverter[T]
-      ): Channel[Task, (String, Parameters), Process[Task, T]] = {
-        val query = Query(queryText, hasParameters, queryOptions)
-        def release(session: Session): Task[Unit] = {
-          toTask(session.closeAsync()).map(Function.const(()))
-        }
-        channel.lift[Task, (String, Parameters), Process[Task, T]] {
-          case (keyspace, parameters) =>
-            val req = toTask(cluster.connectAsync(keyspace))
-            Task.delay {
-              scalaz.stream.io.iteratorR[Session, T](req)(release) {implicit session =>
-                query.task.iterator(parameters)
-              }
-            }
-        }
-      }
-    }
   }
 
 }

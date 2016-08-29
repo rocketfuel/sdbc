@@ -7,7 +7,7 @@ import shapeless.{HList, LabelledGeneric}
 trait ParameterizedQuery {
   self: ParameterValue =>
 
-  trait ParameterizedQuery[Self <: ParameterizedQuery[Self]] {
+  trait ParameterizedQuery[Self <: ParameterizedQuery[Self]] extends Logging {
 
     def statement: CompiledStatement
 
@@ -73,6 +73,8 @@ trait ParameterizedQuery {
 
     protected def subclassConstructor(parameterValues: Map[String, ParameterValue]): Self
 
+    def logExecution(): Unit =
+      logger.debug(s"""Executing "$originalQueryText" with parameters $parameterValues.""")
   }
 
 }

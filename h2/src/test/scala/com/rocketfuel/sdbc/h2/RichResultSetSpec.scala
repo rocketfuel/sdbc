@@ -19,10 +19,10 @@ class RichResultSetSpec
 
     val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
       case (batch, r) =>
-        batch.addBatch("x" -> r)
+        batch.add("x" -> r)
     }
 
-    val insertions = batch.iterator
+    val insertions = batch.run()
 
     assertResult(randoms.size)(insertions.sum)
 
@@ -38,17 +38,17 @@ class RichResultSetSpec
 
     val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
       case (batch, r) =>
-        batch.addBatch("x" -> r)
+        batch.add("x" -> r)
     }
 
-    batch.iterator()
+    batch.run()
 
-    for(row <- connection.iteratorForUpdate("SELECT * FROM tbl")) {
+    for(row <- SelectForUpdate("SELECT * FROM tbl").iterator()) {
       row("x") = row[Int]("x") + 1
       row.updateRow()
     }
 
-    val afterUpdate = connection.iterator[Int]("SELECT x FROM tbl ORDER BY x ASC").toSeq
+    val afterUpdate = Select[Int]("SELECT x FROM tbl ORDER BY x ASC").iterator().toVector
 
     for ((afterUpdate, original) <- afterUpdate.zip(randoms)) {
       assertResult(original + 1)(afterUpdate)
@@ -62,10 +62,10 @@ class RichResultSetSpec
 
     val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
       case (batch, r) =>
-        batch.addBatch("x" -> r)
+        batch.add("x" -> r)
     }
 
-    batch.iterator()
+    batch.run()
 
     val result = Select[Int]("SELECT x FROM tbl ORDER BY id ASC").iterator().toVector
 
@@ -73,7 +73,9 @@ class RichResultSetSpec
   }
 
   override protected def afterEach(): Unit = {
-    withMemConnection()(_.execute("DROP TABLE IF EXISTS tbl"))
+    withMemConnection() { implicit connection =>
+      Execute("DROP TABLE IF EXISTS tbl").execute()
+    }
   }
 
 }

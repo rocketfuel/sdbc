@@ -66,14 +66,14 @@ class Benchmarks
 
   override protected def beforeEach(): Unit = {
     withPg {implicit connection =>
-      TestTable.create.run()
+      TestTable.create.execute()
       connection.commit()
     }
   }
 
   override protected def afterEach(): Unit = {
     withPg {implicit connection =>
-      TestTable.drop.run()
+      TestTable.drop.execute()
       connection.commit()
     }
   }
@@ -103,7 +103,7 @@ class Benchmarks
       connection.commit()
 
     }{
-      TestTable.truncate.run()
+      TestTable.truncate.execute()
       connection.commit()
     }
 
@@ -165,7 +165,7 @@ class Benchmarks
       values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}.run()
       connection.commit()
     }{
-      TestTable.truncate.run()
+      TestTable.truncate.execute()
       connection.commit()
     }
 
@@ -192,7 +192,7 @@ class Benchmarks
     connection.commit()
 
     val selectDuration = averageTime(repetitions) {
-      TestTable.select.run()
+      TestTable.select.execute()
     }(() => ())
 
     println(s"com.rocketfuel.sql select took $selectDuration ms.")
@@ -205,7 +205,7 @@ class Benchmarks
 
     connection.commit()
 
-    val selectedRows = TestTable.select.run()
+    val selectedRows = TestTable.select.iterator().toVector
 
     for ((TestTable(_, str1, uuid, str2), TestTable(_, str1_, uuid_, str2_)) <- values.zip(selectedRows)) {
       assert(str1 == str1_)
@@ -259,7 +259,7 @@ class Benchmarks
          |);
        """.stripMargin
 
-      Select.literal[UpdateCount](queryText)
+      Execute.literal(queryText)
     }
 
     val insert = {
@@ -269,7 +269,7 @@ class Benchmarks
           |VALUES
           |(@str1, @uuid, @str2)
         """.stripMargin
-      Select[UpdateCount](queryText)
+      Update(queryText)
     }
 
     val batchInsert = {
@@ -289,13 +289,13 @@ class Benchmarks
         |(?, ?, ?)
       """.stripMargin
 
-    val select = Select.literal[Vector[TestTable]]("SELECT * FROM test ORDER BY id;")
+    val select = Select.literal[TestTable]("SELECT * FROM test ORDER BY id;")
 
     val drop =
-      Select.literal[Unit]("DROP TABLE test;")
+      Execute.literal("DROP TABLE test;")
 
     val truncate =
-      Select.literal[Unit]("TRUNCATE TABLE test RESTART IDENTITY;")
+      Execute.literal("TRUNCATE TABLE test RESTART IDENTITY;")
 
   }
 

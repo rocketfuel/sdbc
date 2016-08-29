@@ -38,12 +38,12 @@ abstract class CassandraSuite
 
   def randomKeyspace()(implicit session: Session): String = {
     val space = new String(util.Random.alphanumeric.filter(_.isLetter).take(10).toArray)
-    Query(s"CREATE KEYSPACE $space WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}").io.execute()
+    Query(s"CREATE KEYSPACE $space WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}").execute()
     space
   }
 
   def truncate()(implicit session: Session): Unit = {
-    Query(s"TRUNCATE $keyspace.tbl").io.execute()
+    Query(s"TRUNCATE $keyspace.tbl").execute()
   }
 
 }

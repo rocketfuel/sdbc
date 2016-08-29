@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc.resultset
 
 import com.rocketfuel.sdbc.base.jdbc.DBMS
-import java.io.{Closeable, InputStream, Reader}
+import java.io.{InputStream, Reader}
 import java.math.BigDecimal
 import java.net.URL
 import java.sql.{Array => JdbcArray, _}
@@ -18,12 +18,8 @@ trait UpdatableRow {
   ) extends Row()
     with ResultSet {
 
-    def update[T](columnIndex: Int, x: T)(implicit updater: Updater[T]): Unit = {
-      updater.update(this, columnIndex, x)
-    }
-
-    def update[T](columnLabel: String, x: T)(implicit updater: Updater[T]): Unit = {
-      updater.update(this, columnLabel, x)
+    def update[T](columnIndex: Index, x: T)(implicit updater: Updater[T]): Unit = {
+      updater.update(this, columnIndex(this), x)
     }
 
     override def toSeq: IndexedSeq[Option[Any]] = Row.toSeq(underlying)
@@ -79,9 +75,15 @@ trait UpdatableRow {
 
     override def getDouble(columnLabel: String): Double = underlying.getDouble(columnLabel: String)
 
-    override def getArray(columnIndex: Int): JdbcArray = underlying.getArray(columnIndex + 1)
+    override def getArray(columnIndex: Int): JdbcArray = underlying.getArray(columnIndex)
 
-    override def getArray(columnLabel: String): JdbcArray = underlying.getArray(columnLabel: String)
+    override def getArray(columnLabel: String): JdbcArray = underlying.getArray(columnLabel)
+
+    override def getSeq[T](columnIndex: Int)(implicit getter: CompositeGetter[T]): Seq[T] =
+      Option(getArray(columnIndex + 1)).map(UpdatableRow.jdbcArrayToVector[T]).orNull
+
+    override def getSeq[T](columnLabel: String)(implicit getter: CompositeGetter[T]): Seq[T] =
+      Option(getArray(columnLabel)).map(UpdatableRow.jdbcArrayToVector[T]).orNull
 
     def isFirst: Boolean = underlying.isFirst
 
@@ -512,6 +514,16 @@ trait UpdatableRow {
           columnIndexes = columnIndexes
         )
       }
+    }
+
+    private def jdbcArrayToVector[T](a: JdbcArray)(implicit getter: CompositeGetter[T]): Vector[T] = {
+      val arrayIterator = ImmutableRow.iterator(a.getResultSet())
+      val arrayValues = for {
+        arrayRow <- arrayIterator
+      } yield {
+        arrayRow[T](1)
+      }
+      arrayValues.toVector
     }
   }
 

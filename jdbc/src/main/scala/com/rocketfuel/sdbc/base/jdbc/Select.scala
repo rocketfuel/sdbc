@@ -8,7 +8,7 @@ trait Select {
   case class Select[A] private[jdbc](
     override val statement: CompiledStatement,
     override val parameterValues: Map[String, ParameterValue]
-  )(implicit rowConverter: RowConverter[Row, A]
+  )(implicit rowConverter: RowConverter[A]
   ) extends ParameterizedQuery[Select[A]]
     with Executes {
 
@@ -24,7 +24,7 @@ trait Select {
       Select.option(statement, parameterValues)
     }
 
-    def execute()(implicit connection: Connection): Unit = {
+    override def execute()(implicit connection: Connection): Unit = {
       Execute.execute(statement, parameterValues)
     }
 
@@ -35,7 +35,7 @@ trait Select {
 
     def apply[A](
       queryText: String
-    )(implicit rowConverter: RowConverter[Row, A]
+    )(implicit rowConverter: RowConverter[A]
     ): Select[A] = {
       Select[A](
         statement = CompiledStatement(queryText),
@@ -55,7 +55,7 @@ trait Select {
       */
     def literal[A](
       queryText: String
-    )(implicit rowConverter: RowConverter[Row, A]
+    )(implicit rowConverter: RowConverter[A]
     ): Select[A] = {
       Select[A](
         statement = CompiledStatement.literal(queryText),
@@ -67,30 +67,29 @@ trait Select {
       queryText: String,
       parameterValues: Map[String, ParameterValue] = Map.empty
     )(implicit connection: Connection,
-      rowConverter: RowConverter[Row, A]
+      rowConverter: RowConverter[A]
     ): CloseableIterator[A] = {
       val statement = CompiledStatement(queryText)
 
-      logRun(statement, parameterValues)
-      val executed = QueryMethods.execute(statement, parameterValues)
-      StatementConverter.convertedRowIterator[Row, A].apply(executed)
+      iterator(statement, parameterValues)
     }
 
     def iterator[A](
       statement: CompiledStatement,
       parameterValues: Map[String, ParameterValue]
     )(implicit connection: Connection,
-      rowConverter: RowConverter[Row, A]
+      rowConverter: RowConverter[A]
     ): CloseableIterator[A] = {
+      logRun(statement, parameterValues)
       val executed = QueryMethods.execute(statement, parameterValues)
-      StatementConverter.convertedRowIterator[Row, A].apply(executed)
+      StatementConverter.convertedRowIterator[A].apply(executed)
     }
 
     def option[A](
       queryText: String,
       parameterValues: Map[String, ParameterValue] = Map.empty
     )(implicit connection: Connection,
-      rowConverter: RowConverter[Row, A]
+      rowConverter: RowConverter[A]
     ): Option[A] = {
       val statement = CompiledStatement(queryText)
       option(statement, parameterValues)
@@ -100,14 +99,11 @@ trait Select {
       statement: CompiledStatement,
       parameterValues: Map[String, ParameterValue]
     )(implicit connection: Connection,
-      rowConverter: RowConverter[Row, A]
+      rowConverter: RowConverter[A]
     ): Option[A] = {
       logRun(statement, parameterValues)
-      val iterator = this.iterator(statement, parameterValues)
-      try {
-        if (iterator.hasNext) Some(iterator.next())
-        else None
-      } finally iterator.close()
+      val executed = QueryMethods.execute(statement, parameterValues)
+      StatementConverter.convertedRowOption.apply(executed)
     }
 
     private def logRun(

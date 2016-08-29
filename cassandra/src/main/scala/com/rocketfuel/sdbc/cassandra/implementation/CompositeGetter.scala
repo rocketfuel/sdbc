@@ -1,14 +1,13 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
+import com.datastax.driver.core.{LocalDate, Row}
 import java.net.InetAddress
-import java.util.{UUID, Date}
-
+import java.util.{Date, UUID}
 import com.google.common.reflect.TypeToken
 import scodec.bits.ByteVector
 import shapeless._
 import shapeless.labelled._
 import scala.collection.convert.decorateAsScala._
-
 import scala.reflect.ClassTag
 
 trait CompositeGetter {
@@ -45,7 +44,9 @@ trait CompositeGetter {
 
     implicit val ByteVectorCompositeGetter: CompositeGetter[ByteVector] = of[ByteVector](row => ix => ByteVector(row.getBytes(ix)))
 
-    implicit val DateCompositeGetter: CompositeGetter[Date] = of[Date](row => ix => row.getDate(ix))
+    implicit val LocalDateCompositeGetter: CompositeGetter[LocalDate] = of[LocalDate](row => ix => row.getDate(ix))
+
+    implicit val DateCompositeGetter: CompositeGetter[Date] = of[Date](row => ix => new Date(row.getDate(ix).getMillisSinceEpoch))
 
     implicit val BigDecimalCompositeGetter: CompositeGetter[BigDecimal] = of[BigDecimal](row => ix => row.getDecimal(ix))
 

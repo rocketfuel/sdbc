@@ -14,7 +14,7 @@ class GettersSpec
     query: String,
     expectedValue: Option[T],
     ignore: Boolean
-  )(implicit converter: RowConverter[Row, Option[T]]
+  )(implicit converter: RowConverter[Option[T]]
   ): Unit = {
     (if (ignore) this.ignore _ else test _)(query, Seq.empty) { implicit connection =>
       val result = Select[Option[T]](query).option().flatten
@@ -32,7 +32,7 @@ class GettersSpec
   def testSelect[T](
     query: String,
     expectedValue: Option[T]
-  )(implicit converter: RowConverter[Row, Option[T]]
+  )(implicit converter: RowConverter[Option[T]]
   ): Unit = {
     testAux[T](query, expectedValue, false)
   }
@@ -40,7 +40,7 @@ class GettersSpec
   def testIgnore[T](
     query: String,
     expectedValue: Option[T]
-  )(implicit converter: RowConverter[Row, Option[T]]
+  )(implicit converter: RowConverter[Option[T]]
   ): Unit = {
     testAux[T](query, expectedValue, true)
   }
@@ -59,7 +59,7 @@ class GettersSpec
 
   testSelect[String]("SELECT 'hello'", "hello".some)
 
-  testSelect[ByteBuffer]("SELECT 0x0001ffa0", ByteBuffer.wrap(Array[Byte](0, 1, -1, -96)).some)
+  testSelect[ByteBuffer]("SELECT X'0001ffa0'", ByteBuffer.wrap(Array[Byte](0, 1, -1, -96)).some)
 
   testSelect[Float]("SELECT CAST(3.14159 AS real)", 3.14159F.some)
 

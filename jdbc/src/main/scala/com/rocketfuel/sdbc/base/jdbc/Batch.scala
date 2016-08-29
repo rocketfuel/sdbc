@@ -37,7 +37,7 @@ trait Batch {
       )
     }
 
-    def addParameters(additionalParameters: Map[String, ParameterValue]): Batch = {
+    def addMap(additionalParameters: Map[String, ParameterValue]): Batch = {
       addBatch(additionalParameters: Parameters)
     }
 

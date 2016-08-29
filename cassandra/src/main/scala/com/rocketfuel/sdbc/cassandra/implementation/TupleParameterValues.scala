@@ -1,6 +1,7 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
 import com.datastax.driver.core
+import com.datastax.driver.core.{CodecRegistry, ProtocolVersion}
 import shapeless._
 import shapeless.ops.hlist.{Mapper, ToTraversable}
 import shapeless.ops.product.ToHList
@@ -44,7 +45,7 @@ private[sdbc] trait TupleParameterValues {
     val dataTypes = dataTypeList(h.map(ToTupleDataType))
     val dataValueHList = h.map(ToTupleDataValue)
     val dataValues = dataValueList(dataValueHList)
-    val underlying = core.TupleType.of(dataTypes: _*).newValue(dataValues: _*)
+    val underlying = core.TupleType.of(ProtocolVersion.NEWEST_SUPPORTED, CodecRegistry.DEFAULT_INSTANCE, dataTypes: _*).newValue(dataValues: _*)
     TupleValue(underlying)
   }
 

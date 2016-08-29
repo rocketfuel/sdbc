@@ -134,51 +134,6 @@ trait SeqParameter {
     )
   }
 
-  /**
-    * The existence of DbVector might appear awkward, but it fills a real need. Queries need
-    * a way to differentiate between a single result that is a collection, and a single element
-    * in a result set that is a collection.
-    *
-    * For {{{Query[Vector[Int]]()}}, would you expect the result of the result to be a single
-    * row containing a collection of integers, or would you expect it to be many rows, each
-    * having a single integer? For SDBC, I have chosen to make the multiple rows case primitive.
-    *
-    * @param seq
-    * @tparam A
-    */
-  case class DbVector[+A](override val seq: Vector[A]) extends collection.immutable.Seq[A] {
-    override def length: Int = seq.length
-
-    override def iterator: Iterator[A] = seq.iterator
-
-    override def apply(idx: Int): A =
-      seq(idx)
-  }
-
-  implicit def seqGetter[R <: Row, T](implicit getter: Getter[ImmutableRow, T]): Getter[R, DbVector[T]] =
-    (row: Row, index: Index) => {
-      for {
-        array <- Option(row.getArray(index(row)))
-      } yield {
-        val mappedArray = ImmutableRow.iterator(array.getResultSet()).map { row =>
-          row[T](1)
-        }
-        DbVector(mappedArray.toVector)
-      }
-    }
-
-  implicit def seqOptionGetter[R <: Row, T](implicit getter: Getter[ImmutableRow, T]): Getter[R, DbVector[Option[T]]] =
-    (row: Row, index: Index) => {
-      for {
-        array <- Option(row.getArray(index(row)))
-      } yield {
-        val mappedArray = ImmutableRow.iterator(array.getResultSet()).map { row =>
-          row[Option[T]](1)
-        }
-        DbVector(mappedArray.toVector)
-      }
-    }
-
 }
 
 /**

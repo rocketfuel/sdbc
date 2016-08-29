@@ -1,5 +1,6 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
+import com.datastax.driver.core.LocalDate
 import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.time.Instant
@@ -13,7 +14,7 @@ trait TupleGetter {
   self: Cassandra =>
 
   private[sdbc] trait TupleGetter[+T] extends base.Getter[TupleValue, Int, T]
-  
+
   object TupleGetter {
     implicit def of[T](getter: TupleValue => Int => T): TupleGetter[T] = {
       new TupleGetter[T] {
@@ -34,9 +35,11 @@ trait TupleGetter {
 
     implicit val ArrayByteTupleGetter: TupleGetter[Array[Byte]] = of[Array[Byte]](tuple => ix => ByteVector(tuple.getBytes(ix)).toArray)
 
-    implicit val DateTupleGetter: TupleGetter[Date] = of[Date](tuple => ix => tuple.getDate(ix))
+    implicit val LocalDateTupleGetter: TupleGetter[LocalDate] = of[LocalDate](tuple => ix => tuple.getDate(ix))
 
-    implicit val InstantTupleGetter: TupleGetter[Instant] = of[Instant](tuple => ix => tuple.getDate(ix).toInstant)
+    implicit val DateTupleGetter: TupleGetter[Date] = of[Date](tuple => ix => tuple.getTimestamp(ix))
+
+    implicit val InstantTupleGetter: TupleGetter[Instant] = of[Instant](tuple => ix => tuple.getTimestamp(ix).toInstant)
 
     implicit val BigDecimalTupleGetter: TupleGetter[BigDecimal] = of[BigDecimal](tuple => ix => tuple.getDecimal(ix))
 

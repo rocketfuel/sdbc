@@ -77,10 +77,10 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): SelectForUpdate[UpdatableRow] = {
+      ): SelectForUpdate = {
         val parameterValues = toParameterValues(a)
 
-        SelectForUpdate[UpdatableRow](compiled, parameterValues)
+        SelectForUpdate(compiled, parameterValues)
       }
     }
 

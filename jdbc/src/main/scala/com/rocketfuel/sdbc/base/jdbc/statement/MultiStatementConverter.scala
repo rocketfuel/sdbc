@@ -39,7 +39,7 @@ trait MultiStatementConverter {
     implicit def convertedRowIterator[
       R <: Row,
       A
-    ](implicit converter: RowConverter[R, A],
+    ](implicit converter: RowConverter[A],
       statementConverter: MultiStatementConverter[Iterator[R]]
     ): MultiStatementConverter[Iterator[A]] = {
       (v1: Statement) =>
@@ -49,7 +49,7 @@ trait MultiStatementConverter {
     implicit def convertedRowVector[
       R <: Row,
       A
-    ](implicit converter: RowConverter[R, A],
+    ](implicit converter: RowConverter[A],
       statementConverter: MultiStatementConverter[Iterator[R] with Closeable]
     ): MultiStatementConverter[Vector[A]] = {
       (v1: Statement) =>
@@ -61,7 +61,7 @@ trait MultiStatementConverter {
     implicit def convertedRowOption[
       R <: Row,
       A
-    ](implicit converter: RowConverter[R, A],
+    ](implicit converter: RowConverter[A],
       statementConverter: MultiStatementConverter[Iterator[R] with Closeable]
     ): MultiStatementConverter[Option[A]] = {
       (v1: Statement) =>
@@ -73,7 +73,7 @@ trait MultiStatementConverter {
     implicit def convertedRowSingleton[
       R <: Row,
       A
-    ](implicit converter: RowConverter[R, A],
+    ](implicit converter: RowConverter[A],
       statementConverter: MultiStatementConverter[Iterator[R] with Closeable]
     ): MultiStatementConverter[A] =  {
       (v1: Statement) =>

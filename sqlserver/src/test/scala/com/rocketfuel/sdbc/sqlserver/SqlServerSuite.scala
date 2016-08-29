@@ -17,9 +17,9 @@ abstract class SqlServerSuite
 
   override def sqlConfigKey: String = "sql"
 
-  def testSelect[T](query: String, expectedValue: Option[T])(implicit converter: CompositeGetter[Row, Option[T]]): Unit = {
+  def testSelect[T](query: String, expectedValue: Option[T])(implicit converter: CompositeGetter[Option[T]]): Unit = {
     test(query) { implicit connection =>
-      val result = Select[Option[Option[T]]](query).run().flatten
+      val result = Select[Option[T]](query).option().flatten
       (expectedValue, result) match {
         case (Some(expectedArray: Array[Byte]), Some(resultArray: Array[Byte])) =>
           assert(expectedArray.sameElements(resultArray))

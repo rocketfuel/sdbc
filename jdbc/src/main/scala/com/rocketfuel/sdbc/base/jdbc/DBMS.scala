@@ -16,8 +16,10 @@ abstract class DBMS
   with Update
   with Batch
   with Selectable
+  with SelectForUpdatable
   with Updatable
   with Batchable
+  with Executable
   with StringContextMethods
   with ResultSetImplicits
   with StatementConverter

@@ -5,23 +5,18 @@ import com.rocketfuel.sdbc.base.Logging
 trait SelectForUpdate {
   self: DBMS =>
 
-  case class SelectForUpdate[A](
+  case class SelectForUpdate(
     override val statement: CompiledStatement,
     override val parameterValues: Map[String, ParameterValue] = Map.empty
-  )(implicit rowConverter: RowConverter[UpdatableRow, A]
-  ) extends ParameterizedQuery[SelectForUpdate[A]]
+  ) extends ParameterizedQuery[SelectForUpdate]
     with Executes {
 
-    override def subclassConstructor(parameterValues: Map[String, ParameterValue]): SelectForUpdate[A] = {
+    override def subclassConstructor(parameterValues: Map[String, ParameterValue]): SelectForUpdate = {
       copy(parameterValues = parameterValues)
     }
 
-    def iterator()(implicit connection: Connection): CloseableIterator[A] = {
+    def iterator()(implicit connection: Connection): CloseableIterator[UpdatableRow] = {
       SelectForUpdate.iterator(statement, parameterValues)
-    }
-
-    def option()(implicit connection: Connection): Option[A] = {
-      SelectForUpdate.option[A](statement, parameterValues)
     }
 
     def execute()(implicit connection: Connection): Unit = {
@@ -33,11 +28,10 @@ trait SelectForUpdate {
   object SelectForUpdate
     extends Logging {
 
-    def apply[A](
+    def apply(
       queryText: String
-    )(implicit rowConverter: RowConverter[UpdatableRow, A]
-    ): SelectForUpdate[A] = {
-      SelectForUpdate[A](
+    ): SelectForUpdate = {
+      SelectForUpdate(
         statement = CompiledStatement(queryText),
         parameterValues = Map.empty[String, ParameterValue]
       )
@@ -49,26 +43,23 @@ trait SelectForUpdate {
       * not be able to use parameters when running this query.
       *
       * @param queryText
-      * @param rowConverter
       * @tparam A
       * @return
       */
     def literal[A](
       queryText: String
-    )(implicit rowConverter: RowConverter[UpdatableRow, A]
-    ): SelectForUpdate[A] = {
-      SelectForUpdate[A](
+    ): SelectForUpdate = {
+      SelectForUpdate(
         statement = CompiledStatement.literal(queryText),
         parameterValues = Map.empty[String, ParameterValue]
       )
     }
 
-    def iterator[A](
+    def iterator(
       queryText: String,
       parameterValues: Map[String, ParameterValue]
-    )(implicit connection: Connection,
-      rowConverter: RowConverter[Row, A]
-    ): CloseableIterator[A] = {
+    )(implicit connection: Connection
+    ): CloseableIterator[UpdatableRow] = {
       val statement = CompiledStatement(queryText)
       logRun(statement, parameterValues)
       iterator(statement, parameterValues)
@@ -77,35 +68,10 @@ trait SelectForUpdate {
     def iterator[A](
       statement: CompiledStatement,
       parameterValues: Map[String, ParameterValue]
-    )(implicit connection: Connection,
-      rowConverter: RowConverter[UpdatableRow, A]
-    ): CloseableIterator[A] = {
+    )(implicit connection: Connection
+    ): CloseableIterator[UpdatableRow] = {
       val executed = QueryMethods.executeForUpdate(statement, parameterValues)
-      StatementConverter.convertedRowIterator[UpdatableRow, A].apply(executed)
-    }
-
-    def option[A](
-      queryText: String,
-      parameterValues: Map[String, ParameterValue]
-    )(implicit connection: Connection,
-      rowConverter: RowConverter[UpdatableRow, A]
-    ): Option[A] = {
-      val statement = CompiledStatement(queryText)
-      logRun(statement, parameterValues)
-      option(statement, parameterValues)
-    }
-
-    def option[A](
-      statement: CompiledStatement,
-      parameterValues: Map[String, ParameterValue]
-    )(implicit connection: Connection,
-      rowConverter: RowConverter[UpdatableRow, A]
-    ): Option[A] = {
-      val iterator = this.iterator(statement, parameterValues)
-      try {
-        if (iterator.hasNext) Some(iterator.next())
-        else None
-      } finally iterator.close()
+      StatementConverter.updatableResults(executed)
     }
 
     private def logRun(

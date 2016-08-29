@@ -12,26 +12,26 @@ class CassandraProcessSpec
   override implicit val generatorDrivenConfig: PropertyCheckConfig = PropertyCheckConfig(maxSize = 10)
 
   test("values are inserted and selected") {implicit connection =>
-    Query(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x int)").io.execute()
+    Query(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x int)").execute()
 
-    forAll { (randoms: Seq[Int]) =>
+    case class IdAndX(x: Int, id: Int)
+
+    forAll { randomValues: Seq[Int] =>
+      val randoms =
+        randomValues.zipWithIndex.map(IdAndX.tupled)
 
       val insert: Process[Task, Unit] = {
-        val execute = s"INSERT INTO $keyspace.tbl (id, x) VALUES (@id, @x)"
-        val randomStream = Process.emitAll(randoms.zipWithIndex).toSource
-        randomStream.map { case (x, id) =>  Parameters("id" -> id, "x" -> x)}.through(Query.stream.ofParameters(execute)).map(Function.const(()))
+        val randomStream = Process.emitAll(randoms)
+        randomStream.to(Query(s"INSERT INTO $keyspace.tbl (id, x) VALUES (@id, @x)").productSink)
       }
 
-      val select = Query[Int](s"SELECT x FROM $keyspace.tbl").stream()
+      insert.run.run
 
-      val combined = for {
-        _ <- insert
-        ints <- select
-      } yield ints
+      val select = Query[Int](s"SELECT x FROM $keyspace.tbl")
 
-      val results = combined.runLog.run
+      val results = io.iterator(select.task.iterator()).runLog.run
 
-      assertResult(randoms.sorted)(results.sorted)
+      assertResult(randomValues.sorted)(results.sorted)
 
       truncate()
     }

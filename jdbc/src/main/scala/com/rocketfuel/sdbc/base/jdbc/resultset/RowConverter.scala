@@ -8,41 +8,32 @@ trait RowConverter {
   self: DBMS =>
 
   @implicitNotFound("Import a DBMS or define a function from Row to A.")
-  trait RowConverter[-R <: Row, A] extends (R => A)
+  trait RowConverter[A] extends (Row => A)
 
   object RowConverter extends LowerPriorityRowConverterImplicits {
 
-    def apply[R <: Row, A](implicit rowConverter: RowConverter[R, A]): RowConverter[R, A] = rowConverter
+    def apply[A](implicit rowConverter: RowConverter[A]): RowConverter[A] = rowConverter
 
-    implicit def fromFunction[R <: Row, A](implicit
-      converter: R => A
-    ): RowConverter[R, A] =
-      new RowConverter[R, A] {
-        override def apply(row: R): A = {
+    implicit def fromFunction[A](implicit
+      converter: Row => A
+    ): RowConverter[A] =
+      new RowConverter[A] {
+        override def apply(row: Row): A = {
           converter(row)
         }
       }
   }
-
-  implicit def fromResultSetConverter[A](implicit
-    converter: ResultSet => A
-  ): RowConverter[UpdatableRow, A] =
-    new RowConverter[UpdatableRow, A] {
-      override def apply(row: UpdatableRow): A = {
-        converter(row)
-      }
-    }
 
   /**
     * Automatically generated row converters are to be used
     * only if there isn't an explicit row converter.
     */
   trait LowerPriorityRowConverterImplicits {
-    implicit def fromComposite[R <: Row, A](implicit
-      converter: CompositeGetter[R, A]
-    ): RowConverter[R, A] =
-      new RowConverter[R, A] {
-        override def apply(row: R): A = {
+    implicit def fromComposite[A](implicit
+      converter: CompositeGetter[A]
+    ): RowConverter[A] =
+      new RowConverter[A] {
+        override def apply(row: Row): A = {
           converter(row, 0)
         }
       }

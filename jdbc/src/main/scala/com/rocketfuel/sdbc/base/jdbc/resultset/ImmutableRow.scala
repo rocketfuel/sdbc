@@ -2,10 +2,9 @@ package com.rocketfuel.sdbc.base.jdbc.resultset
 
 import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.jdbc.DBMS
-import java.io.Closeable
 import java.math.BigDecimal
 import java.net.URL
-import java.sql.{Array => JdbcArray, _}
+import java.sql.{Statement, Array => JdbcArray, _}
 
 trait ImmutableRow {
   self: DBMS =>
@@ -34,117 +33,137 @@ trait ImmutableRow {
 
     override def wasNull: Boolean = _wasNull
 
-    private def setWasNull(columnIndex: Int): Option[Any] = {
+    private def setWasNull[T](columnIndex: Int, typeName: String)(get: PartialFunction[Any, T]): Option[T] = {
       val parameter = toSeq(columnIndex)
       _wasNull = parameter.isEmpty
-      parameter
+      parameter.map(get.orElse {case _ => ImmutableRow.incorrectType(typeName) })
     }
 
-    override def getString(columnIndex: Int): String = {
-      setWasNull(columnIndex) map { case s: String => s case _ => ImmutableRow.incorrectType("text") } orNull
-    }
+    override def getString(columnIndex: Int): String =
+      setWasNull[String](columnIndex, "text") {
+        case s: String => s
+      } orNull
 
-    override def getString(columnLabel: String): String = {
+    override def getString(columnLabel: String): String =
       getString(columnIndexes(columnLabel))
-    }
 
-    override def getLong(columnIndex: Int): Long = {
-      setWasNull(columnIndex) map { case s: Long => s case _ => ImmutableRow.incorrectType("bigint") } getOrElse 0L
-    }
+    override def getLong(columnIndex: Int): Long =
+      setWasNull[Long](columnIndex, "bigint") {
+        case s: Long => s
+        case s: String => s.toLong
+      } getOrElse 0L
 
     override def getLong(columnLabel: String): Long = getLong(columnIndexes(columnLabel))
 
-    override def getTimestamp(columnIndex: Int): Timestamp = {
-      setWasNull(columnIndex) map { case s: Timestamp => s case _ => ImmutableRow.incorrectType("timestamp") } orNull
-    }
+    override def getTimestamp(columnIndex: Int): Timestamp =
+      setWasNull(columnIndex, "timestamp") {
+        case s: Timestamp => s
+      } orNull
 
     override def getTimestamp(columnLabel: String): Timestamp = getTimestamp(columnIndexes(columnLabel))
 
     override def getDouble(columnIndex: Int): Double = {
-      setWasNull(columnIndex) map { case s: Double => s case _ => ImmutableRow.incorrectType("float8") } getOrElse 0.0
+      setWasNull(columnIndex, "float8") {
+        case s: Double => s
+      } getOrElse 0.0
     }
 
     override def getDouble(columnLabel: String): Double = getDouble(columnIndexes(columnLabel))
 
-    override def getArray(columnIndex: Int): JdbcArray = {
-      setWasNull(columnIndex) map { case s: JdbcArray => s case _ => ImmutableRow.incorrectType("array") } orNull
-    }
+    override def getSeq[T](columnIndex: Int)(implicit getter: CompositeGetter[T]): Seq[T] =
+      setWasNull(columnIndex, "array") {
+        case s: Seq[_] => s.asInstanceOf[Seq[T]]
+      } orNull
 
-    override def getArray(columnLabel: String): JdbcArray = getArray(columnIndexes(columnLabel))
+    override def getSeq[T](columnLabel: String)(implicit getter: CompositeGetter[T]): Seq[T] =
+      getSeq(columnIndexes(columnLabel))
 
-    override def getURL(columnIndex: Int): URL = {
-      setWasNull(columnIndex) map { case s: URL => s case _ => ImmutableRow.incorrectType("url") } orNull
-    }
+    override def getURL(columnIndex: Int): URL =
+      setWasNull(columnIndex, "url") {
+        case s: URL => s
+        case s: String => new URL(s)
+      } orNull
 
     override def getURL(columnLabel: String): URL = getURL(columnIndexes(columnLabel))
 
-    override def getBigDecimal(columnIndex: Int): BigDecimal = {
-      setWasNull(columnIndex) map { case s: BigDecimal => s case _ => ImmutableRow.incorrectType("numeric") } orNull
-    }
+    override def getBigDecimal(columnIndex: Int): BigDecimal =
+      setWasNull(columnIndex, "numeric") {
+        case s: BigDecimal => s
+        case s: String => new BigDecimal(s)
+      } orNull
 
     override def getBigDecimal(columnLabel: String): BigDecimal = getBigDecimal(columnIndexes(columnLabel))
 
-    override def getFloat(columnIndex: Int): Float = {
-      setWasNull(columnIndex) map { case s: Float => s case _ => ImmutableRow.incorrectType("float4") } getOrElse 0F
-    }
+    override def getFloat(columnIndex: Int): Float =
+      setWasNull(columnIndex, "float4") {
+        case s: Float => s
+        case s: String => s.toFloat
+      } getOrElse 0F
 
     override def getFloat(columnLabel: String): Float = getFloat(columnIndexes(columnLabel))
 
-    override def getTime(columnIndex: Int): Time = {
-      setWasNull(columnIndex) map { case s: Time => s case _ => ImmutableRow.incorrectType("time") } orNull
-    }
+    override def getTime(columnIndex: Int): Time =
+      setWasNull(columnIndex, "time") {
+        case s: Time => s
+      } orNull
 
     override def getTime(columnLabel: String): Time = getTime(columnIndexes(columnLabel))
 
-    override def getByte(columnIndex: Int): Byte = {
-      setWasNull(columnIndex) map { case s: Byte => s case _ => ImmutableRow.incorrectType("int1") } getOrElse 0.toByte
-    }
+    override def getByte(columnIndex: Int): Byte =
+      setWasNull(columnIndex, "int1") {
+        case s: Byte => s
+        case s: String => s.toByte
+      } getOrElse 0.toByte
 
     override def getByte(columnLabel: String): Byte = getByte(columnIndexes(columnLabel))
 
-    override def getBoolean(columnIndex: Int): Boolean = {
-      setWasNull(columnIndex) map { case s: Boolean => s case _ => ImmutableRow.incorrectType("bool") } exists identity
-    }
+    override def getBoolean(columnIndex: Int): Boolean =
+      setWasNull(columnIndex, "bool") {
+        case s: Boolean => s
+      } exists identity
 
     override def getBoolean(columnLabel: String): Boolean = getBoolean(columnIndexes(columnLabel))
 
-    override def getShort(columnIndex: Int): Short = {
-      setWasNull(columnIndex) map { case s: Short => s case _ => ImmutableRow.incorrectType("int2") } getOrElse 0.toShort
-    }
+    override def getShort(columnIndex: Int): Short =
+      setWasNull(columnIndex, "int2") {
+        case s: Short => s
+        case s: String => s.toShort
+      } getOrElse 0.toShort
 
     override def getShort(columnLabel: String): Short = getShort(columnIndexes(columnLabel))
 
-    override def getDate(columnIndex: Int): Date = {
-      setWasNull(columnIndex) map { case s: Date => s case _ => ImmutableRow.incorrectType("date") } orNull
-    }
+    override def getDate(columnIndex: Int): Date =
+      setWasNull(columnIndex, "date") { case s: Date => s } orNull
 
     override def getDate(columnLabel: String): Date = getDate(columnIndexes(columnLabel))
 
-    override def getSQLXML(columnIndex: Int): SQLXML = {
-      setWasNull(columnIndex) map { case s: SQLXML => s case _ => ImmutableRow.incorrectType("xml") } orNull
-    }
+    override def getSQLXML(columnIndex: Int): SQLXML =
+      setWasNull(columnIndex, "xml") { case s: SQLXML => s } orNull
 
     override def getSQLXML(columnLabel: String): SQLXML = getSQLXML(columnIndexes(columnLabel))
 
-    override def getInt(columnIndex: Int): Int = {
-      setWasNull(columnIndex) map { case s: Int => s case _ => ImmutableRow.incorrectType("int4") } getOrElse 0
-    }
+    override def getInt(columnIndex: Int): Int =
+      setWasNull(columnIndex, "int4") {
+        case s: Int => s
+        case s: String => s.toInt
+      } getOrElse 0
 
     override def getInt(columnLabel: String): Int = getInt(columnIndexes(columnLabel))
 
-    override def getBytes(columnIndex: Int): Array[Byte] = {
-      setWasNull(columnIndex) map { case s: Array[Byte] => s case _ => ImmutableRow.incorrectType("bytea") } orNull
-    }
+    override def getBytes(columnIndex: Int): Array[Byte] =
+      setWasNull(columnIndex, "bytea") {
+        case s: Array[Byte] => s
+      } orNull
 
     override def getBytes(columnLabel: String): Array[Byte] = getBytes(columnIndexes(columnLabel))
 
-    override def getObject(columnIndex: Int): AnyRef = {
-      setWasNull(columnIndex) map base.box orNull
-    }
+    override def getObject(columnIndex: Int): AnyRef =
+      setWasNull[AnyRef](columnIndex, "any") {
+        case x => base.box(x)
+      } orNull
 
-    override def getObject(columnLabel: String): AnyRef = {
+    override def getObject(columnLabel: String): AnyRef =
       getObject(columnIndexes(columnLabel))
-    }
 
   }
 

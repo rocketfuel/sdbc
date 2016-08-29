@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.h2.implementation
 
 import com.rocketfuel.sdbc.base.jdbc.resultset.DefaultGetters
-import com.rocketfuel.sdbc.base.jdbc.statement.{SeqParameter, DefaultParameters}
+import com.rocketfuel.sdbc.base.jdbc.statement.{DefaultParameters, SeqParameter}
 import java.nio.file.Path
 import java.sql.DriverManager
 import com.rocketfuel.sdbc.base.CISet

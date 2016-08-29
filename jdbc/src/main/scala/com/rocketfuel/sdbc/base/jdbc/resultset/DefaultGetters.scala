@@ -10,11 +10,9 @@ trait DefaultGetters
   with DateGetter
   with DoubleGetter
   with FloatGetter
-  with InputStreamGetter
   with IntGetter
   with JavaBigDecimalGetter
   with LongGetter
-  with ReaderGetter
   with ScalaBigDecimalGetter
   with ShortGetter
   with StringGetter
@@ -24,7 +22,8 @@ trait DefaultGetters
   with InstantGetter
   with LocalDateGetter
   with LocalDateTimeGetter
-  with LocalTimeGetter {
+  with LocalTimeGetter
+  with SeqGetter {
   self: DBMS =>
 
 }

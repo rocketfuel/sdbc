@@ -2,9 +2,12 @@ package com.rocketfuel.sdbc.base.jdbc.resultset
 
 import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.jdbc.DBMS
+import java.io.{InputStream, Reader}
 import java.math.BigDecimal
 import java.net.URL
 import java.sql.{Array => JdbcArray, _}
+import scala.collection.immutable.TreeMap
+import scodec.bits.ByteVector
 
 trait Row extends base.Index {
   self: DBMS =>
@@ -26,7 +29,7 @@ trait Row extends base.Index {
 
     def getMetaData: ResultSetMetaData
 
-    def apply[T](columnIndex: Index)(implicit getter: CompositeGetter[this.type, T]): T = {
+    def apply[T](columnIndex: Index)(implicit getter: CompositeGetter[T]): T = {
       getter(this, columnIndex)
     }
 
@@ -40,9 +43,9 @@ trait Row extends base.Index {
 
     def getDouble(columnLabel: String): Double
 
-    def getArray(columnIndex: Int): JdbcArray
+    def getSeq[T](columnIndex: Int)(implicit getter: CompositeGetter[T]): Seq[T]
 
-    def getArray(columnLabel: String): JdbcArray
+    def getSeq[T](columnLabel: String)(implicit getter: CompositeGetter[T]): Seq[T]
 
     def getURL(columnIndex: Int): URL
 
@@ -103,11 +106,55 @@ trait Row extends base.Index {
   }
 
   object Row {
+    private def readerToIterator(bufferSize: Int, r: Reader): Iterator[String] = {
+      val buffer = new Array[Char](bufferSize)
+      Iterator.continually {
+        val charsRead = r.read(buffer)
+        if (charsRead > 0)
+          new String(buffer, 0, charsRead)
+        else null
+      } takeWhile(_ != null)
+    }
+
+    private def fromReader(r: Reader): String = {
+      val sb = new StringBuilder
+      readerToIterator(4096, r).foreach(sb.append)
+      sb.toString
+    }
+
+    private def inputStreamToIterator(bufferSize: Int, i: InputStream): Iterator[ByteVector] = {
+      val buffer = new Array[Byte](bufferSize)
+      Iterator.continually {
+        val bytesRead = i.read(buffer)
+        if (bytesRead > 0)
+          if (bytesRead == bufferSize)
+            ByteVector(buffer)
+          else ByteVector(buffer.take(bytesRead))
+        else null
+      } takeWhile(_ != null)
+    }
+
+    private def fromBlob(b: Blob): ByteVector = {
+      inputStreamToIterator(4096, b.getBinaryStream).foldRight(ByteVector.empty) {
+        case (accum, toAppend) =>
+          accum ++ toAppend
+      }
+    }
+
     private[sdbc] def toSeq(
       row: ResultSet
     ): IndexedSeq[Option[Any]] = {
       IndexedSeq.tabulate(row.getMetaData.getColumnCount) { ix =>
-        Option(row.getObject(ix + 1)).map(base.unbox)
+        if (JDBCType.valueOf(row.getMetaData.getColumnType(ix + 1)) == JDBCType.ARRAY)
+          Option(row.getArray(ix + 1)).map(jdbcArrayToVectorRefs)
+       else Option(row.getObject(ix + 1)) map {
+          case c: Clob =>
+            fromReader(c.getCharacterStream)
+          case b: Blob =>
+            fromBlob(b)
+          case otherwise =>
+            base.unbox(otherwise)
+        }
       }
     }
 
@@ -129,8 +176,25 @@ trait Row extends base.Index {
     }
 
     private[sdbc] def columnIndexes(columnNames: IndexedSeq[String]): Map[String, Int] = {
-      columnNames.zipWithIndex.toMap
+      TreeMap(columnNames.zipWithIndex: _*)(new Ordering[String] {
+        override def compare(x: String, y: String): Int = x.compareToIgnoreCase(y)
+      })
     }
+
+    def jdbcArrayToVectorRefs(a: JdbcArray): Vector[Any] = {
+      val arrayIterator = a.getResultSet().iterator()
+      val arrayValues = for {
+        arrayRow <- arrayIterator
+      } yield {
+        if (JDBCType.valueOf(arrayRow.getMetaData.getColumnType(1)) == JDBCType.ARRAY) {
+          jdbcArrayToVectorRefs(arrayRow.getArray(1))
+        } else {
+          base.unbox(arrayRow.getObject(1))
+        }
+      }
+      arrayValues.toVector
+    }
+
   }
 
 }

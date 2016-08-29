@@ -101,7 +101,7 @@ trait ParameterValue {
       empty
     }
 
-    val empty = ParameterValue(None, setNone)
+    lazy val empty = ParameterValue(None, setNone)
   }
 
   case class Parameters(parameters: Map[String, ParameterValue])

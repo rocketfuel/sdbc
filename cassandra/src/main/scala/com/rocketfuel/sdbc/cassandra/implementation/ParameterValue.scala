@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
 import com.datastax.driver.core
-import com.datastax.driver.core.BoundStatement
+import com.datastax.driver.core.{BoundStatement, LocalDate}
 import java.lang
 import java.math.BigInteger
 import java.net.InetAddress
@@ -48,12 +48,22 @@ private[sdbc] trait ParameterValue
 
   implicit val SeqByteParameter = DerivedParameter[Seq[Byte], ByteVector](ByteVector.apply, ByteVectorParameter)
 
-  implicit val DateParameter: Parameter[Date] = {
-    (value: Date) => (statement: PreparedStatement, parameterIndex: Int) =>
+  implicit val LocalDateParameter: Parameter[LocalDate] = {
+    (value: LocalDate) => (statement: PreparedStatement, parameterIndex: Int) =>
       statement.setDate(parameterIndex, value)
   }
 
-  implicit val InstantParameter = DerivedParameter[Instant, Date](Date.from, DateParameter)
+  implicit val DateParameter: Parameter[Date] = {
+    implicit def dateToLocalDate(d: Date): LocalDate =
+      LocalDate.fromMillisSinceEpoch(d.getTime)
+    DerivedParameter[Date, LocalDate]
+  }
+
+  implicit val InstantParameter = {
+    implicit def instantToLocalDate(i: Instant): LocalDate =
+      LocalDate.fromMillisSinceEpoch(i.toEpochMilli)
+    DerivedParameter[Instant, LocalDate]
+  }
 
   implicit val JavaBigDecimalParameter: Parameter[java.math.BigDecimal] = {
     (value: java.math.BigDecimal) => (statement: PreparedStatement, parameterIndex: Int) =>

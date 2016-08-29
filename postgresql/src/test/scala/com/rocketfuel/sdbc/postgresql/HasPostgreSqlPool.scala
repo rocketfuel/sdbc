@@ -35,7 +35,7 @@ trait HasPostgreSqlPool {
       withPgMaster { implicit connection =>
         connection.setAutoCommit(true)
 
-        Select[Unit](s"CREATE DATABASE $pgTestCatalogName").run()
+        Execute(s"CREATE DATABASE $pgTestCatalogName").execute()
       }
       pgPool = Some(Pool(pgConfig))
     }
@@ -43,7 +43,7 @@ trait HasPostgreSqlPool {
 
   protected def createHstore(): Unit = {
     withPg {implicit connection =>
-      execute"CREATE EXTENSION hstore".run()
+      execute"CREATE EXTENSION hstore".execute()
       connection.commit()
     }
   }
@@ -56,21 +56,21 @@ trait HasPostgreSqlPool {
       connection.setAutoCommit(true)
 
       val databases =
-        Select[Vector[String]]("SELECT datname FROM pg_database WHERE datname LIKE @catalogPrefix").
+        Select[String]("SELECT datname FROM pg_database WHERE datname LIKE @catalogPrefix").
           on("catalogPrefix" -> (pgTestCatalogPrefix + "%")).
-          run()
+          iterator().toVector
 
       for (database <- databases) {
         util.Try {
-          Select[Unit](
+          Execute(
             """SELECT pg_terminate_backend(pid)
               |FROM pg_stat_activity
               |WHERE pg_stat_activity.datname = @databaseName
               |AND pid <> pg_backend_pid();
             """.stripMargin
-          ).on("databaseName" -> database).run()
+          ).on("databaseName" -> database).execute()
 
-          Select[Unit](s"DROP DATABASE $database").run()
+          Execute(s"DROP DATABASE $database").execute()
         }
       }
     }
@@ -87,7 +87,7 @@ trait HasPostgreSqlPool {
 
   def createLTree(): Unit = {
     withPg { implicit connection =>
-      Select[Unit]("CREATE EXTENSION ltree;").run()
+      Execute("CREATE EXTENSION ltree;").execute()
       connection.commit()
     }
   }

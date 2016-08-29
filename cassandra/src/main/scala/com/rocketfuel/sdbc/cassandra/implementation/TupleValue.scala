@@ -6,6 +6,7 @@ import java.nio.ByteBuffer
 import java.util
 import java.util.{Date, UUID}
 import com.datastax.driver.core
+import com.datastax.driver.core.{LocalDate, TypeCodec}
 import com.google.common.reflect.TypeToken
 
 trait TupleValue {
@@ -43,7 +44,7 @@ trait TupleValue {
 
     override def getSet[T](i: Int, elementsClass: Class[T]): util.Set[T] = underlying.getSet[T](i: Int, elementsClass: Class[T])
 
-    override def getDate(i: Int): Date = underlying.getDate(i: Int)
+    override def getDate(i: Int): LocalDate = underlying.getDate(i: Int)
 
     override def getInt(i: Int): Int = underlying.getInt(i: Int)
 
@@ -63,6 +64,19 @@ trait TupleValue {
 
     override def getSet[T](i: Int, elementsType: TypeToken[T]): util.Set[T] = underlying.getSet[T](i: Int, elementsType: TypeToken[T])
 
+    override def getTimestamp(i: Int): Date = ???
+
+    override def get[T](i: Int, targetClass: Class[T]): T = ???
+
+    override def get[T](i: Int, targetType: TypeToken[T]): T = ???
+
+    override def get[T](i: Int, codec: TypeCodec[T]): T = ???
+
+    override def getTime(i: Int): Long = ???
+
+    override def getByte(i: Int): Byte = ???
+
+    override def getShort(i: Int): Short = ???
   }
 
   object TupleValue {

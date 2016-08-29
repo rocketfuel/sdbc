@@ -9,46 +9,51 @@ class RichResultSetSpec
   extends SqlServerSuite
   with BeforeAndAfterEach {
 
-  test("Vector[Int] works on a single result") {implicit connection =>
-    val results = Select[Vector[Int]]("SELECT CAST(1 AS int)").run()
-    assert(results == Vector(1))
+  test("iterator() works on a single result") {implicit connection =>
+    val results = Select[Int]("SELECT CAST(1 AS int)").iterator().toVector
+    assertResult(Vector(1))(results)
   }
 
-  test("Vector[Int] works on several results") {implicit connection =>
+  test("iterator() works on several results") {implicit connection =>
     val randoms = Seq.fill(10)(util.Random.nextInt())
-    Select[Unit]("CREATE TABLE tbl (x int)").run()
+    Execute("CREATE TABLE tbl (x int)").execute()
 
     val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
       case (batch, r) =>
-        batch.addBatch("x" -> r)
+        batch.add("x" -> r)
     }
 
     val insertions = batch.run()
 
-    assert(insertions.sum == randoms.size)
+    assertResult(randoms.size)(insertions.sum)
 
-    val results = Select[Vector[Int]]("SELECT x FROM tbl").run()
-    assert(results == randoms)
+    val results = Select[Int]("SELECT x FROM tbl").iterator.toVector
+    assertResult(randoms)(results)
   }
 
   test("using Query[CloseableIterator[UpdatableRow]] to update a value works") {implicit connection =>
     val randoms = Seq.fill(10)(util.Random.nextInt()).sorted
 
-    Select[Unit]("CREATE TABLE tbl (id int IDENTITY(1,1) PRIMARY KEY, x int)").run()
+    Execute("CREATE TABLE tbl (id int IDENTITY(1,1) PRIMARY KEY, x int)").execute()
 
     val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
       case (batch, r) =>
-        batch.addBatch("x" -> r)
+        batch.add("x" -> r)
     }
 
     batch.run()
 
-    for (row <- Select[CloseableIterator[UpdatableRow]]("SELECT x FROM tbl").run()) {
+    val select =
+      Select[Int]("SELECT x FROM tbl ORDER BY id ASC")
+
+    val beforeUpdate = select.iterator().toVector
+
+    for (row <- SelectForUpdate("SELECT x FROM tbl").iterator()) {
       row("x") = row[Option[Int]]("x").map(_ + 1)
       row.updateRow()
     }
 
-    val afterUpdate = Select[Vector[Int]]("SELECT x FROM tbl ORDER BY x ASC").run()
+    val afterUpdate = select.iterator().toVector
 
     for ((afterUpdate, original) <- afterUpdate.zip(randoms)) {
       assertResult(original + 1)(afterUpdate)
@@ -57,7 +62,7 @@ class RichResultSetSpec
 
   override protected def afterEach(): Unit = {
     withSql { implicit connection =>
-      Select[Unit]("IF object_id('dbo.tbl') IS NOT NULL DROP TABLE tbl").run()
+      Execute("IF object_id('dbo.tbl') IS NOT NULL DROP TABLE tbl").execute()
     }
   }
 }

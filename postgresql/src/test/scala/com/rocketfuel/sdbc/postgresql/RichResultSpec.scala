@@ -9,36 +9,36 @@ class RichResultSpec
   with BeforeAndAfterEach {
 
   test("option() selects nothing from an empty table") {implicit connection =>
-    Select[Unit]("CREATE TABLE tbl (x int)").run()
+    Execute("CREATE TABLE tbl (x int)").execute()
 
-    val result = Select[Option[Int]]("SELECT * FROM tbl").run()
+    val result = Select[Int]("SELECT * FROM tbl").option()
 
     assert(result.isEmpty, "Selecting from an empty table yielded a row.")
   }
 
   test("option() selects something from a nonempty table") {implicit connection =>
-    Select[Unit]("CREATE TABLE tbl (x serial)").run()
-    Select[Unit]("INSERT INTO tbl DEFAULT VALUES").run()
+    Execute("CREATE TABLE tbl (x serial)").execute()
+    Execute("INSERT INTO tbl DEFAULT VALUES").execute()
 
-    val result = Select[Option[Int]]("SELECT * FROM tbl").run()
+    val result = Select[Int]("SELECT * FROM tbl").option()
 
     assert(result.isDefined, "Selecting from a table with a row did not yeild a row.")
   }
 
   test("seq() works on an empty result") {implicit connection =>
-    Select[Unit]("CREATE TABLE tbl (x serial)").run()
-    val results = Select[Vector[Int]]("SELECT * FROM tbl").run()
+    Execute("CREATE TABLE tbl (x serial)").execute()
+    val results = Select[Int]("SELECT * FROM tbl").iterator().toVector
     assert(results.isEmpty)
   }
 
   test("seq() works on a single result") {implicit connection =>
-    val results = Select[Vector[Int]]("SELECT 1::integer").run()
-    assert(results == Seq(1))
+    val results = Select[Int]("SELECT 1::integer").iterator().toVector
+    assertResult(Vector(1))(results)
   }
 
   test("seq() works on several results") {implicit connection =>
     val randoms = Seq.fill(10)(util.Random.nextInt())
-    Select[Unit]("CREATE TABLE tbl (x int)").run()
+    Execute("CREATE TABLE tbl (x int)").execute()
 
     val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
       case (batch, r) =>
@@ -47,16 +47,16 @@ class RichResultSpec
 
     val insertions = batch.run()
 
-    assert(insertions.sum[Long] == randoms.size)
+    assertResult(randoms.size)(insertions.sum[Long])
 
-    val results = Select[Vector[Int]]("SELECT x FROM tbl").run()
-    assert(results == randoms)
+    val results = Select[Int]("SELECT x FROM tbl").iterator().toVector
+    assertResult(randoms)(results)
   }
 
   test("using SelectForUpdate to update a value works") {implicit connection =>
     val randoms = Seq.fill(10)(util.Random.nextInt()).sorted
 
-    Select[Unit]("CREATE TABLE tbl (id serial PRIMARY KEY, x int)").run()
+    Execute("CREATE TABLE tbl (id serial PRIMARY KEY, x int)").execute()
 
     val incrementedRandoms = randoms.map(_+1)
 
@@ -65,21 +65,21 @@ class RichResultSpec
         batch.add("x" -> r)
     }
 
-    batch.run()
+    batch.execute()
 
-    for(row <- selectForUpdate"SELECT * FROM tbl".run()) {
+    for(row <- selectForUpdate"SELECT * FROM tbl".iterator()) {
       row("x") = row[Option[Int]]("x").map(_ + 1)
       row.updateRow()
     }
 
-    val incrementedFromDb = Select[Vector[Int]]("SELECT x FROM tbl ORDER BY x ASC").run()
+    val incrementedFromDb = Select[Int]("SELECT x FROM tbl ORDER BY x ASC").iterator().toVector
 
     assert(incrementedFromDb.zip(incrementedRandoms).forall(xs => xs._1 == xs._2))
   }
 
   override protected def afterEach(): Unit = {
     withPg { implicit connection =>
-      Select[Unit]("DROP TABLE IF EXISTS tbl;").run()
+      Execute("DROP TABLE IF EXISTS tbl;").execute()
     }
   }
 

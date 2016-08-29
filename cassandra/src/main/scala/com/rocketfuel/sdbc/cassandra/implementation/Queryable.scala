@@ -14,68 +14,20 @@ trait Queryable {
 
   object Queryable {
 
-    object io {
-      def iterator[Key, Value](
-        key: Key
-      )(implicit queryable: Queryable[Key, Value],
-        session: Session
-      ): Iterator[Value] = {
-        queryable.query(key).io.iterator()
-      }
-
-      def option[Key, Value](
-        key: Key
-      )(implicit queryable: Queryable[Key, Value],
-        session: Session
-      ): Option[Value] = {
-        queryable.query(key).io.option()
-      }
-    }
-
-    object future {
-      def iterator[Key, Value](
-        key: Key
-      )(implicit queryable: Queryable[Key, Value],
-        session: Session,
-        executionContext: ExecutionContext
-      ): Future[Iterator[Value]] = {
-        queryable.query(key).future.iterator()
-      }
-
-      def option[Key, Value](
-        key: Key
-      )(implicit queryable: Queryable[Key, Value],
-        session: Session,
-        executionContext: ExecutionContext
-      ): Future[Option[Value]] = {
-        queryable.query(key).future.option()
-      }
-    }
-
-    object task {
-      def iterator[Key, Value](
-        key: Key
-      )(implicit queryable: Queryable[Key, Value],
-        session: Session
-      ): Task[Iterator[Value]] = {
-        queryable.query(key).task.iterator()
-      }
-
-      def option[Key, Value](
-        key: Key
-      )(implicit queryable: Queryable[Key, Value],
-        session: Session
-      ): Task[Option[Value]] = {
-        queryable.query(key).task.option()
-      }
-    }
-
-    def stream[Key, Value](
+    def iterator[Key, Value](
       key: Key
     )(implicit queryable: Queryable[Key, Value],
       session: Session
-    ): Process[Task, Value] = {
-      queryable.query(key).stream()
+    ): Iterator[Value] = {
+      queryable.query(key).iterator()
+    }
+
+    def option[Key, Value](
+      key: Key
+    )(implicit queryable: Queryable[Key, Value],
+      session: Session
+    ): Option[Value] = {
+      queryable.query(key).option()
     }
 
     def streams[Key, Value](
@@ -89,7 +41,7 @@ trait Queryable {
       channel.lift[Task, Key, Process[Task, Value]] { key =>
         Task.delay {
           scalaz.stream.io.iteratorR[Session, Value](req)(release) {implicit session =>
-            queryable.query(key).task.iterator()
+            Task(queryable.query(key).iterator())
           }
         }
       }
@@ -107,7 +59,7 @@ trait Queryable {
           val req = toTask(cluster.connectAsync(keyspace))
           Task.delay {
             scalaz.stream.io.iteratorR[Session, Value](req)(release) {implicit session =>
-              queryable.query(key).task.iterator()
+              Task(queryable.query(key).iterator())
             }
           }
       }

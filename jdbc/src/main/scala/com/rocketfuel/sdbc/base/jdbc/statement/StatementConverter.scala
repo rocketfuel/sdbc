@@ -1,6 +1,5 @@
 package com.rocketfuel.sdbc.base.jdbc.statement
 
-import com.rocketfuel.sdbc.base.CompiledStatement
 import com.rocketfuel.sdbc.base.jdbc.DBMS
 import java.sql.{ResultSet, SQLFeatureNotSupportedException}
 
@@ -67,17 +66,16 @@ trait StatementConverter {
     }
 
     implicit def convertedRowIterator[
-      R >: UpdatableRow <: Row,
       A
-    ](implicit converter: RowConverter[R, A]
+    ](implicit converter: RowConverter[A]
     ): StatementConverter[CloseableIterator[A]] = {
       (v1: Statement) =>
-        updatableResults(v1).get.mapCloseable(converter)
+        immutableResults(v1).mapCloseable(converter)
     }
 
     implicit def convertedRowVector[
       A
-    ](implicit converter: RowConverter[ImmutableRow, A]
+    ](implicit converter: RowConverter[A]
     ): StatementConverter[Vector[A]] = {
       (v1: Statement) =>
         val i = immutableResults(v1)
@@ -86,25 +84,24 @@ trait StatementConverter {
     }
 
     implicit def convertedRowOption[
-     R >: UpdatableRow <: Row,
       A
-    ](implicit converter: RowConverter[R, A]
+    ](implicit converter: RowConverter[A]
     ): StatementConverter[Option[A]] = {
       (v1: Statement) =>
-        val i = updatableResults(v1)
+        val i = immutableResults(v1)
         try {
-          if (i.hasNext) Some(converter(i.next()))
+          if (i.hasNext)
+            Some(converter(i.next()))
           else None
         } finally v1.close()
     }
 
     implicit def convertedRowSingleton[
-      R >: UpdatableRow <: Row,
       A
-    ](implicit converter: RowConverter[R, A]
+    ](implicit converter: RowConverter[A]
     ): StatementConverter[Singleton[A]] =  {
       (v1: Statement) =>
-        val i = updatableResults(v1)
+        val i = immutableResults(v1)
         try {
           if (i.hasNext) Singleton(converter(i.next()))
           else throw new NoSuchElementException("empty ResultSet")
@@ -127,6 +124,18 @@ trait StatementConverter {
         ImmutableRow.iterator(results(v1))
       }
     }
+
+    val liveResults: StatementConverter[QueryResult.Iterator[UpdatableRow]] =
+      new StatementConverter[QueryResult.Iterator[UpdatableRow]] {
+        override def apply(v1: Statement): QueryResult.Iterator[UpdatableRow] = {
+          val resultSet = results(v1)
+          QueryResult.Iterator(UpdatableRow.iterator(resultSet), resultSet.close)
+        }
+
+        override def prepareStatement(statement: CompiledStatement)(implicit connection: Connection): Statement = {
+          connection.prepareStatement(statement.queryText)
+        }
+      }
 
     implicit val updatableResults: StatementConverter[QueryResult.Iterator[UpdatableRow]] =
       new StatementConverter[QueryResult.Iterator[UpdatableRow]] {

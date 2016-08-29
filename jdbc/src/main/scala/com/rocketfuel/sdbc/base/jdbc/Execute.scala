@@ -20,14 +20,7 @@ trait Execute {
     with Executes {
 
     def execute()(implicit connection: Connection): Unit = {
-      Execute.logRun(statement, parameterValues)
-
-      val executed = QueryMethods.execute(
-        compiledStatement = statement,
-        parameterValues = parameterValues
-      )
-
-      executed.close()
+      Execute.execute(statement, parameterValues)
     }
 
     override def subclassConstructor(parameterValues: Map[String, ParameterValue]): Execute = {

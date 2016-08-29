@@ -20,11 +20,9 @@ private[sdbc] trait Getters
   with DateGetter
   with DoubleGetter
   with FloatGetter
-  with InputStreamGetter
   with IntGetter
   with JavaBigDecimalGetter
   with LongGetter
-  with ReaderGetter
   with ScalaBigDecimalGetter
   with ShortGetter
   with StringGetter
@@ -37,7 +35,7 @@ private[sdbc] trait Getters
   self: DBMS
     with IntervalImplicits =>
 
-  implicit val LTreeGetter: Getter[Row, LTree] =
+  implicit val LTreeGetter: Getter[LTree] =
     (row: Row, ix: Index) => {
       Option(row.getObject(ix(row))).map {
         case l: LTree => l
@@ -45,7 +43,7 @@ private[sdbc] trait Getters
       }
     }
 
-  implicit val CIdrGetter: Getter[Row, Cidr] =
+  implicit val CIdrGetter: Getter[Cidr] =
     (row: Row, ix: Index) => {
       Option(row.getObject(ix(row))).map {
         case p: Cidr => p
@@ -53,7 +51,7 @@ private[sdbc] trait Getters
       }
     }
 
-  private def IsPGobjectGetter[A <: PGobject, B](converter: A => B)(implicit ctag: ClassTag[A]): Getter[Row, B] =
+  private def IsPGobjectGetter[A <: PGobject, B](converter: A => B)(implicit ctag: ClassTag[A]): Getter[B] =
     (row: Row, ix: Index) => {
       val shouldBePgValue = Option(row.getObject(ix(row)))
       shouldBePgValue.map {
@@ -85,16 +83,16 @@ private[sdbc] trait Getters
 //
 //  implicit val OffsetDateTimeGetter = IsPGobjectGetter[PGTimestampTz, OffsetDateTime](_.offsetDateTime.get)
 
-  implicit val LocalTimeGetter: Getter[Row, LocalTime] =
+  implicit val LocalTimeGetter: Getter[LocalTime] =
     (value: String) => PGLocalTime.parse(value)
 
-  implicit val OffsetTimeGetter: Getter[Row, OffsetTime] =
+  implicit val OffsetTimeGetter: Getter[OffsetTime] =
     (value: String) => OffsetTime.from(offsetTimeFormatter.parse(value))
 
-  implicit val OffsetDateTimeGetter: Getter[Row, OffsetDateTime] =
+  implicit val OffsetDateTimeGetter: Getter[OffsetDateTime] =
     (value: String) => OffsetDateTime.from(offsetDateTimeFormatter.parse(value))
 
-  override implicit val UUIDGetter: Getter[Row, UUID] =
+  override implicit val UUIDGetter: Getter[UUID] =
     (row: Row, ix: Index) => {
       Option(row.getObject(ix(row))).map {
         case uuid: UUID => uuid
@@ -102,11 +100,11 @@ private[sdbc] trait Getters
       }
     }
 
-  implicit val XMLGetter: Getter[Row, Elem] =
+  implicit val XMLGetter: Getter[Elem] =
     //PostgreSQL's ResultSet#getSQLXML just uses getString.
     (asString: String) => XML.loadString(asString)
 
-  implicit val MapGetter: Getter[Row, Map[String, String]] =
+  implicit val MapGetter: Getter[Map[String, String]] =
     (row: Row, ix: Index) => {
       Option(row.getObject(ix(row))).map {
         case m: java.util.Map[_, _] =>

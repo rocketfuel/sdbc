@@ -39,18 +39,18 @@ class TestClassSpec
 
     //Make sure "hi" disappeared and "bye" exists.
     val resultRows = H2.iterator(TestClass.All).toSeq
-    assert(resultRows.exists(_.value == after) && !resultRows.exists(_.value == before), "The value wasn't updated.")
+    assert(resultRows.forall(_.value == after), "The value wasn't updated.")
   }
 
   override protected def beforeEach(): Unit = {
     H2.withMemConnection(name = "test") {implicit connection =>
-      connection.execute("CREATE TABLE test_class (id int IDENTITY(1,1) PRIMARY KEY, value varchar(100) NOT NULL)")
+      H2.Execute("CREATE TABLE test_class (id int IDENTITY(1,1) PRIMARY KEY, value varchar(100) NOT NULL)").execute()
     }
   }
 
   override protected def afterEach(): Unit = {
     H2.withMemConnection(name = "test") {implicit connection =>
-      connection.execute("DROP TABLE test_class")
+      H2.Execute("DROP TABLE test_class").execute()
     }
   }
 }

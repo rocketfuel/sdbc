@@ -27,7 +27,7 @@ object TestClass {
     val query = Select[TestClass]("SELECT * FROM test_class WHERE id = @id")
 
     override def select(key: Id): Select[TestClass] = {
-      query.onParameters("id" -> key.id)
+      query.on("id" -> key.id)
     }
   }
 
@@ -49,7 +49,7 @@ object TestClass {
 
   implicit val updateValues = new SelectForUpdatable[All.type] {
     val query = SelectForUpdate("SELECT id, value FROM test_class")
-    override def select(key: All.type): SelectForUpdate = {
+    override def selectForUpdate(key: All.type): SelectForUpdate = {
       query
     }
   }
