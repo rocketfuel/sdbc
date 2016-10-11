@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.jdbc.resultset.UpdatableRow
+import com.rocketfuel.sdbc.base.jdbc.resultset.ConnectedRow
 import com.rocketfuel.sdbc.base.jdbc.statement.ParameterValue
 import java.lang
 import java.nio.ByteBuffer
@@ -8,12 +8,12 @@ import java.sql.{Time, Date, Timestamp}
 import java.io.{InputStream, Reader}
 import java.time._
 import java.util.UUID
-import scala.xml.{Elem, NodeSeq}
+import scala.xml.NodeSeq
 
 import scodec.bits.ByteVector
 
 trait Updater {
-  self: UpdatableRow
+  self: ConnectedRow
     with ParameterValue =>
 
   trait Updater[-T] {
@@ -28,6 +28,8 @@ trait Updater {
   }
 
   object Updater {
+    def apply[T](implicit updater: Updater[T]): Updater[T] = updater
+
     implicit def toOptionUpdater[T](implicit updater: Updater[T]): Updater[Option[T]] = {
       new Updater[Option[T]] {
         override def update(row: UpdatableRow, columnIndex: Int, x: Option[T]): Unit = {
@@ -61,7 +63,7 @@ trait Updater {
 
 trait LongUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val LongUpdater = new Updater[Long] {
@@ -81,7 +83,7 @@ trait LongUpdater {
 
 trait IntUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val IntUpdater = new Updater[Int] {
@@ -100,7 +102,7 @@ trait IntUpdater {
 
 trait ShortUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val ShortUpdater = new Updater[Short] {
@@ -118,7 +120,7 @@ trait ShortUpdater {
 
 trait ByteUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val ByteUpdater = new Updater[Byte] {
@@ -136,7 +138,7 @@ trait ByteUpdater {
 
 trait BytesUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val ArrayByteUpdater = new Updater[Array[Byte]] {
@@ -167,7 +169,7 @@ trait BytesUpdater {
 
 trait DoubleUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val DoubleUpdater = new Updater[Double] {
@@ -185,7 +187,7 @@ trait DoubleUpdater {
 
 trait FloatUpdater {
   self: Updater
-    with UpdatableRow =>
+    with ConnectedRow =>
 
   implicit val FloatUpdater = new Updater[Float] {
     override def update(row: UpdatableRow, columnIndex: Int, x: Float): Unit = {
@@ -202,7 +204,7 @@ trait FloatUpdater {
 
 trait BigDecimalUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val JavaBigDecimalUpdater = new Updater[java.math.BigDecimal] {
@@ -221,7 +223,7 @@ trait BigDecimalUpdater {
 
 trait TimestampUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val TimestampUpdater = new Updater[Timestamp] {
@@ -233,7 +235,7 @@ trait TimestampUpdater {
 
 trait DateUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val DateUpdater = new Updater[Date] {
@@ -245,7 +247,7 @@ trait DateUpdater {
 
 trait TimeUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val TimeUpdater = new Updater[Time] {
@@ -257,7 +259,7 @@ trait TimeUpdater {
 
 trait LocalDateTimeUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val LocalDateTimeUpdater = new Updater[LocalDateTime] {
@@ -269,7 +271,7 @@ trait LocalDateTimeUpdater {
 
 trait InstantUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val InstantUpdater = new Updater[Instant] {
@@ -281,7 +283,7 @@ trait InstantUpdater {
 
 trait LocalDateUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val LocalDateUpdater = new Updater[LocalDate] {
@@ -293,7 +295,7 @@ trait LocalDateUpdater {
 
 trait LocalTimeUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val LocalTimeUpdater = new Updater[LocalTime] {
@@ -305,7 +307,7 @@ trait LocalTimeUpdater {
 
 trait BooleanUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val BooleanUpdater = new Updater[Boolean] {
@@ -323,7 +325,7 @@ trait BooleanUpdater {
 
 trait StringUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val StringUpdater = new Updater[String] {
@@ -335,7 +337,7 @@ trait StringUpdater {
 
 trait UUIDUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val UUIDUpdater = new Updater[UUID] {
@@ -348,7 +350,7 @@ trait UUIDUpdater {
 
 trait InputStreamUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val InputStreamUpdater = new Updater[InputStream] {
@@ -360,7 +362,7 @@ trait InputStreamUpdater {
 
 trait ReaderUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue =>
 
   implicit val ReaderUpdater = new Updater[Reader] {
@@ -372,19 +374,11 @@ trait ReaderUpdater {
 
 trait XmlUpdater {
   self: Updater
-  with UpdatableRow
+  with ConnectedRow
   with ParameterValue =>
 
   implicit val NodeSeqUpdater: Updater[NodeSeq] = new Updater[NodeSeq] {
     override def update(row: UpdatableRow, columnIndex: Int, x: NodeSeq): Unit = {
-      val sqlxml = row.getStatement.getConnection.createSQLXML()
-      sqlxml.setString(x.toString)
-      row.updateSQLXML(columnIndex, sqlxml)
-    }
-  }
-
-  implicit val ElemUpdater: Updater[Elem] = new Updater[Elem] {
-    override def update(row: UpdatableRow, columnIndex: Int, x: Elem): Unit = {
       val sqlxml = row.getStatement.getConnection.createSQLXML()
       sqlxml.setString(x.toString)
       row.updateSQLXML(columnIndex, sqlxml)

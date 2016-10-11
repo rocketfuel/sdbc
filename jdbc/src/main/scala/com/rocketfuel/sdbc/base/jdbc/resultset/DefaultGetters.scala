@@ -22,8 +22,7 @@ trait DefaultGetters
   with InstantGetter
   with LocalDateGetter
   with LocalDateTimeGetter
-  with LocalTimeGetter
-  with SeqGetter {
+  with LocalTimeGetter {
   self: DBMS =>
 
 }

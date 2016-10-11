@@ -5,8 +5,8 @@ name := "jdbc-postgresql"
 description := "An implementation of SDBC for accessing PostgreSQL using JDBC."
 
 libraryDependencies ++= Seq(
-  "org.postgresql" % "postgresql" % "9.4-1204-jdbc42",
-  "org.json4s" %% "json4s-jackson" % "3.2.11"
+  "org.postgresql" % "postgresql" % "9.4.1211",
+  "org.json4s" %% "json4s-jackson" % "3.4.1"
 )
 
 parallelExecution := false

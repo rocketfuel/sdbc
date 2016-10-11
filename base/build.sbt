@@ -6,18 +6,18 @@ description := "SDBC is a database API for Scala."
 
 libraryDependencies ++= Seq(
   //Logging
-  "org.slf4j" % "slf4j-api" % "1.7.13",
-  "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.4.1" % "test",
-  "org.apache.logging.log4j" % "log4j-api" % "2.4.1" % "test",
-  "org.apache.logging.log4j" % "log4j-core" % "2.4.1" % "test",
+  "org.slf4j" % "slf4j-api" % "1.7.21",
+  "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.7" % "test",
+  "org.apache.logging.log4j" % "log4j-api" % "2.7" % "test",
+  "org.apache.logging.log4j" % "log4j-core" % "2.7" % "test",
   "org.scala-lang" % "scala-reflect" % scalaVersion.value,
   //Config file loading
   //https://github.com/typesafehub/config
   "com.typesafe" % "config" % "1.3.0",
-  "com.chuusai" %% "shapeless" % "2.2.5",
+  "com.chuusai" %% "shapeless" % "2.3.2",
   "org.scalatest" %% "scalatest" % "2.2.5" % "test",
   "org.scalacheck" %% "scalacheck" % "1.12.5" % "test",
-  "org.scalaz" %% "scalaz-core" % "7.2.1" % "test",
+  "org.scalaz" %% "scalaz-core" % "7.2.6" % "test",
   "org.apache.commons" % "commons-lang3" % "3.4" % "test"
 )
 

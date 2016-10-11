@@ -8,38 +8,23 @@ import java.sql.{Array => JdbcArray, _}
 import java.util
 import java.util.Calendar
 
-trait UpdatableRow {
+trait ConnectedRow {
   self: DBMS =>
 
-  class UpdatableRow private[sdbc](
+  class ConnectedRow private[sdbc](
     val underlying: ResultSet,
     override val columnNames: IndexedSeq[String],
     override val columnIndexes: Map[String, Int]
   ) extends Row()
     with ResultSet {
 
-    def update[T](columnIndex: Index, x: T)(implicit updater: Updater[T]): Unit = {
-      updater.update(this, columnIndex(this), x)
+    def apply[T](columnIndex: Index)(implicit getter: CompositeGetter[T]): T = {
+      getter(this, columnIndex)
     }
 
     override def toSeq: IndexedSeq[Option[Any]] = Row.toSeq(underlying)
 
     override def toMap: Map[String, Option[Any]] = Row.toMap(toSeq, getMetaData)
-
-    /**
-      * Get a copy of the row that is safe to use after the underlying ResultSet is closed.
-      *
-      * @return
-      */
-    def immutable: ImmutableRow = {
-      new ImmutableRow(
-        columnNames = columnNames,
-        columnIndexes = columnIndexes,
-        getMetaData = getMetaData,
-        getRow = getRow,
-        toSeq = toSeq
-      )
-    }
 
     def getType: Int = underlying.getType
 
@@ -75,15 +60,9 @@ trait UpdatableRow {
 
     override def getDouble(columnLabel: String): Double = underlying.getDouble(columnLabel: String)
 
-    override def getArray(columnIndex: Int): JdbcArray = underlying.getArray(columnIndex)
+    override def getArray(columnIndex: Int): JdbcArray = underlying.getArray(columnIndex + 1)
 
     override def getArray(columnLabel: String): JdbcArray = underlying.getArray(columnLabel)
-
-    override def getSeq[T](columnIndex: Int)(implicit getter: CompositeGetter[T]): Seq[T] =
-      Option(getArray(columnIndex + 1)).map(UpdatableRow.jdbcArrayToVector[T]).orNull
-
-    override def getSeq[T](columnLabel: String)(implicit getter: CompositeGetter[T]): Seq[T] =
-      Option(getArray(columnLabel)).map(UpdatableRow.jdbcArrayToVector[T]).orNull
 
     def isFirst: Boolean = underlying.isFirst
 
@@ -462,15 +441,19 @@ trait UpdatableRow {
     override def updateClob(columnLabel: String, x: Clob): Unit =
       underlying.updateClob(columnLabel, x)
 
+    @Deprecated
     override def getBigDecimal(columnIndex: Int, scale: Int): BigDecimal =
       underlying.getBigDecimal(columnIndex, scale)
 
+    @Deprecated
     override def getBigDecimal(columnLabel: String, scale: Int): BigDecimal =
       underlying.getBigDecimal(columnLabel, scale)
 
+    @Deprecated
     override def getUnicodeStream(columnIndex: Int): InputStream =
       underlying.getUnicodeStream(columnIndex)
 
+    @Deprecated
     override def getUnicodeStream(columnLabel: String): InputStream =
       underlying.getUnicodeStream(columnLabel)
 
@@ -491,7 +474,47 @@ trait UpdatableRow {
         underlying.isWrapperFor(iface)
   }
 
-  object UpdatableRow {
+  private[sdbc] object ConnectedRow {
+    def apply(resultSet: ResultSet): ConnectedRow = {
+      val columnNames = Row.columnNames(resultSet.getMetaData)
+      val columnIndexes = Row.columnIndexes(columnNames)
+
+      new ConnectedRow(
+        underlying = resultSet,
+        columnNames = columnNames,
+        columnIndexes = columnIndexes
+      )
+    }
+
+    def iterator(resultSet: ResultSet): CloseableIterator[ConnectedRow]  = {
+      val columnNames = Row.columnNames(resultSet.getMetaData)
+      val columnIndexes = Row.columnIndexes(columnNames)
+
+      resultSet.iterator().mapCloseable { resultSet =>
+        new ConnectedRow(
+          underlying = resultSet,
+          columnNames = columnNames,
+          columnIndexes = columnIndexes
+        )
+      }
+    }
+
+  }
+
+
+  class UpdatableRow private[sdbc](
+    underlying: ResultSet,
+    columnNames: IndexedSeq[String],
+    columnIndexes: Map[String, Int]
+  ) extends ConnectedRow(underlying, columnNames, columnIndexes) {
+
+    def update[T](columnIndex: Index, x: T)(implicit updater: Updater[T]): Unit = {
+      updater.update(this, columnIndex(this), x)
+    }
+
+  }
+
+  private[sdbc] object UpdatableRow {
     def apply(resultSet: ResultSet): UpdatableRow = {
       val columnNames = Row.columnNames(resultSet.getMetaData)
       val columnIndexes = Row.columnIndexes(columnNames)
@@ -516,16 +539,6 @@ trait UpdatableRow {
       }
     }
 
-    private def jdbcArrayToVector[T](a: JdbcArray)(implicit getter: CompositeGetter[T]): Vector[T] = {
-      val arrayIterator = ImmutableRow.iterator(a.getResultSet())
-      val arrayValues = for {
-        arrayRow <- arrayIterator
-      } yield {
-        arrayRow[T](1)
-      }
-      arrayValues.toVector
-    }
   }
 
 }
-

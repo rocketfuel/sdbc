@@ -29,10 +29,6 @@ trait Row extends base.Index {
 
     def getMetaData: ResultSetMetaData
 
-    def apply[T](columnIndex: Index)(implicit getter: CompositeGetter[T]): T = {
-      getter(this, columnIndex)
-    }
-
     def wasNull: Boolean
 
     def getTimestamp(columnIndex: Int): Timestamp
@@ -42,10 +38,6 @@ trait Row extends base.Index {
     def getDouble(columnIndex: Int): Double
 
     def getDouble(columnLabel: String): Double
-
-    def getSeq[T](columnIndex: Int)(implicit getter: CompositeGetter[T]): Seq[T]
-
-    def getSeq[T](columnLabel: String)(implicit getter: CompositeGetter[T]): Seq[T]
 
     def getURL(columnIndex: Int): URL
 
@@ -116,7 +108,8 @@ trait Row extends base.Index {
       } takeWhile(_ != null)
     }
 
-    private def fromReader(r: Reader): String = {
+    private def fromClob(c: Clob): String = {
+      val r = c.getCharacterStream
       val sb = new StringBuilder
       readerToIterator(4096, r).foreach(sb.append)
       sb.toString
@@ -145,11 +138,9 @@ trait Row extends base.Index {
       row: ResultSet
     ): IndexedSeq[Option[Any]] = {
       IndexedSeq.tabulate(row.getMetaData.getColumnCount) { ix =>
-        if (JDBCType.valueOf(row.getMetaData.getColumnType(ix + 1)) == JDBCType.ARRAY)
-          Option(row.getArray(ix + 1)).map(jdbcArrayToVectorRefs)
-       else Option(row.getObject(ix + 1)) map {
+        Option(row.getObject(ix + 1)) map {
           case c: Clob =>
-            fromReader(c.getCharacterStream)
+            fromClob(c)
           case b: Blob =>
             fromBlob(b)
           case otherwise =>
@@ -179,20 +170,6 @@ trait Row extends base.Index {
       TreeMap(columnNames.zipWithIndex: _*)(new Ordering[String] {
         override def compare(x: String, y: String): Int = x.compareToIgnoreCase(y)
       })
-    }
-
-    def jdbcArrayToVectorRefs(a: JdbcArray): Vector[Any] = {
-      val arrayIterator = a.getResultSet().iterator()
-      val arrayValues = for {
-        arrayRow <- arrayIterator
-      } yield {
-        if (JDBCType.valueOf(arrayRow.getMetaData.getColumnType(1)) == JDBCType.ARRAY) {
-          jdbcArrayToVectorRefs(arrayRow.getArray(1))
-        } else {
-          base.unbox(arrayRow.getObject(1))
-        }
-      }
-      arrayValues.toVector
     }
 
   }

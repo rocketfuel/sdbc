@@ -29,8 +29,9 @@ private[sdbc] trait Setters
   with PGJsonParameter
   with LocalTimeParameter
   with PGobjectParameter
-  with MapParameter {
-  self: ParameterValue =>
+  with MapParameter
+  with SeqWithXmlParameter {
+  self: DBMS =>
 
 }
 

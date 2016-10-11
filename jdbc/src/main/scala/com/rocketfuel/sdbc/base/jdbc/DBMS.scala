@@ -27,14 +27,10 @@ abstract class DBMS
   with Updater
   with Row
   with ImmutableRow
-  with UpdatableRow
+  with ConnectedRow
   with CompositeGetter
   with RowConverter
   with QueryMethods {
-
-  type Singleton[A] = base.Singleton[A]
-
-  val Singleton = base.Singleton
 
   type CloseableIterator[+A] = base.CloseableIterator[A]
 

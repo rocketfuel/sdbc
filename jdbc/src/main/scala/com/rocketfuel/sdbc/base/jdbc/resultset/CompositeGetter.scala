@@ -12,7 +12,7 @@ trait CompositeGetter extends Getter {
     *
     * @tparam A
     */
-  trait CompositeGetter[A] extends ((Row, Index) => A) {
+  trait CompositeGetter[A] extends ((ConnectedRow, Index) => A) {
 
     val length: Int
 
@@ -28,7 +28,7 @@ trait CompositeGetter extends Getter {
       new CompositeGetter[Option[A]] {
         override val length: Int = 1
 
-        override def apply(v1: Row, v2: Index): Option[A] = {
+        override def apply(v1: ConnectedRow, v2: Index): Option[A] = {
           g(v1, v2)
         }
       }
@@ -36,21 +36,25 @@ trait CompositeGetter extends Getter {
 
     implicit def fromGetter[A](implicit g: Getter[A]): CompositeGetter[A] =
       new CompositeGetter[A] {
-        override def apply(v1: Row, v2: Index): A = {
+        override def apply(v1: ConnectedRow, v2: Index): A = {
           g(v1, v2).get
         }
 
         override val length: Int = 1
       }
 
-    implicit def recordComposite[K <: Symbol, H, T <: HList](implicit
+    implicit def recordComposite[
+      H,
+      T <: HList,
+      K <: Symbol
+    ](implicit
       H: CompositeGetter[H],
       T: CompositeGetter[T]
     ): CompositeGetter[FieldType[K, H] :: T] =
       new CompositeGetter[FieldType[K, H] :: T] {
-        override def apply(row: Row, ix: Index): FieldType[K, H] :: T = {
-          val head = H(row, ix)
-          val tail = T(row, ix + H.length)
+        override def apply(row: ConnectedRow, ix: Index): FieldType[K, H] :: T = {
+          val head = H(row.asInstanceOf[ConnectedRow], ix)
+          val tail = T(row.asInstanceOf[ConnectedRow], ix + H.length)
 
           field[K](head) :: tail
         }
@@ -66,7 +70,7 @@ trait CompositeGetter extends Getter {
       T: CompositeGetter[T]
     ): CompositeGetter[H :: T] =
       new CompositeGetter[H :: T] {
-        override def apply(row: Row, ix: Index): H :: T = {
+        override def apply(row: ConnectedRow, ix: Index): H :: T = {
           val head = H(row, ix)
           val tail = T(row, ix + H.length)
           head :: tail
@@ -77,7 +81,7 @@ trait CompositeGetter extends Getter {
 
     implicit val emptyProduct: CompositeGetter[HNil] =
       new CompositeGetter[HNil] {
-        override def apply(v1: Row, v2: Index): HNil = {
+        override def apply(v1: ConnectedRow, v2: Index): HNil = {
           HNil
         }
 
@@ -89,7 +93,7 @@ trait CompositeGetter extends Getter {
       G: Lazy[CompositeGetter[G]]
     ): CompositeGetter[F] =
       new CompositeGetter[F] {
-        override def apply(row: Row, ix: Index): F = {
+        override def apply(row: ConnectedRow, ix: Index): F = {
           gen.from(G.value(row, ix))
         }
 

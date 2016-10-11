@@ -4,7 +4,7 @@ import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.jdbc.DBMS
 import java.math.BigDecimal
 import java.net.URL
-import java.sql.{Statement, Array => JdbcArray, _}
+import java.sql.{Array => JdbcArray, _}
 
 trait ImmutableRow {
   self: DBMS =>
@@ -69,14 +69,6 @@ trait ImmutableRow {
     }
 
     override def getDouble(columnLabel: String): Double = getDouble(columnIndexes(columnLabel))
-
-    override def getSeq[T](columnIndex: Int)(implicit getter: CompositeGetter[T]): Seq[T] =
-      setWasNull(columnIndex, "array") {
-        case s: Seq[_] => s.asInstanceOf[Seq[T]]
-      } orNull
-
-    override def getSeq[T](columnLabel: String)(implicit getter: CompositeGetter[T]): Seq[T] =
-      getSeq(columnIndexes(columnLabel))
 
     override def getURL(columnIndex: Int): URL =
       setWasNull(columnIndex, "url") {

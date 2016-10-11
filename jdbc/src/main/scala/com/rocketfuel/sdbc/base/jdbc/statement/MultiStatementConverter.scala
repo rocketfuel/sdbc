@@ -36,21 +36,17 @@ trait MultiStatementConverter {
         if (count == -1) None.get else QueryResult.UpdateCount(count)
     }
 
-    implicit def convertedRowIterator[
-      R <: Row,
-      A
-    ](implicit converter: RowConverter[A],
-      statementConverter: MultiStatementConverter[Iterator[R]]
+    implicit def convertedRowIterator[A](implicit
+      converter: RowConverter[A],
+      statementConverter: MultiStatementConverter[CloseableIterator[ConnectedRow]]
     ): MultiStatementConverter[Iterator[A]] = {
       (v1: Statement) =>
-        statementConverter(v1).map(converter)
+        statementConverter(v1).mapCloseable(converter)
     }
 
-    implicit def convertedRowVector[
-      R <: Row,
-      A
-    ](implicit converter: RowConverter[A],
-      statementConverter: MultiStatementConverter[Iterator[R] with Closeable]
+    implicit def convertedRowVector[A](implicit
+      converter: RowConverter[A],
+      statementConverter: MultiStatementConverter[CloseableIterator[ConnectedRow]]
     ): MultiStatementConverter[Vector[A]] = {
       (v1: Statement) =>
         val i = statementConverter(v1)
@@ -58,11 +54,9 @@ trait MultiStatementConverter {
         finally i.close()
     }
 
-    implicit def convertedRowOption[
-      R <: Row,
-      A
-    ](implicit converter: RowConverter[A],
-      statementConverter: MultiStatementConverter[Iterator[R] with Closeable]
+    implicit def convertedRowOption[A](implicit
+      converter: RowConverter[A],
+      statementConverter: MultiStatementConverter[CloseableIterator[ConnectedRow]]
     ): MultiStatementConverter[Option[A]] = {
       (v1: Statement) =>
         val i = statementConverter(v1)
@@ -74,7 +68,7 @@ trait MultiStatementConverter {
       R <: Row,
       A
     ](implicit converter: RowConverter[A],
-      statementConverter: MultiStatementConverter[Iterator[R] with Closeable]
+      statementConverter: MultiStatementConverter[CloseableIterator[ConnectedRow]]
     ): MultiStatementConverter[A] =  {
       (v1: Statement) =>
         val i = statementConverter(v1)
@@ -104,9 +98,9 @@ trait MultiStatementConverter {
       }
     }
 
-    implicit val updatableResults: MultiStatementConverter[CloseableIterator[UpdatableRow]] = {
+    implicit val updatableResults: MultiStatementConverter[CloseableIterator[ConnectedRow]] = {
       (v1: Statement) => {
-        UpdatableRow.iterator(results(v1))
+        ConnectedRow.iterator(results(v1))
       }
     }
 

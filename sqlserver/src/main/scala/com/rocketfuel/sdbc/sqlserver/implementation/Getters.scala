@@ -34,7 +34,7 @@ private[sdbc] trait Getters
    * The JTDS driver sometimes fails to parse timestamps, so we use our own parser.
    */
   override implicit val InstantGetter: Getter[Instant] = {
-    (row: Row, ix: Index) => {
+    (row: ConnectedRow, ix: Index) => {
       OffsetDateTimeGetter(row, ix).map(_.toInstant)
     }
   }

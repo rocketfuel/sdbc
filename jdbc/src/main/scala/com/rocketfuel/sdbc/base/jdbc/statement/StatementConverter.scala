@@ -15,7 +15,9 @@ trait StatementConverter {
       override val get: Unit = ()
     }
 
-    case class UpdateCount(get: Long) extends QueryResult[Long]
+    case class UpdateCount(
+      override val get: Long
+    ) extends QueryResult[Long]
 
     case class Iterator[A](
       get: CloseableIterator[A],
@@ -23,12 +25,16 @@ trait StatementConverter {
     ) extends QueryResult[CloseableIterator[A]]
 
     case class Vector[A](
-      get: scala.Vector[A]
+      override val get: scala.Vector[A]
     ) extends QueryResult[scala.Vector[A]]
 
-    case class Singleton[A](get: A) extends QueryResult[A]
+    case class Singleton[A](
+      override val get: A
+    ) extends QueryResult[A]
 
-    case class Option[A](get: scala.Option[A]) extends QueryResult[scala.Option[A]]
+    case class Option[A](
+      override val get: scala.Option[A]
+    ) extends QueryResult[scala.Option[A]]
 
     implicit def toGet[A](result: QueryResult[A]): A =
       result.get
@@ -70,42 +76,42 @@ trait StatementConverter {
     ](implicit converter: RowConverter[A]
     ): StatementConverter[CloseableIterator[A]] = {
       (v1: Statement) =>
-        immutableResults(v1).mapCloseable(converter)
+        connectedResults(v1).mapCloseable(converter)
     }
 
     implicit def convertedRowVector[
       A
     ](implicit converter: RowConverter[A]
-    ): StatementConverter[Vector[A]] = {
+    ): StatementConverter[QueryResult.Vector[A]] = {
       (v1: Statement) =>
-        val i = immutableResults(v1)
-        try i.map(converter).toVector
-        finally v1.close()
+        val i = updatableResults(v1)
+        try QueryResult.Vector(i.map(converter).toVector)
+        finally i.close()
     }
 
     implicit def convertedRowOption[
       A
     ](implicit converter: RowConverter[A]
-    ): StatementConverter[Option[A]] = {
+    ): StatementConverter[QueryResult.Option[A]] = {
       (v1: Statement) =>
-        val i = immutableResults(v1)
+        val i = updatableResults(v1)
         try {
           if (i.hasNext)
-            Some(converter(i.next()))
-          else None
-        } finally v1.close()
+            QueryResult.Option(Some(converter(i.next())))
+          else QueryResult.Option(None: Option[A])
+        } finally i.close()
     }
 
     implicit def convertedRowSingleton[
       A
     ](implicit converter: RowConverter[A]
-    ): StatementConverter[Singleton[A]] =  {
+    ): StatementConverter[QueryResult.Singleton[A]] =  {
       (v1: Statement) =>
-        val i = immutableResults(v1)
+        val i = updatableResults(v1)
         try {
-          if (i.hasNext) Singleton(converter(i.next()))
+          if (i.hasNext) QueryResult.Singleton(converter(i.next()))
           else throw new NoSuchElementException("empty ResultSet")
-        } finally v1.close()
+        } finally i.close()
     }
 
     implicit def ofFunction[A](f: Statement => A): StatementConverter[A] =
@@ -119,17 +125,17 @@ trait StatementConverter {
       }
     }
 
-    implicit val immutableResults: StatementConverter[CloseableIterator[ImmutableRow]] = {
+    implicit val immutableResults: StatementConverter[QueryResult.Vector[ImmutableRow]] = {
       (v1: Statement) => {
-        ImmutableRow.iterator(results(v1))
+        QueryResult.Vector(ImmutableRow.iterator(results(v1)).toVector)
       }
     }
 
-    val liveResults: StatementConverter[QueryResult.Iterator[UpdatableRow]] =
-      new StatementConverter[QueryResult.Iterator[UpdatableRow]] {
-        override def apply(v1: Statement): QueryResult.Iterator[UpdatableRow] = {
+    val connectedResults: StatementConverter[QueryResult.Iterator[ConnectedRow]] =
+      new StatementConverter[QueryResult.Iterator[ConnectedRow]] {
+        override def apply(v1: Statement): QueryResult.Iterator[ConnectedRow] = {
           val resultSet = results(v1)
-          QueryResult.Iterator(UpdatableRow.iterator(resultSet), resultSet.close)
+          QueryResult.Iterator(ConnectedRow.iterator(resultSet), resultSet.close)
         }
 
         override def prepareStatement(statement: CompiledStatement)(implicit connection: Connection): Statement = {

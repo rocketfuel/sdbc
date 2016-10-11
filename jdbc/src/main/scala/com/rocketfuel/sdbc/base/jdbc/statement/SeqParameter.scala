@@ -2,7 +2,7 @@ package com.rocketfuel.sdbc.base.jdbc.statement
 
 import com.rocketfuel.sdbc.base.box
 import com.rocketfuel.sdbc.base.jdbc.DBMS
-import java.sql.{Array => JdbcArray, _}
+import java.sql.{Array => _, _}
 import scala.xml.{Elem, NodeSeq}
 
 trait SeqParameter {
@@ -59,6 +59,23 @@ trait SeqParameter {
       )
     }
 
+    implicit def ofParameterSome[T](implicit
+      parameter: Parameter[T],
+      arrayType: ArrayTypeName[Seq[Some[T]]]
+    ): SeqParameter[Some[T]] = {
+      val mapF: Some[T] => AnyRef = parameter match {
+        case p: DerivedParameter[_] =>
+          elem => elem.map(p.conversion andThen box).orNull
+        case _ =>
+          elem => elem.map(box).orNull
+      }
+
+      SeqParameter[Some[T]](
+        arrayType = arrayType,
+        toArray = seq => seq.map(mapF).toArray
+      )
+    }
+
     //Inductive cases.
     implicit def ofSeqParameter[T](implicit
       parameter: SeqParameter[T],
@@ -81,6 +98,16 @@ trait SeqParameter {
     }
   }
 
+  implicit def ofSeqSomeParameter[T](implicit
+    parameter: SeqParameter[Option[T]],
+    arrayType: ArrayTypeName[Seq[Seq[Some[T]]]]
+  ): SeqParameter[Seq[Some[T]]] = {
+    SeqParameter[Seq[Some[T]]](
+      arrayType = arrayType,
+      toArray = seq => seq.map(parameter.toArray).toArray
+    )
+  }
+
   implicit def seqParameterToParameter[T](implicit seqParameter: SeqParameter[T]): Parameter[Seq[T]] = {
     seqParameter
   }
@@ -96,10 +123,13 @@ trait SeqParameter {
   object ArrayTypeName {
 
     implicit def ofSeq[T](implicit innerArrayType: ArrayTypeName[T]): ArrayTypeName[Seq[T]] =
-      ArrayTypeName[Seq[T]](innerArrayType.name)
+      innerArrayType.asInstanceOf[ArrayTypeName[Seq[T]]]
 
     implicit def ofSeqOption[T](implicit innerArrayType: ArrayTypeName[T]): ArrayTypeName[Seq[Option[T]]] =
-      ArrayTypeName[Seq[Option[T]]](innerArrayType.name)
+      innerArrayType.asInstanceOf[ArrayTypeName[Seq[Option[T]]]]
+
+    implicit def ofSeqSome[T](implicit innerArrayType: ArrayTypeName[T]): ArrayTypeName[Seq[Some[T]]] =
+      innerArrayType.asInstanceOf[ArrayTypeName[Seq[Some[T]]]]
 
   }
 
@@ -129,6 +159,16 @@ trait SeqParameter {
     arrayType: ArrayTypeName[Seq[Option[T]]]
   ): Updater[Seq[Option[T]]] = {
     SeqUpdater[Option[T]](
+      arrayType = arrayType,
+      toArray = parameter.toArray
+    )
+  }
+
+  implicit def seqUpdaterOfSeqSomeParameter[T](implicit
+    parameter: SeqParameter[Some[T]],
+    arrayType: ArrayTypeName[Seq[Some[T]]]
+  ): Updater[Seq[Some[T]]] = {
+    SeqUpdater[Some[T]](
       arrayType = arrayType,
       toArray = parameter.toArray
     )

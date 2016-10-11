@@ -10,17 +10,8 @@ class UpdateSpec extends FunSuite {
 
     assertResult(
       Map("t" -> ParameterValue.empty)
-    )(
-      query.on("t" -> None).parameterValues
+    )(query.on("t" -> None).parameterValues
     )
-  }
-
-  test("Identifier that doesn't appear as a word in the text can't be assigned a value.") {
-    val query = Update("SELECT * FROM tbl WHERE @tt < t")
-
-    intercept[IllegalArgumentException] {
-      query.on("t" -> None)
-    }
   }
 
 }

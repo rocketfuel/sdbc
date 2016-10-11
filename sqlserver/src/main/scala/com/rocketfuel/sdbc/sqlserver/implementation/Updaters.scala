@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.sqlserver.implementation
 
-import com.rocketfuel.sdbc.base.jdbc.resultset.UpdatableRow
+import com.rocketfuel.sdbc.base.jdbc.resultset.ConnectedRow
 import com.rocketfuel.sdbc.base.jdbc.statement.{ParameterValue, OffsetDateTimeAsStringParameter}
 import java.time.{LocalTime, OffsetDateTime}
 import java.util.UUID
@@ -30,7 +30,7 @@ private[sdbc] trait Updaters
   with InstantUpdater
   with LocalDateUpdater {
   self: Updater
-    with UpdatableRow
+    with ConnectedRow
     with ParameterValue
     with OffsetDateTimeAsStringParameter =>
 

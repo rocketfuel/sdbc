@@ -2,7 +2,6 @@ package com.rocketfuel.sdbc.base.jdbc.resultset
 
 import com.rocketfuel.sdbc.base.CloseableIterator
 import com.rocketfuel.sdbc.base.jdbc.DBMS
-import java.io.Closeable
 import java.sql.ResultSet
 
 trait ResultSetImplicits {

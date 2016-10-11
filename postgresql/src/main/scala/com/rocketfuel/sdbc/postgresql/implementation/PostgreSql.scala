@@ -14,7 +14,6 @@ private[sdbc] abstract class PostgreSql
   with IntervalImplicits
   with Getters
   with Updaters
-  with SeqWithXmlParameter
   with ArrayTypes {
 
   override def dataSourceClassName = "org.postgresql.ds.PGSimpleDataSource"

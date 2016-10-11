@@ -23,8 +23,6 @@ abstract class PostgreSqlSuite
       (expectedValue, result) match {
         case (Some(expectedOffset: OffsetDateTime), Some(resultOffset: OffsetDateTime)) =>
           assertResult(expectedOffset.toInstant)(resultOffset.toInstant)
-        case (Some(expectedInstant: Instant), Some(resultInstant: Instant)) =>
-          assertResult(expectedInstant)(resultInstant)
         case (Some(x), Some(y)) =>
           assertResult(x)(y)
         case (None, None) => true

@@ -28,7 +28,9 @@ trait ParameterValue {
   }
 
   object Parameter {
-    implicit def apply[A](set0: A => (PreparedStatement, Int) => PreparedStatement): Parameter[A] = new Parameter[A] {
+    def apply[A](implicit parameter: Parameter[A]): Parameter[A] = parameter
+
+    implicit def ofFunction[A](set0: A => (PreparedStatement, Int) => PreparedStatement): Parameter[A] = new Parameter[A] {
       override val set: (A) => (PreparedStatement, Int) => PreparedStatement = set0
     }
   }

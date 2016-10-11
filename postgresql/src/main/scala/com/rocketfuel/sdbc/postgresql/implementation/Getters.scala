@@ -31,7 +31,8 @@ private[sdbc] trait Getters
   with UUIDGetter
   with InstantGetter
   with LocalDateGetter
-  with LocalDateTimeGetter {
+  with LocalDateTimeGetter
+  with SeqGetter {
   self: DBMS
     with IntervalImplicits =>
 

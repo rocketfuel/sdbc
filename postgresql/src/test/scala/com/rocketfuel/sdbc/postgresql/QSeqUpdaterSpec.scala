@@ -16,10 +16,10 @@ class QSeqUpdaterSpec
         row.updateRow()
     }
 
-    val selected: Vector[Option[Seq[Int]]] =
-      Select[Option[Seq[Int]]]("SELECT ints FROM tbl").iterator().toVector
+    val selected: Seq[Seq[Option[Int]]] =
+      Select[Seq[Option[Int]]]("SELECT ints FROM tbl").iterator().toSeq
 
-    assertResult(Vector(Some(QSeqUpdaterSpec.updated)))(selected)
+    assertResult(Seq(QSeqUpdaterSpec.updated))(selected)
   }
 
 }
