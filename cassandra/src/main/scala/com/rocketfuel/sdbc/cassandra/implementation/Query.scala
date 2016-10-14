@@ -3,12 +3,12 @@ package com.rocketfuel.sdbc.cassandra.implementation
 import com.datastax.driver.core
 import com.rocketfuel.sdbc.base.CompiledStatement
 import com.rocketfuel.sdbc.cassandra._
+import fs2.util.Async
+import fs2.{Pipe, Sink, Strategy, Stream, Task}
 import scala.collection.convert.wrapAsScala._
 import scala.concurrent.{ExecutionContext, Future}
-import scalaz.concurrent.Task
-import scalaz.stream._
 import shapeless.ops.hlist._
-import shapeless.ops.record.{Keys, MapValues}
+import shapeless.ops.record.{Keys, Values}
 import shapeless.{HList, LabelledGeneric}
 
 trait Query {
@@ -17,14 +17,14 @@ trait Query {
   case class Query[T] private [cassandra] (
     override val statement: CompiledStatement,
     override val queryOptions: QueryOptions,
-    override val parameterValues: Map[String, ParameterValue]
+    override val parameters: Parameters
   )(implicit val converter: RowConverter[T]
   ) extends ParameterizedQuery[Query[T]]
     with HasQueryOptions {
     query =>
 
-    override protected def subclassConstructor(parameterValues: Map[String, ParameterValue]): Query[T] = {
-      copy(parameterValues = parameterValues)
+    override protected def subclassConstructor(parameters: Parameters): Query[T] = {
+      copy(parameters = parameters)
     }
 
     private def prepare()(implicit session: Session): core.BoundStatement = {
@@ -33,7 +33,7 @@ trait Query {
       val forBinding = prepared.bind()
 
       for ((parameterName, parameterIndices) <- statement.parameterPositions) {
-        val parameterValue = parameterValues(parameterName)
+        val parameterValue = parameters(parameterName)
         for (parameterIndex <- parameterIndices) {
           parameterValue.set(forBinding, parameterIndex)
         }
@@ -84,18 +84,18 @@ trait Query {
 
     object task {
 
-      def execute()(implicit session: Session): Task[core.ResultSet] = {
+      def execute()(implicit session: Session, strategy: Strategy): Task[core.ResultSet] = {
         logExecution()
 
         val prepared = prepare()
-        toTask(session.executeAsync(prepared))
+        toAsync[Task, core.ResultSet](session.executeAsync(prepared))
       }
 
-      def iterator()(implicit session: Session): Task[Iterator[T]] = {
+      def iterator()(implicit session: Session, strategy: Strategy): Task[Iterator[T]] = {
         execute().map(_.iterator().map(converter))
       }
 
-      def option()(implicit session: Session): Task[Option[T]] = {
+      def option()(implicit session: Session, strategy: Strategy): Task[Option[T]] = {
         for {
           results <- execute()
         } yield Option(results.one()).map(converter)
@@ -103,91 +103,123 @@ trait Query {
 
     }
 
-    def channel(implicit
+    def pipe[F[_]](implicit
       session: Session,
-      rowConverter: RowConverter[T]
-    ): Channel[Task, Parameters, Process[Task, T]] = {
-      scalaz.stream.channel.lift[Task, Parameters, Process[Task, T]] { parameters =>
-        Task(io.iterator(onParameters(parameters.parameters).task.iterator()))
-      }
-    }
-
-    def productChannel[
-      P,
-      Repr <: HList,
-      ReprKeys <: HList,
-      MappedRepr <: HList
-    ](implicit session: Session,
       rowConverter: RowConverter[T],
-      genericA: LabelledGeneric.Aux[P, Repr],
-      keys: Keys.Aux[Repr, ReprKeys],
-      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
-      ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, ParameterValue]
-    ): Channel[Task, P, Process[Task, T]] = {
-      scalaz.stream.channel.lift[Task, P, Process[Task, T]] {
-        product => Task(io.iterator(Task(onProduct(product).iterator())))
-      }
-    }
+      async: Async[F]
+    ): PipeOps[F] =
+      new PipeOps[F]
 
-    def recordChannel[
-      Repr <: HList,
-      ReprKeys <: HList,
-      MappedRepr <: HList
-    ](implicit session: Session,
-      rowConverter: RowConverter[T],
-      keys: Keys.Aux[Repr, ReprKeys],
-      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
-      ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, ParameterValue]
-    ): Channel[Task, Repr, Process[Task, T]] = {
-      scalaz.stream.channel.lift[Task, Repr, Process[Task, T]] {
-        product => Task(io.iterator(Task(onRecord(product).iterator())))
-      }
-    }
-
-    def sink(implicit
+    def sink[F[_]](implicit
       session: Session,
-      rowConverter: RowConverter[T]
-    ): Sink[Task, Parameters] = {
-      scalaz.stream.sink.lift[Task, Parameters] { parameters =>
-        Task[Unit] {
-          onParameters(parameters.parameters).task.execute()
+      rowConverter: RowConverter[T],
+      async: Async[F]
+    ): SinkOps[F] =
+      new SinkOps[F]
+
+    class PipeOps[F[_]] private[Query] {
+      def parameters(implicit
+        session: Session,
+        rowConverter: RowConverter[T],
+        async: Async[F]
+      ): Pipe[F, Parameters, Stream[F, T]] = {
+        fs2.pipe.lift[F, Parameters, Stream[F, T]] { parameters =>
+          Query.iteratorToStream(onParameters(parameters).iterator())
+        }
+      }
+
+      def product[
+        A,
+        Repr <: HList,
+        ReprKeys <: HList,
+        ReprValues <: HList,
+        MappedRepr <: HList
+      ](implicit
+        session: Session,
+        rowConverter: RowConverter[T],
+        async: Async[F],
+        genericA: LabelledGeneric.Aux[A, Repr],
+        keys: Keys.Aux[Repr, ReprKeys],
+        values: Values.Aux[Repr, ReprValues],
+        valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
+        ktl: ToList[ReprKeys, Symbol],
+        vtl: ToList[MappedRepr, ParameterValue]
+      ): Pipe[F, A, Stream[F, T]] = {
+        fs2.pipe.lift[F, A, Stream[F, T]] { parameters =>
+          Query.iteratorToStream(onProduct(parameters).iterator())
+        }
+      }
+
+      def record[
+        Repr <: HList,
+        ReprKeys <: HList,
+        ReprValues <: HList,
+        MappedRepr <: HList
+      ](implicit session: Session,
+        rowConverter: RowConverter[T],
+        async: Async[F],
+        keys: Keys.Aux[Repr, ReprKeys],
+        values: Values.Aux[Repr, ReprValues],
+        valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
+        ktl: ToList[ReprKeys, Symbol],
+        vtl: ToList[MappedRepr, ParameterValue]
+      ): Pipe[F, Repr, Stream[F, T]] = {
+        fs2.pipe.lift[F, Repr, Stream[F, T]] { parameters =>
+          Query.iteratorToStream(onRecord(parameters).iterator())
         }
       }
     }
 
-    def productSink[
-      P,
-      Repr <: HList,
-      ReprKeys <: HList,
-      MappedRepr <: HList
-    ](implicit session: Session,
-      rowConverter: RowConverter[T],
-      genericA: LabelledGeneric.Aux[P, Repr],
-      keys: Keys.Aux[Repr, ReprKeys],
-      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
-      ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, ParameterValue]
-    ): Sink[Task, P] = {
-      scalaz.stream.sink.lift[Task, P] {
-        product => Task(onProduct(product).execute())
+    class SinkOps[F[_]] private[Query] {
+      def parameters(implicit
+        session: Session,
+        rowConverter: RowConverter[T],
+        async: Async[F]
+      ): Sink[F, Parameters] = {
+        fs2.pipe.lift[F, Parameters, Unit] { parameters =>
+          onParameters(parameters).execute()
+        }
       }
-    }
 
-    def recordSink[
-      Repr <: HList,
-      ReprKeys <: HList,
-      MappedRepr <: HList
-    ](implicit session: Session,
-      rowConverter: RowConverter[T],
-      keys: Keys.Aux[Repr, ReprKeys],
-      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
-      ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, ParameterValue]
-    ): Sink[Task, Repr] = {
-      scalaz.stream.sink.lift[Task, Repr] {
-        product => Task(onRecord(product).execute())
+      def product[
+        A,
+        Repr <: HList,
+        ReprKeys <: HList,
+        ReprValues <: HList,
+        MappedRepr <: HList
+      ](implicit
+        session: Session,
+        rowConverter: RowConverter[T],
+        async: Async[F],
+        genericA: LabelledGeneric.Aux[A, Repr],
+        keys: Keys.Aux[Repr, ReprKeys],
+        values: Values.Aux[Repr, ReprValues],
+        valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
+        ktl: ToList[ReprKeys, Symbol],
+        vtl: ToList[MappedRepr, ParameterValue]
+      ): Sink[F, A] = {
+        fs2.pipe.lift[F, A, Unit] { parameters =>
+          onProduct(parameters).execute()
+        }
+      }
+
+      def record[
+        Repr <: HList,
+        ReprKeys <: HList,
+        ReprValues <: HList,
+        MappedRepr <: HList
+      ](implicit session: Session,
+        rowConverter: RowConverter[T],
+        async: Async[F],
+        keys: Keys.Aux[Repr, ReprKeys],
+        values: Values.Aux[Repr, ReprValues],
+        valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
+        ktl: ToList[ReprKeys, Symbol],
+        vtl: ToList[MappedRepr, ParameterValue]
+      ): Sink[F, Repr] = {
+        fs2.pipe.lift[F, Repr, Unit] { parameters =>
+          onRecord(parameters).execute()
+        }
       }
     }
 
@@ -204,8 +236,24 @@ trait Query {
       Query[T](
         if (hasParameters) CompiledStatement(queryText) else CompiledStatement.literal(queryText),
         queryOptions,
-        Map.empty[String, ParameterValue]
+        Parameters.empty
       )
+    }
+
+    private[implementation] def iteratorToStream[F[_], A](i: Iterator[A])(implicit a: Async[F]): Stream[F, A] = {
+      val step: F[Option[A]] = a.delay {
+        if (i.hasNext) Some(i.next)
+        else None
+      }
+
+      Stream.eval(step).repeat.through(fs2.pipe.unNoneTerminate)
+    }
+
+    private[implementation] def iteratorToStream[F[_], A](i: F[Iterator[A]])(implicit a: Async[F]): Stream[F, A] = {
+      for {
+        iterator <- Stream.eval(i)
+        elem <- iteratorToStream(iterator)
+      } yield elem
     }
 
   }

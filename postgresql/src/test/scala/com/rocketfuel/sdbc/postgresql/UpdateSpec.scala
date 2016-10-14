@@ -10,7 +10,7 @@ class UpdateSpec extends FunSuite {
 
     assertResult(
       Map("t" -> ParameterValue.empty)
-    )(query.on("t" -> None).parameterValues
+    )(query.on("t" -> None).parameters
     )
   }
 

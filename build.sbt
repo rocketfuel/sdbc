@@ -12,7 +12,7 @@ lazy val sqlserver = project.in(file("sqlserver")).dependsOn(jdbc % "test->test;
 
 lazy val examples = project.in(file("examples")).dependsOn(h2 % "test->test;compile->compile")
 
-lazy val root =
+lazy val sdbc =
   project.
   in(file(".")).
   settings(publishArtifact := false).

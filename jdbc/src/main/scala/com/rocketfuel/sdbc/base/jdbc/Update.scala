@@ -7,20 +7,20 @@ trait Update {
 
   case class Update private[jdbc](
     override val statement: CompiledStatement,
-    override val parameterValues: Map[String, ParameterValue]
+    override val parameters: Parameters
   ) extends ParameterizedQuery[Update]
     with Executes {
 
-    override def subclassConstructor(parameterValues: Map[String, ParameterValue]): Update = {
-      copy(parameterValues = parameterValues)
+    override def subclassConstructor(parameters: Parameters): Update = {
+      copy(parameters = parameters)
     }
 
     def update()(implicit connection: Connection): Long = {
-      Update.update(statement, parameterValues)
+      Update.update(statement, parameters)
     }
 
     def execute()(implicit connection: Connection): Unit = {
-      Execute.execute(statement, parameterValues)
+      Execute.execute(statement, parameters)
     }
 
   }
@@ -29,11 +29,12 @@ trait Update {
     extends Logging {
 
     def apply(
-      queryText: String
+      queryText: String,
+      parameters: Parameters = Parameters.empty
     ): Update = {
       Update(
         statement = CompiledStatement(queryText),
-        parameterValues = Map.empty[String, ParameterValue]
+        parameters = parameters
       )
     }
 
@@ -46,37 +47,38 @@ trait Update {
       * @return
       */
     def literal(
-      queryText: String
+      queryText: String,
+      parameters: Parameters = Parameters.empty
     ): Update = {
       Update(
         statement = CompiledStatement.literal(queryText),
-        parameterValues = Map.empty[String, ParameterValue]
+        parameters = parameters
       )
     }
 
     def update(
       queryText: String,
-      parameterValues: Map[String, ParameterValue] = Map.empty
+      parameters: Parameters
     )(implicit connection: Connection
     ): Long = {
       val statement = CompiledStatement(queryText)
-      logRun(statement, parameterValues)
-      update(statement, parameterValues)
+      logRun(statement, parameters)
+      update(statement, parameters)
     }
 
     private[sdbc] def update(
       compiledStatement: CompiledStatement,
-      parameterValues: Map[String, ParameterValue]
+      parameters: Parameters
     )(implicit connection: Connection
     ): Long = {
-      val runStatement = QueryMethods.execute(compiledStatement, parameterValues)
+      val runStatement = QueryMethods.execute(compiledStatement, parameters)
       try StatementConverter.update(runStatement).get
       finally runStatement.close()
     }
 
     private def logRun(
       compiledStatement: CompiledStatement,
-      parameters: Map[String, ParameterValue]
+      parameters: Parameters
     ): Unit = {
       logger.debug(s"""Updating "${compiledStatement.originalQueryText}" with parameters $parameters.""")
     }

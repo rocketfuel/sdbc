@@ -9,7 +9,7 @@ libraryDependencies ++= Seq(
   "com.chuusai" %% "shapeless" % "2.2.5",
   "com.google.code.findbugs" % "jsr305" % "3.0.1",
   "org.scodec" %% "scodec-bits" % "1.1.2",
-  "org.scalaz.stream" %% "scalaz-stream" % "0.8.4",
+  "co.fs2" %% "fs2-io" % "0.9.1",
   "org.cassandraunit" % "cassandra-unit" % "3.0.0.1" % "test"
 )
 

@@ -1,9 +1,8 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
 import com.datastax.driver.core
-import scala.concurrent.{ExecutionContext, Future}
-import scalaz.concurrent.Task
-import scalaz.stream._
+import fs2.util.Async
+import fs2.{Pipe, Stream}
 
 trait Queryable {
   self: Cassandra =>
@@ -30,38 +29,38 @@ trait Queryable {
       queryable.query(key).option()
     }
 
-    def streams[Key, Value](
+    def streams[F[_], Key, Value](
       implicit cluster: core.Cluster,
-      queryable: Queryable[Key, Value]
-    ): Channel[Task, Key, Process[Task, Value]] = {
-      val req = toTask(cluster.connectAsync())
-      def release(session: Session): Task[Unit] = {
-        toTask(session.closeAsync()).map(Function.const(()))
+      queryable: Queryable[Key, Value],
+      async: Async[F]
+    ): Pipe[F, Key, Stream[F, Value]] = {
+      val req = toAsync(cluster.connectAsync())
+      def release(session: Session): F[Unit] = {
+        async.map(toAsync(session.closeAsync()))(Function.const(()))
       }
-      channel.lift[Task, Key, Process[Task, Value]] { key =>
-        Task.delay {
-          scalaz.stream.io.iteratorR[Session, Value](req)(release) {implicit session =>
-            Task(queryable.query(key).iterator())
-          }
+      fs2.pipe.lift[F, Key, Stream[F, Value]] { key =>
+        def use(session: Session) = {
+          Query.iteratorToStream(queryable.query(key).iterator()(session))
         }
+        fs2.Stream.bracket(req)(use, release)
       }
     }
 
-    def streamsWithKeyspace[Key, Value](
+    def streamsWithKeyspace[F[_], Key, Value](
       implicit cluster: core.Cluster,
-      queryable: Queryable[Key, Value]
-    ): Channel[Task, (String, Key), Process[Task, Value]] = {
-      def release(session: Session): Task[Unit] = {
-        toTask(session.closeAsync()).map(Function.const(()))
+      queryable: Queryable[Key, Value],
+      async: Async[F]
+    ): Pipe[F, (String, Key), Stream[F, Value]] = {
+      def release(session: Session): F[Unit] = {
+        async.map(toAsync(session.closeAsync()))(Function.const(()))
       }
-      channel.lift[Task, (String, Key), Process[Task, Value]] {
+      fs2.pipe.lift[F, (String, Key), Stream[F, Value]] {
         case (keyspace, key) =>
-          val req = toTask(cluster.connectAsync(keyspace))
-          Task.delay {
-            scalaz.stream.io.iteratorR[Session, Value](req)(release) {implicit session =>
-              Task(queryable.query(key).iterator())
-            }
+          val req = toAsync(cluster.connectAsync(keyspace))
+          def use(session: Session) = {
+            Query.iteratorToStream(queryable.query(key).iterator()(session))
           }
+          fs2.Stream.bracket(req)(use, release)
       }
     }
 

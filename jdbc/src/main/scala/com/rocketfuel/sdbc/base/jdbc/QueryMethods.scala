@@ -9,10 +9,10 @@ private[jdbc] trait QueryMethods {
     def bind(
       preparedStatement: PreparedStatement,
       compiledStatement: CompiledStatement,
-      parameterValues: Map[String, ParameterValue]
+      parameters: Parameters
     ): PreparedStatement = {
       for ((parameterName, parameterIndices) <- compiledStatement.parameterPositions) {
-        val parameterValue = parameterValues(parameterName)
+        val parameterValue = parameters(parameterName)
         for (parameterIndex <- parameterIndices) {
           parameterValue.set(preparedStatement, parameterIndex)
         }
@@ -23,11 +23,11 @@ private[jdbc] trait QueryMethods {
 
     def execute(
       compiledStatement: CompiledStatement,
-      parameterValues: Map[String, ParameterValue]
+      parameters: Parameters
     )(implicit connection: Connection
     ): PreparedStatement = {
       val prepared = connection.prepareStatement(compiledStatement.queryText)
-      val bound = bind(prepared, compiledStatement, parameterValues)
+      val bound = bind(prepared, compiledStatement, parameters)
 
       bound.execute()
       bound
@@ -35,11 +35,11 @@ private[jdbc] trait QueryMethods {
 
     def executeForUpdate(
       compiledStatement: CompiledStatement,
-      parameterValues: Map[String, ParameterValue]
+      parameters: Parameters
     )(implicit connection: Connection
     ): PreparedStatement = {
       val prepared = connection.prepareStatement(compiledStatement.queryText, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-      val bound = bind(prepared, compiledStatement, parameterValues)
+      val bound = bind(prepared, compiledStatement, parameters)
 
       bound.execute()
       bound

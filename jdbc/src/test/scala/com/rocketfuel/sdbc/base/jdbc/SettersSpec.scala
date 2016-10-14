@@ -18,19 +18,19 @@ class SettersSpec
   test("set a pair") {
     val withParams = q.on("hi" -> 3, "bye" -> 4)
 
-    assertResult(expectedParams)(withParams.parameterValues)
+    assertResult(expectedParams)(withParams.parameters)
   }
 
   test("set a map") {
     val withParams = q.onParameters(expectedParams)
 
-    assertResult(expectedParams)(withParams.parameterValues)
+    assertResult(expectedParams)(withParams.parameters)
   }
 
   test("set a record") {
     val withParams = q.onRecord(('hi ->> 3) :: ('bye ->> 4) :: HNil)
 
-    assertResult(expectedParams)(withParams.parameterValues)
+    assertResult(expectedParams)(withParams.parameters)
   }
 
   test("set a product") {
@@ -40,7 +40,7 @@ class SettersSpec
 
     val withParams = q.onProduct(param)
 
-    assertResult(expectedParams)(withParams.parameterValues)
+    assertResult(expectedParams)(withParams.parameters)
   }
 
 }

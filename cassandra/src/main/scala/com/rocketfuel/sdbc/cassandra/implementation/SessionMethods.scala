@@ -9,7 +9,7 @@ private[sdbc] trait SessionMethods {
       parameters: Parameters
     )(implicit converter: RowConverter[T]
     ): Iterator[T] = {
-      Query[T](queryText).onParameters(parameters.parameters).iterator()(pool)
+      Query[T](queryText).onParameters(parameters).iterator()(pool)
     }
 
     def option[T](
@@ -17,7 +17,7 @@ private[sdbc] trait SessionMethods {
       parameters: Parameters
     )(implicit converter: RowConverter[T]
     ): Option[T] = {
-      Query[T](queryText).onParameters(parameters.parameters).option()(pool)
+      Query[T](queryText).onParameters(parameters).option()(pool)
     }
   }
 

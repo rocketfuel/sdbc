@@ -19,7 +19,7 @@ object TestClass {
     val query = Select[TestClass]("SELECT * FROM test_class WHERE value = @value")
 
     override def select(key: Value): Select[TestClass] = {
-      query.on("value" -> key.value)
+      query.onProduct(key)
     }
   }
 
@@ -27,7 +27,7 @@ object TestClass {
     val query = Select[TestClass]("SELECT * FROM test_class WHERE id = @id")
 
     override def select(key: Id): Select[TestClass] = {
-      query.on("id" -> key.id)
+      query.onProduct(key)
     }
   }
 
@@ -43,7 +43,7 @@ object TestClass {
     val query = Update("INSERT INTO test_class (value) VALUES (@value)")
 
     override def update(key: Value): Update = {
-      query.on("value" -> key.value)
+      query.onProduct(key)
     }
   }
 

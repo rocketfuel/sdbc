@@ -1,8 +1,8 @@
 package com.rocketfuel.sdbc.base
 
-import shapeless.ops.hlist._
-import shapeless.ops.record.{Keys, MapValues}
 import shapeless.{HList, LabelledGeneric}
+import shapeless.ops.hlist.{Mapper, _}
+import shapeless.ops.record.{Keys, Values}
 
 trait ParameterizedQuery {
   self: ParameterValue =>
@@ -11,7 +11,7 @@ trait ParameterizedQuery {
 
     def statement: CompiledStatement
 
-    def parameterValues: Map[String, ParameterValue]
+    def parameters: Parameters
 
     /**
       * The query text with name parameters replaced with positional parameters.
@@ -24,57 +24,63 @@ trait ParameterizedQuery {
 
     def parameterPositions: Map[String, Set[Int]] = statement.parameterPositions
 
-    def unassignedParameters: Set[String] = parameterPositions.keySet -- parameterValues.keySet
+    def unassignedParameters: Set[String] = parameterPositions.keySet -- parameters.keySet
 
-    def clear: Self = subclassConstructor(parameterValues = Map.empty)
-
-    def onParameters(additionalParameters: Map[String, ParameterValue]): Self = {
-      val withAdditionalParameters = setParameters(additionalParameters)
-      subclassConstructor(parameterValues = withAdditionalParameters)
-    }
+    def clear: Self = subclassConstructor(parameters = Parameters.empty)
 
     def on(additionalParameter: (String, ParameterValue), additionalParameters: (String, ParameterValue)*): Self = {
-      onParameters((additionalParameter +: additionalParameters: Parameters).parameters)
+      onParameters(Map((additionalParameter +: additionalParameters): _*))
+    }
+
+    def onParameters(additionalParameters: Parameters): Self = {
+      subclassConstructor(parameters ++ additionalParameters)
     }
 
     def onProduct[
-      P,
+      A,
       Repr <: HList,
       ReprKeys <: HList,
+      ReprValues <: HList,
       MappedRepr <: HList
-    ](additionalParameters: P
-    )(implicit genericA: LabelledGeneric.Aux[P, Repr],
+    ](t: A
+    )(implicit genericA: LabelledGeneric.Aux[A, Repr],
       keys: Keys.Aux[Repr, ReprKeys],
-      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      values: Values.Aux[Repr, ReprValues],
+      valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
       ktl: ToList[ReprKeys, Symbol],
       vtl: ToList[MappedRepr, ParameterValue]
     ): Self = {
-      onParameters((additionalParameters: Parameters).parameters)
+      subclassConstructor(Parameters.product(t))
     }
 
     def onRecord[
       Repr <: HList,
       ReprKeys <: HList,
+      ReprValues <: HList,
       MappedRepr <: HList
-    ](additionalParameters: Repr
+    ](t: Repr
     )(implicit keys: Keys.Aux[Repr, ReprKeys],
-      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      values: Values.Aux[Repr, ReprValues],
+      valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
       ktl: ToList[ReprKeys, Symbol],
       vtl: ToList[MappedRepr, ParameterValue]
     ): Self = {
-      onParameters((additionalParameters: Parameters).parameters)
+      subclassConstructor(Parameters.record(t))
     }
 
-    protected def setParameters(parameters: Map[String, ParameterValue]): Map[String, ParameterValue] = {
-      val parametersHavingPositions =
-        parameters.filter(kvp => statement.parameterPositions.contains(kvp._1))
-      parameterValues ++ parametersHavingPositions
+    protected def filter(p: Parameters): Parameters = {
+      p.filter(kvp => parameterPositions.contains(kvp._1))
     }
 
-    protected def subclassConstructor(parameterValues: Map[String, ParameterValue]): Self
+    protected def setParameters(parameters: Parameters): Parameters = {
+      val parametersHavingPositions = filter(parameters)
+      parameters ++ parametersHavingPositions
+    }
+
+    protected def subclassConstructor(parameters: Parameters): Self
 
     def logExecution(): Unit =
-      logger.debug(s"""Executing "$originalQueryText" with parameters $parameterValues.""")
+      logger.debug(s"""Executing "$originalQueryText" with parameters $parameters.""")
   }
 
 }

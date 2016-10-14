@@ -15,16 +15,16 @@ trait Execute {
 
   case class Execute(
     override val statement: CompiledStatement,
-    override val parameterValues: Map[String, ParameterValue] = Map.empty
+    override val parameters: Parameters = Parameters.empty
   ) extends ParameterizedQuery[Execute]
     with Executes {
 
     def execute()(implicit connection: Connection): Unit = {
-      Execute.execute(statement, parameterValues)
+      Execute.execute(statement, parameters)
     }
 
-    override def subclassConstructor(parameterValues: Map[String, ParameterValue]): Execute = {
-      copy(parameterValues = parameterValues)
+    override def subclassConstructor(parameters: Parameters): Execute = {
+      copy(parameters = parameters)
     }
   }
 
@@ -57,26 +57,26 @@ trait Execute {
 
     def execute(
       queryText: String,
-      parameterValues: Map[String, ParameterValue]
+      parameters: Parameters
     )(implicit connection: Connection
     ): Unit = {
       val statement = CompiledStatement(queryText)
-      execute(statement, parameterValues)
+      execute(statement, parameters)
     }
 
     def execute(
       statement: CompiledStatement,
-      parameterValues: Map[String, ParameterValue]
+      parameters: Parameters
     )(implicit connection: Connection
     ): Unit = {
-      logRun(statement, parameterValues)
-      val executed = QueryMethods.execute(statement, parameterValues)
+      logRun(statement, parameters)
+      val executed = QueryMethods.execute(statement, parameters)
       executed.close()
     }
 
     private def logRun(
       compiledStatement: CompiledStatement,
-      parameters: Map[String, ParameterValue]
+      parameters: Parameters
     ): Unit = {
       logger.debug(s"""Executing "${compiledStatement.originalQueryText}" with parameters $parameters.""")
     }

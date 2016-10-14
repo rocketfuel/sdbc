@@ -7,20 +7,20 @@ trait SelectForUpdate {
 
   case class SelectForUpdate(
     override val statement: CompiledStatement,
-    override val parameterValues: Map[String, ParameterValue] = Map.empty
+    override val parameters: Parameters = Parameters.empty
   ) extends ParameterizedQuery[SelectForUpdate]
     with Executes {
 
-    override def subclassConstructor(parameterValues: Map[String, ParameterValue]): SelectForUpdate = {
-      copy(parameterValues = parameterValues)
+    override def subclassConstructor(parameters: Parameters): SelectForUpdate = {
+      copy(parameters = parameters)
     }
 
     def iterator()(implicit connection: Connection): CloseableIterator[UpdatableRow] = {
-      SelectForUpdate.iterator(statement, parameterValues)
+      SelectForUpdate.iterator(statement, parameters)
     }
 
     def execute()(implicit connection: Connection): Unit = {
-      Execute.execute(statement, parameterValues)
+      Execute.execute(statement, parameters)
     }
 
   }
@@ -33,7 +33,7 @@ trait SelectForUpdate {
     ): SelectForUpdate = {
       SelectForUpdate(
         statement = CompiledStatement(queryText),
-        parameterValues = Map.empty[String, ParameterValue]
+        parameters = Map.empty[String, ParameterValue]
       )
     }
 
@@ -51,7 +51,7 @@ trait SelectForUpdate {
     ): SelectForUpdate = {
       SelectForUpdate(
         statement = CompiledStatement.literal(queryText),
-        parameterValues = Map.empty[String, ParameterValue]
+        parameters = Map.empty[String, ParameterValue]
       )
     }
 

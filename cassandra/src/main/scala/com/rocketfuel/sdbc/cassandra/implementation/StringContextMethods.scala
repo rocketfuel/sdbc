@@ -2,7 +2,6 @@ package com.rocketfuel.sdbc.cassandra.implementation
 
 import com.rocketfuel.sdbc.base.CompiledStatement
 import com.rocketfuel.sdbc.cassandra.QueryOptions
-import scalaz.concurrent.Task
 import shapeless.{HList, ProductArgs}
 import shapeless.ops.hlist._
 
@@ -27,7 +26,7 @@ private[sdbc] trait StringContextMethods {
         map {
           case (parameter, ix) =>
             (ix.toString, parameter)
-        } toSeq
+        } toMap
     }
 
     object query extends ProductArgs {
@@ -42,7 +41,7 @@ private[sdbc] trait StringContextMethods {
       ): Query[B] = {
         val parameterValues = toParameterValues(a)
 
-        Query(compiled, QueryOptions.default, Map.empty[String, ParameterValue]).onParameters(parameterValues.parameters)
+        Query(compiled, QueryOptions.default, Map.empty[String, ParameterValue]).onParameters(parameterValues)
       }
     }
 

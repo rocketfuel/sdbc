@@ -82,7 +82,7 @@ trait ParameterValue {
     }
 
     override def toString: String = {
-      s"ParameterValue($value)"
+      value.toString
     }
   }
 
@@ -92,46 +92,46 @@ trait ParameterValue {
     }
 
     implicit def ofOption[T](p: Option[T])(implicit parameter: Parameter[T]): ParameterValue = {
-      ParameterValue(p, setOption(p))
-    }
-
-    implicit def of[T](p: T)(implicit parameter: Parameter[T]): ParameterValue = {
-      ofOption[T](Some(p))
+      p match {
+        case s: Some[T] =>
+          ParameterValue(p, setOption(p))
+        case None =>
+          ofNone(None)
+      }
     }
 
     implicit def ofNone(p: None.type): ParameterValue = {
       empty
     }
 
+    implicit def ofSome[T](p: Some[T])(implicit parameter: Parameter[T]): ParameterValue = {
+      ParameterValue(p, parameter.set(p.get))
+    }
+
+    implicit def of[T](p: T)(implicit parameter: Parameter[T]): ParameterValue = {
+      Some(p)
+    }
+
     lazy val empty = ParameterValue(None, setNone)
   }
 
-  case class Parameters(parameters: Map[String, ParameterValue])
+  type Parameters = Map[String, ParameterValue]
 
   object Parameters {
-    val empty = Parameters(Map.empty[String, ParameterValue])
 
-    def apply(parameters: (String, ParameterValue)*): Parameters = {
-      parameters
-    }
+    val empty: Parameters = Map.empty
 
-    implicit def map(parameters: Map[String, ParameterValue]): Parameters = {
-      Parameters(parameters)
-    }
-
-    implicit def seq(parameters: Seq[(String, ParameterValue)]): Parameters = {
-      Parameters(Map(parameters: _*))
-    }
-
-    implicit def product[
+    def product[
       A,
       Repr <: HList,
       ReprKeys <: HList,
+      ReprValues <: HList,
       MappedRepr <: HList
     ](t: A
     )(implicit genericA: LabelledGeneric.Aux[A, Repr],
       keys: Keys.Aux[Repr, ReprKeys],
-      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      values: Values.Aux[Repr, ReprValues],
+      valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
       ktl: ToList[ReprKeys, Symbol],
       vtl: ToList[MappedRepr, ParameterValue]
     ): Parameters = {
@@ -139,19 +139,22 @@ trait ParameterValue {
       record(asGeneric)
     }
 
-    implicit def record[
+    def record[
       Repr <: HList,
       ReprKeys <: HList,
+      ReprValues <: HList,
       MappedRepr <: HList
     ](t: Repr
     )(implicit keys: Keys.Aux[Repr, ReprKeys],
-      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      values: Values.Aux[Repr, ReprValues],
+      valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
       ktl: ToList[ReprKeys, Symbol],
       vtl: ToList[MappedRepr, ParameterValue]
     ): Parameters = {
-      val mapped = t.mapValues(ToParameterValue)
-      t.keys.toList.map(_.name) zip mapped.toList
+      val mapped = t.values.map(ToParameterValue)
+      t.keys.toList.map(_.name).zip(mapped.toList).toMap
     }
+
   }
 
   object ToParameterValue extends Poly {
@@ -184,44 +187,45 @@ trait ParameterValue {
     }
   }
 
-  case class ParameterBatches(parameterBatches: Seq[Map[String, ParameterValue]])
-
+  type ParameterBatches = Seq[Parameters]
 
   object ParameterBatches {
-    val empty = ParameterBatches(Vector.empty)
+
+    val empty: ParameterBatches = Seq.empty
 
     implicit def products[
       A,
       Repr <: HList,
       ReprKeys <: HList,
+      ReprValues <: HList,
       MappedRepr <: HList
-    ](ts: A*
+    ](ts: Seq[A]
     )(implicit genericA: LabelledGeneric.Aux[A, Repr],
       keys: Keys.Aux[Repr, ReprKeys],
-      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      values: Values.Aux[Repr, ReprValues],
+      valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
       ktl: ToList[ReprKeys, Symbol],
       vtl: ToList[MappedRepr, ParameterValue]
     ): ParameterBatches = {
       val asGeneric = ts.map(genericA.to)
-      records(asGeneric: _*)
+      records(asGeneric)
     }
 
     implicit def records[
       Repr <: HList,
       ReprKeys <: HList,
+      ReprValues <: HList,
       MappedRepr <: HList
-    ](ts: Repr*
+    ](ts: Seq[Repr]
     )(implicit keys: Keys.Aux[Repr, ReprKeys],
-      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, MappedRepr],
+      values: Values.Aux[Repr, ReprValues],
+      valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
       ktl: ToList[ReprKeys, Symbol],
       vtl: ToList[MappedRepr, ParameterValue]
     ): ParameterBatches = {
-      val reprKeys = keys().toList.map(_.name)
-      val mappedTs = ts.map(_.mapValues(ToParameterValue))
-      val batches = mappedTs.map(t => reprKeys.zip(t.toList).toMap)
-      ParameterBatches(batches)
+      ts.map(Parameters.record(_))
     }
-  }
 
+  }
 
 }

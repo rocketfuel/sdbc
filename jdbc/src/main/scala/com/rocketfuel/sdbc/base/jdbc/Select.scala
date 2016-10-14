@@ -7,25 +7,25 @@ trait Select {
 
   case class Select[A] private[jdbc](
     override val statement: CompiledStatement,
-    override val parameterValues: Map[String, ParameterValue]
+    override val parameters: Parameters
   )(implicit rowConverter: RowConverter[A]
   ) extends ParameterizedQuery[Select[A]]
     with Executes {
 
-    override def subclassConstructor(parameterValues: Map[String, ParameterValue]): Select[A] = {
-      copy(parameterValues = parameterValues)
+    override def subclassConstructor(parameters: Parameters): Select[A] = {
+      copy(parameters = parameters)
     }
 
     def iterator()(implicit connection: Connection): CloseableIterator[A] = {
-      Select.iterator(statement, parameterValues)
+      Select.iterator(statement, parameters)
     }
 
     def option()(implicit connection: Connection): Option[A] = {
-      Select.option(statement, parameterValues)
+      Select.option(statement, parameters)
     }
 
     override def execute()(implicit connection: Connection): Unit = {
-      Execute.execute(statement, parameterValues)
+      Execute.execute(statement, parameters)
     }
 
   }
@@ -39,7 +39,7 @@ trait Select {
     ): Select[A] = {
       Select[A](
         statement = CompiledStatement(queryText),
-        parameterValues = Map.empty[String, ParameterValue]
+        parameters = Map.empty[String, ParameterValue]
       )
     }
 
@@ -59,7 +59,7 @@ trait Select {
     ): Select[A] = {
       Select[A](
         statement = CompiledStatement.literal(queryText),
-        parameterValues = Map.empty[String, ParameterValue]
+        parameters = Map.empty[String, ParameterValue]
       )
     }
 
