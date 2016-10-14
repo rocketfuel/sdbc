@@ -4,7 +4,7 @@ import com.rocketfuel.sdbc.Cassandra._
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import fs2.{Stream, Task}
 
-class CassandraProcessSpec
+class CassandraStreamSpec
   extends CassandraSuite
   with GeneratorDrivenPropertyChecks {
 
@@ -31,7 +31,7 @@ class CassandraProcessSpec
 
       val select = Query[Int](s"SELECT x FROM $keyspace.tbl")
 
-      val results = select.task.iterator().unsafeRun().toVector
+      val results = select.iterator().toVector
 
       assertResult(randomValues.sorted)(results.sorted)
 
