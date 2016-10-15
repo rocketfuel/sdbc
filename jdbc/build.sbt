@@ -10,4 +10,4 @@ libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-reflect" % scalaVersion.value
 )
 
-crossScalaVersions := Seq("2.10.5")
+crossScalaVersions := Seq("2.10.6")
