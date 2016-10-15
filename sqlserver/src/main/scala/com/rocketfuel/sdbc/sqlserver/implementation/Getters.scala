@@ -1,17 +1,16 @@
 package com.rocketfuel.sdbc.sqlserver.implementation
 
 import com.rocketfuel.sdbc.base.jdbc.resultset.DefaultGetters
-import com.rocketfuel.sdbc.base.jdbc.statement.OffsetDateTimeAsStringParameter
 import java.time._
 import java.util.UUID
-import com.rocketfuel.sdbc.base.jdbc._
 import com.rocketfuel.sdbc.sqlserver.HierarchyId
-
+import java.time.temporal.ChronoField
+import java.time.temporal.TemporalAccessor
 import scala.xml.{Node, XML}
 
 private[sdbc] trait Getters
   extends DefaultGetters {
-  self: DBMS with OffsetDateTimeAsStringParameter =>
+  self: SqlServer =>
 
   override implicit val LocalTimeGetter: Getter[LocalTime] =
     (asString: String) => LocalTime.parse(asString)
@@ -33,10 +32,11 @@ private[sdbc] trait Getters
   /**
    * The JTDS driver sometimes fails to parse timestamps, so we use our own parser.
    */
-  override implicit val InstantGetter: Getter[Instant] = {
-    (row: ConnectedRow, ix: Index) => {
-      OffsetDateTimeGetter(row, ix).map(_.toInstant)
-    }
+  override implicit val InstantGetter: Getter[Instant] = { (asString: String) =>
+    val parse: TemporalAccessor = instantFormatter.parse(asString)
+    if (parse.isSupported(ChronoField.OFFSET_SECONDS))
+      OffsetDateTime.from(parse).toInstant
+    else Instant.from(parse)
   }
 
 }

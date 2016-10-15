@@ -51,19 +51,15 @@ class GetterSpec
 
   testSelect[LocalDateTime]("SELECT CAST('2014-12-29 01:02:03.5' AS datetime) --as Java 8 LocalDateTime)", LocalDateTime.parse("2014-12-29T01:02:03.5").some)
 
-  {
-    //Convert the time being tested into UTC time
-    //using the current time zone's offset at the time
-    //that we're testing.
-    //We can't use the current offset, because of, for example,
-    //daylight savings.
-    val localTime = LocalDateTime.parse("2014-12-29T01:02:03.5")
-    val offset = ZoneId.systemDefault().getRules.getOffset(localTime)
-    val expectedTime = localTime.toInstant(offset)
-    testSelect[Instant]("SELECT CAST('2014-12-29 01:02:03.5' AS datetime) --as Java 8 Instant", expectedTime.some)
-  }
-
   testSelect[OffsetDateTime]("SELECT CAST('2014-12-29 01:02:03.5 -4:00' AS datetimeoffset) --as Java 8 OffsetDateTime", OffsetDateTime.parse("2014-12-29T01:02:03.5-04:00").some)
+
+  /*
+  If we're getting a datetime without an offset, but we request an Instant, assume the datetime is UTC.
+   */
+  testSelect[Instant](
+    query = "SELECT CAST('2014-12-29 01:02:03.5' AS datetime) --as Java 8 Instant",
+    expectedValue = LocalDateTime.parse("2014-12-29T01:02:03.5").toInstant(ZoneOffset.UTC).some
+  )
 
   testSelect[Instant]("SELECT CAST('2014-12-29 01:02:03.5 -4:00' AS datetimeoffset) --as Java 8 Instant", Instant.parse("2014-12-29T05:02:03.5Z").some)
 

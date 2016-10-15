@@ -1,6 +1,5 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import java.io.Closeable
 import shapeless._
 import shapeless.ops.hlist.{Mapper, ToList}
 

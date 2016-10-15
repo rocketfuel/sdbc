@@ -21,10 +21,8 @@ class GettersSpec
       (expectedValue, result) match {
         case (Some(expectedArray: Array[_]), Some(resultArray: Array[_])) =>
           assert(expectedArray.sameElements(resultArray))
-        case (Some(x), Some(y)) =>
-          assertResult(x)(y)
-        case (None, None) => true
-        case _ => false
+        case (expected, actual) =>
+          assertResult(expected)(actual)
       }
     }
   }

@@ -1,9 +1,9 @@
 package com.rocketfuel.sdbc.sqlserver.implementation
 
-import com.rocketfuel.sdbc.base.jdbc.statement._
+import com.rocketfuel.sdbc.base.jdbc.statement.{ParameterValue, _}
 import java.util.UUID
-import com.rocketfuel.sdbc.base.jdbc._
 import com.rocketfuel.sdbc.sqlserver.HierarchyId
+import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import scala.xml.Node
 
 //We have to use a special UUID getter, so we can't use the default setters.
@@ -22,9 +22,25 @@ private[sdbc] trait Setters
   with TimeParameter
   with TimestampParameter
   with ReaderParameter
-  with InputStreamParameter
-  with OffsetDateTimeAsStringParameter {
-  self: ParameterValue =>
+  with InputStreamParameter {
+  self: SqlServer =>
+
+  implicit val OffsetDateTimeParameter =
+    new DerivedParameter[OffsetDateTime] {
+      override type B = String
+      override val conversion: OffsetDateTime => B = offsetDateTimeFormatter.format
+      override val baseParameter: Parameter[B] = StringParameter
+    }
+
+  override implicit val InstantParameter: DerivedParameter[Instant] =
+    new DerivedParameter[Instant] {
+      override type B = String
+      override val conversion: Instant => B = {(i: Instant) =>
+        val value = offsetDateTimeFormatter.format(i.atOffset(ZoneOffset.UTC))
+        value
+      }
+      override val baseParameter: Parameter[B] = StringParameter
+    }
 
   implicit val HierarchyIdParameter: Parameter[HierarchyId] = {
     (id: HierarchyId) =>

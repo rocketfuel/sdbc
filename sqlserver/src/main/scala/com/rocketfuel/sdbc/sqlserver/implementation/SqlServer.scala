@@ -1,16 +1,9 @@
 package com.rocketfuel.sdbc.sqlserver.implementation
 
-import java.io.{InputStream, Reader}
-import java.sql.PreparedStatement
-import java.time.format.{DateTimeFormatterBuilder, DateTimeFormatter}
-import java.time.{LocalTime, OffsetDateTime}
-import java.util.UUID
+import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
 import com.rocketfuel.sdbc.base.CISet
 import com.rocketfuel.sdbc.base.jdbc._
-import com.rocketfuel.sdbc.sqlserver.{implementation, HierarchyId}
-import scodec.bits.ByteVector
-
-import scala.xml.Node
+import java.time.ZoneOffset
 
 /*
 Note that in a result set, sql server (or jtds) doesn't do a good job of reporting the types
@@ -32,18 +25,21 @@ private[sdbc] abstract class SqlServer
   with Setters
   with MultiQuery {
 
-  override val offsetDateTimeFormatter: DateTimeFormatter = {
+  val offsetDateTimeFormatter =
     new DateTimeFormatterBuilder().
-      parseCaseInsensitive().
-      append(DateTimeFormatter.ISO_LOCAL_DATE).
-      appendLiteral(' ').
-      append(DateTimeFormatter.ISO_LOCAL_TIME).
-      optionalStart().
-      appendLiteral(' ').
-      appendOffset("+HH:MM", "+00:00").
-      optionalEnd().
-      toFormatter
-  }
+    parseCaseInsensitive().
+    append(DateTimeFormatter.ISO_LOCAL_DATE).
+    appendLiteral(' ').
+    append(DateTimeFormatter.ISO_LOCAL_TIME).
+    optionalStart().
+    appendLiteral(' ').
+    appendOffset("+HH:MM", "+00:00").
+    optionalEnd().
+    toFormatter()
+
+  val instantFormatter =
+    offsetDateTimeFormatter.
+    withZone(ZoneOffset.UTC)
 
   override def driverClassName = "net.sourceforge.jtds.jdbc.Driver"
   override def dataSourceClassName ="net.sourceforge.jtds.jdbcx.JtdsDataSource"

@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.sqlserver
 
 import com.rocketfuel.sdbc.SqlServer._
-import java.time.{Instant, OffsetDateTime}
+import java.time.OffsetDateTime
 import com.rocketfuel.sdbc.config.TestingConfig
 import com.typesafe.config.{Config, ConfigFactory}
 import org.scalatest._
@@ -25,12 +25,8 @@ abstract class SqlServerSuite
           assert(expectedArray.sameElements(resultArray))
         case (Some(expectedOffset: OffsetDateTime), Some(resultOffset: OffsetDateTime)) =>
           assertResult(expectedOffset.toInstant)(resultOffset.toInstant)
-        case (Some(expectedInstant: Instant), Some(resultInstant: Instant)) =>
-          assertResult(expectedInstant)(resultInstant)
-        case (Some(x), Some(y)) =>
-          assertResult(x)(y)
-        case (None, None) => true
-        case _ => false
+        case (expected, actual) =>
+          assertResult(expected)(actual)
       }
     }
   }

@@ -111,7 +111,7 @@ class UpdatesSpec extends SqlServerSuite {
     * http://sourceforge.net/p/jtds/feature-requests/73/
     */
   test("Update java.time.Instant") {implicit connection =>
-    Update(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v datetime2)").update()
+    Execute(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v datetime2)").execute()
 
     update"INSERT INTO tbl (v) VALUES (${Instant.ofEpochMilli(0)})".update()
 
@@ -133,7 +133,7 @@ class UpdatesSpec extends SqlServerSuite {
     val before = HierarchyId()
     val after = HierarchyId(1, 2)
 
-    Update(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v hierarchyid)").update()
+    Execute(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v hierarchyid)").execute()
 
     update"INSERT INTO tbl (v) VALUES ($before)".update()
 

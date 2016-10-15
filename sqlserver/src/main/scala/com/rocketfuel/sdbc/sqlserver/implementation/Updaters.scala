@@ -1,13 +1,9 @@
 package com.rocketfuel.sdbc.sqlserver.implementation
 
-import com.rocketfuel.sdbc.base.jdbc.resultset.ConnectedRow
-import com.rocketfuel.sdbc.base.jdbc.statement.{ParameterValue, OffsetDateTimeAsStringParameter}
-import java.time.{LocalTime, OffsetDateTime}
+import java.time.{Instant, LocalTime, OffsetDateTime}
 import java.util.UUID
-
 import com.rocketfuel.sdbc.base.jdbc._
 import com.rocketfuel.sdbc.sqlserver.HierarchyId
-
 import scala.xml.Node
 
 private[sdbc] trait Updaters
@@ -27,16 +23,19 @@ private[sdbc] trait Updaters
   with InputStreamUpdater
   with ReaderUpdater
   with LocalDateTimeUpdater
-  with InstantUpdater
   with LocalDateUpdater {
-  self: Updater
-    with ConnectedRow
-    with ParameterValue
-    with OffsetDateTimeAsStringParameter =>
+  self: SqlServer =>
 
   implicit val LocalTimeUpdater = new Updater[LocalTime] {
     override def update(row: UpdatableRow, columnIndex: Int, x: LocalTime): Unit = {
       row.updateString(columnIndex, x.toString)
+    }
+  }
+
+  implicit val InstantUpdater: Updater[Instant] = new Updater[Instant] {
+    override def update(row: UpdatableRow, columnIndex: Int, x: Instant): Unit = {
+      val format: String = instantFormatter.format(x)
+      row.updateString(columnIndex, format)
     }
   }
 
