@@ -5,5 +5,5 @@ name := "examples"
 publishArtifact := false
 
 libraryDependencies ++= Seq(
-  "org.scalaz.stream" %% "scalaz-stream" % "0.8.4"
+  "co.fs2" %% "fs2-core" % "0.9.1"
 )

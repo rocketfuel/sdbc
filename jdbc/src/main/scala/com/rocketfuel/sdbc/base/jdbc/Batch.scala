@@ -20,7 +20,7 @@ trait Batch {
     * @param parameters
     * @param batches
     */
-  case class Batch private[jdbc](
+  case class Batch private (
     statement: CompiledStatement,
     parameters: Parameters,
     batches: ParameterBatches

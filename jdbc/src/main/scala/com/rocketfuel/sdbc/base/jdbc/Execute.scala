@@ -13,7 +13,7 @@ trait Execute {
     def execute()(implicit connection: Connection): Unit
   }
 
-  case class Execute(
+  case class Execute private (
     override val statement: CompiledStatement,
     override val parameters: Parameters = Parameters.empty
   ) extends ParameterizedQuery[Execute]

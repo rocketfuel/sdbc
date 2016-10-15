@@ -5,7 +5,7 @@ import com.rocketfuel.sdbc.base.Logging
 trait Select {
   self: DBMS =>
 
-  case class Select[A] private[jdbc](
+  case class Select[A] private (
     override val statement: CompiledStatement,
     override val parameters: Parameters
   )(implicit rowConverter: RowConverter[A]
@@ -39,7 +39,7 @@ trait Select {
     ): Select[A] = {
       Select[A](
         statement = CompiledStatement(queryText),
-        parameters = Map.empty[String, ParameterValue]
+        parameters = Parameters.empty
       )
     }
 
@@ -59,13 +59,13 @@ trait Select {
     ): Select[A] = {
       Select[A](
         statement = CompiledStatement.literal(queryText),
-        parameters = Map.empty[String, ParameterValue]
+        parameters = Parameters.empty
       )
     }
 
     def iterator[A](
       queryText: String,
-      parameterValues: Map[String, ParameterValue] = Map.empty
+      parameterValues: Parameters = Parameters.empty
     )(implicit connection: Connection,
       rowConverter: RowConverter[A]
     ): CloseableIterator[A] = {
@@ -74,9 +74,9 @@ trait Select {
       iterator(statement, parameterValues)
     }
 
-    def iterator[A](
+    private def iterator[A](
       statement: CompiledStatement,
-      parameterValues: Map[String, ParameterValue]
+      parameterValues: Parameters
     )(implicit connection: Connection,
       rowConverter: RowConverter[A]
     ): CloseableIterator[A] = {
@@ -87,7 +87,7 @@ trait Select {
 
     def option[A](
       queryText: String,
-      parameterValues: Map[String, ParameterValue] = Map.empty
+      parameterValues: Parameters = Parameters.empty
     )(implicit connection: Connection,
       rowConverter: RowConverter[A]
     ): Option[A] = {
@@ -95,9 +95,9 @@ trait Select {
       option(statement, parameterValues)
     }
 
-    def option[A](
+    private def option[A](
       statement: CompiledStatement,
-      parameterValues: Map[String, ParameterValue]
+      parameterValues: Parameters
     )(implicit connection: Connection,
       rowConverter: RowConverter[A]
     ): Option[A] = {
@@ -108,7 +108,7 @@ trait Select {
 
     private def logRun(
       compiledStatement: CompiledStatement,
-      parameters: Map[String, ParameterValue]
+      parameters: Parameters
     ): Unit = {
       logger.debug(s"""Selecting "${compiledStatement.originalQueryText}" with parameters $parameters.""")
     }

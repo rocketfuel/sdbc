@@ -11,7 +11,7 @@ import com.rocketfuel.sdbc.base.jdbc.statement.MultiStatementConverter
 trait MultiQuery extends MultiStatementConverter {
   self: DBMS =>
 
-  case class MultiQuery[A](
+  case class MultiQuery[A] private (
     override val statement: CompiledStatement,
     override val parameters: Parameters
   )(implicit statementConverter: MultiStatementConverter[A]

@@ -4,9 +4,6 @@ import java.sql.{DriverPropertyInfo, Driver}
 import java.util.Properties
 import java.util.logging.Logger
 
-/**
-  * Created by jshaw on 12/7/15.
-  */
 class TestDriver extends Driver {
   override def acceptsURL(url: String): Boolean = ???
 
