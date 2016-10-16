@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 trait MultiQueryable {
-  self: DBMS with MultiQuery =>
+  self: DBMS with Connection with MultiQuery =>
 
   trait MultiQueryable[Key, Result] {
     def run(key: Key): MultiQuery[Result]

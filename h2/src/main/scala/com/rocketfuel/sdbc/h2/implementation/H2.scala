@@ -16,7 +16,8 @@ private[sdbc] abstract class H2
   with SeqParameter
   with SeqGetter
   with ArrayTypes
-  with SerializedParameter {
+  with SerializedParameter
+  with jdbc.JdbcConnection {
 
   type Serialized = h2.Serialized
   val Serialized = h2.Serialized
@@ -61,7 +62,7 @@ private[sdbc] abstract class H2
   def withMemConnection[T](name: String = "", dbCloseDelay: Option[Int] = None)(f: Connection => T): T = {
     val dbCloseDelayArg = s";DB_CLOSE_DELAY=${dbCloseDelay.getOrElse(-1)}"
     val connectionString = s"jdbc:h2:mem:$name$dbCloseDelayArg"
-    val connection = DriverManager.getConnection(connectionString)
+    val connection = new Connection(DriverManager.getConnection(connectionString))
     try {
       f(connection)
     } finally {
@@ -70,7 +71,7 @@ private[sdbc] abstract class H2
   }
 
   def withFileConnection[T](path: Path)(f: Connection => T): T = {
-    val connection = DriverManager.getConnection("jdbc:h2:" + path.toFile.getCanonicalPath)
+    val connection = new Connection(DriverManager.getConnection("jdbc:h2:" + path.toFile.getCanonicalPath))
 
     try {
       f(connection)

@@ -1,10 +1,10 @@
 package com.rocketfuel.sdbc.base.jdbc.statement
 
-import com.rocketfuel.sdbc.base.jdbc.DBMS
+import com.rocketfuel.sdbc.base.jdbc.{Connection, DBMS}
 import java.sql.{ResultSet, SQLFeatureNotSupportedException}
 
 trait StatementConverter {
-  self: DBMS =>
+  self: DBMS with Connection =>
 
   sealed trait QueryResult[A] {
     val get: A

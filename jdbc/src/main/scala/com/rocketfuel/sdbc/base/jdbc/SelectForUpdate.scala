@@ -3,7 +3,7 @@ package com.rocketfuel.sdbc.base.jdbc
 import com.rocketfuel.sdbc.base.Logging
 
 trait SelectForUpdate {
-  self: DBMS =>
+  self: DBMS with Connection =>
 
   case class SelectForUpdate(
     override val statement: CompiledStatement,

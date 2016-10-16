@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 trait Updatable {
-  self: DBMS =>
+  self: DBMS with Connection =>
 
   trait Updatable[Key] {
     def update(key: Key): Update

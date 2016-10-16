@@ -9,8 +9,6 @@ trait ParameterValue
 
   override type PreparedStatement = sql.PreparedStatement
 
-  override type Connection = sql.Connection
-
   override def setNone(preparedStatement: PreparedStatement, parameterIndex: Int): PreparedStatement = {
     preparedStatement.setNull(parameterIndex, sql.Types.NULL)
     preparedStatement

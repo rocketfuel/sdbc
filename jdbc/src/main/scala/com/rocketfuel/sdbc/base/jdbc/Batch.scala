@@ -7,7 +7,7 @@ import shapeless.ops.record.{Keys, Values}
 import shapeless.{HList, LabelledGeneric}
 
 trait Batch {
-  self: DBMS =>
+  self: DBMS with Connection =>
 
   /**
     * Create and run a batch using a statement and a sequence of parameters.

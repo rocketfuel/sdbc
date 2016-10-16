@@ -14,7 +14,7 @@ trait HasSqlServerPool {
     masterConfig.setMaximumPoolSize(1)
     masterConfig.setCatalog("master")
 
-   Pool(masterConfig)
+   new Pool(masterConfig)
   }
 
   protected def withSqlMaster[T](f: Connection => T): T = {

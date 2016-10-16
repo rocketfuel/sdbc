@@ -3,7 +3,7 @@ package com.rocketfuel.sdbc.base.jdbc
 import com.rocketfuel.sdbc.base.Logging
 
 trait Execute {
-  self: DBMS =>
+  self: DBMS with Connection =>
 
   trait Executes {
     /**

@@ -23,7 +23,8 @@ private[sdbc] abstract class SqlServer
   with Getters
   with Updaters
   with Setters
-  with MultiQuery {
+  with MultiQuery
+  with JdbcConnection {
 
   val offsetDateTimeFormatter =
     new DateTimeFormatterBuilder().

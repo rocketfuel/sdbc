@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 trait Batchable {
-self: DBMS =>
+  self: DBMS with Connection =>
 
   trait Batchable[Key] {
     def batch(key: Key): Batch

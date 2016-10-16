@@ -18,11 +18,11 @@ trait HasPostgreSqlPool {
     masterConfig.getDataSourceProperties.setProperty("databaseName", "postgres")
     masterConfig.setMaximumPoolSize(1)
 
-    Pool(masterConfig)
+    new Pool(masterConfig)
   }
 
   protected def withPgMaster[T](f: Connection => T): T = {
-    val connection = pgMasterPool.getConnection
+    val connection = pgMasterPool.getConnection()
     try {
       f(connection)
     } finally {
@@ -77,7 +77,7 @@ trait HasPostgreSqlPool {
   }
 
   def withPg[T](f: Connection => T): T = {
-    val connection = pgPool.get.getConnection
+    val connection = pgPool.get.getConnection()
     try {
       f(connection)
     } finally {

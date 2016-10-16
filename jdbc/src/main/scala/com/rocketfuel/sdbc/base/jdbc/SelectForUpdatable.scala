@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 trait SelectForUpdatable {
-  self: DBMS =>
+  self: DBMS with Connection =>
 
   trait SelectForUpdatable[Key] {
     def selectForUpdate(key: Key): SelectForUpdate

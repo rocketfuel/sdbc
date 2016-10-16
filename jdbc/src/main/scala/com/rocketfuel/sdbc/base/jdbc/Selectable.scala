@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 trait Selectable {
-  self: DBMS =>
+  self: DBMS with Connection =>
 
   trait Selectable[Key, Result] {
     def select(key: Key): Select[Result]

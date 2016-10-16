@@ -31,6 +31,7 @@ abstract class DBMS
   with CompositeGetter
   with RowConverter
   with QueryMethods {
+  self: com.rocketfuel.sdbc.base.jdbc.Connection =>
 
   type CloseableIterator[+A] = base.CloseableIterator[A]
 
@@ -59,18 +60,6 @@ abstract class DBMS
    * If the JDBC driver supports the .isValid() method.
    */
   def supportsIsValid: Boolean
-
-  /**
-   * Perform any connection initialization that should be done when a connection
-   * is created. EG add a type mapping.
-   *
-   * By default this method does nothing.
-    *
-    * @param connection
-   */
-  def initializeConnection(connection: java.sql.Connection): Unit = {
-
-  }
 
   type Statement = sql.PreparedStatement
 

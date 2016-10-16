@@ -3,7 +3,7 @@ package com.rocketfuel.sdbc.base.jdbc
 import java.sql.ResultSet
 
 private[jdbc] trait QueryMethods {
-  self: DBMS =>
+  self: DBMS with Connection =>
 
   private[jdbc] object QueryMethods {
     def bind(

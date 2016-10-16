@@ -4,9 +4,9 @@ import com.typesafe.config.Config
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 
 trait Pool {
-  self: DBMS =>
+  self: DBMS with Connection =>
 
-  case class Pool(configuration: HikariConfig) {
+  class Pool(configuration: HikariConfig) {
 
     //Set the test query if the driver doesn't support .isValid().
     if (!self.supportsIsValid) {
@@ -16,9 +16,7 @@ trait Pool {
     val underlying = new HikariDataSource(configuration)
 
     def getConnection(): Connection = {
-      val connection = underlying.getConnection()
-      self.initializeConnection(connection)
-      connection
+      new Connection(underlying.getConnection())
     }
 
     def withConnection[T](f: Connection => T): T = {
@@ -43,7 +41,7 @@ trait Pool {
 
   object Pool {
     def apply(config: Config): Pool = {
-      Pool(config.toHikariConfig)
+      new Pool(config.toHikariConfig)
     }
   }
 

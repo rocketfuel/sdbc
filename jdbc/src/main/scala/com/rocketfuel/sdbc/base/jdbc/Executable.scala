@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 trait Executable {
-  self: DBMS =>
+  self: DBMS with Connection =>
 
   trait Executable[Key] {
     def execute(key: Key): Execute

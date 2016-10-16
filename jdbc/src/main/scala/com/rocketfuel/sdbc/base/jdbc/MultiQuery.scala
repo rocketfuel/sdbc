@@ -9,7 +9,7 @@ import com.rocketfuel.sdbc.base.jdbc.statement.MultiStatementConverter
   *
   */
 trait MultiQuery extends MultiStatementConverter {
-  self: DBMS =>
+  self: DBMS with Connection =>
 
   case class MultiQuery[A] private (
     override val statement: CompiledStatement,

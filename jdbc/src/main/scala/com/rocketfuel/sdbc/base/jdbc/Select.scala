@@ -3,7 +3,7 @@ package com.rocketfuel.sdbc.base.jdbc
 import com.rocketfuel.sdbc.base.Logging
 
 trait Select {
-  self: DBMS =>
+  self: DBMS with Connection =>
 
   case class Select[A] private (
     override val statement: CompiledStatement,
