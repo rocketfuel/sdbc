@@ -10,7 +10,7 @@ There are additional packages that add support for [scalaz-stream](https://githu
 
 ## Requirements
 
-* Scala 2.11 or Scala 2.10
+* Scala 2.11. Scala 2.10 might be supported again in the future
 * Cassandra (2.11 only), H2, PostgreSQL, or Microsoft SQL Server
 
 Include an implementation of the [SLF4J](http://slf4j.org/) logging interface, turn on debug logging, and all your query executions will be logged with the query text and the parameter name-value map.
@@ -26,44 +26,26 @@ For Java 7, append "_java7" to the package name.
 #### Cassandra
 
 ```scala
-"com.rocketfuel.sdbc.cassandra" %% "datastax" % "1.0"
+"com.rocketfuel.sdbc" %% "datastax-cassandra" % "2.0"
 ```
 
 #### H2
 
 ```scala
-"com.rocketfuel.sdbc.h2" %% "jdbc" % "1.0"
+"com.rocketfuel.sdbc" %% "jdbc-h2" % "1.0"
 ```
 
 #### PostgreSql
 
 ```scala
-"com.rocketfuel.sdbc.postgresql" %% "jdbc" % "1.0"
+"com.rocketfuel.sdbc" %% "jdbc-postgresql" % "1.0"
 ```
 
 #### SQL Server
 
 ```scala
-"com.rocketfuel.sdbc.sqlserver" %% "jdbc" % "1.0"
+"com.rocketfuel.sdbc" %% "jdbc-sqlserver" % "1.0"
 ```
-
-### Scalaz Streaming
-
-#### Cassandra
-
-```scala
-"com.rocketfuel.sdbc.cassandra" %% "datastax-scalaz" % "1.0"
-```
-
-#### JDBC
-
-```scala
-"com.rocketfuel.sdbc.jdbc" %% "scalaz" % "1.0"
-```
-
-### Java 7
-
-Append "-java7" to the package name.
 
 ## License
 
@@ -76,9 +58,9 @@ Append "-java7" to the package name.
 * Use implicit conversions to convert rows into your own data types.
 * Use Scala collection combinators to manipulate result sets.
 * Use named parameters with queries.
-* Query execution logging
-* Use Java 8's java.time library, or Joda time for Java 7 and below.
-* Scalaz streaming support by adding constructors to scalaz.stream.Process and scalaz.stream.io.
+* Query execution logging.
+* Supports Java 8's java.time package.
+* [FS2 Streams](https://github.com/functional-streams-for-scala/fs2) for Cassandra results
 
 ## Feature restrictions
 
@@ -87,11 +69,7 @@ Append "-java7" to the package name.
 * The H2 JDBC driver does not support getResultSet on inner arrays, so only 1 dimensional arrays are supported.
 * The H2 JDBC driver does not support ResultSet#updateArray, so updating arrays is not supported.
 
-### PostgreSQL
-
-* Array support requires Scala 2.11 or newer.
-
-## [Scaladoc](http://www.jeffshaw.me/sdbc/1.0)
+## [Scaladoc](http://www.jeffshaw.me/sdbc/2.0)
 
 ## Java 8 time notes
 
@@ -105,31 +83,22 @@ Append "-java7" to the package name.
 | time |  | LocalTime |
 | timetz or time with time zone |  | OffsetTime |
 
-## Joda time notes
-
-| column type | column time zone | joda type |
-| --- | --- | --- |
-| timestamp or datetime | GMT | Instant |
-| timestamp or datetime | same as client | LocalDateTime |
-| timestamp or datetime | not GMT and not client's | java.sql.Timestamp, then convert to LocalDateTime with server's time zone |
-| timestamptz or timestamp with time zone or datetimeoffset |  | DateTime |
-
 ## Examples
 
 ### Simple Query
 
 ```scala
 import java.sql.DriverManager
-import com.rocketfuel.sdbc.postgresql.jdbc._
+import com.rocketfuel.sdbc.H2._
 
-//The JDBC connection can be implicitly converted into a Renorm connection.
-val connection = DriverManager.getConnection("...")
+implicit val connection = DriverManager.getConnection("jdbc:h2:mem:example")
 
-val results =
-	connection.iterator("SELECT * FROM tbl").map(
-		(row: Row) =>
-			row.get[Int]("key").get -> row.get[String]("value").get
-	).toMap
+/*
+You can select directly to tuples if you name your columns appropriately.
+If you select a Tuple2, you can create a map from the results.
+*/
+ 
+Select[(Int, String)]("SELECT id AS _1, value AS _2 FROM tbl").iterator().toMap
 ```
 
 ### Use implicit conversion to map rows to other data types
@@ -137,7 +106,7 @@ val results =
 ```scala
 import java.sql.DriverManager
 import java.time.Instant
-import com.rocketfuel.sdbc.postgresql.jdbc._
+import com.rocketfuel.sdbc.postgresql._
 
 case class MyRow(
 	id: Int,
@@ -145,11 +114,10 @@ case class MyRow(
 	message: Option[String]
 )
 
-implicit def RowToMyRow(row: Row): MyRow = {
-    //Row#get[T] gives Option[T], so use Option#get on the result if the column is NOT NULL.
-    val id = row.get[Int]("id").get
-    val createdTime = row.get[Instant]("created_time").get
-    val message = row.get[String]("message")
+implicit def RowToMyRow(row: ConnectedRow): MyRow = {
+    val id = row[Int]("id")
+    val createdTime = row[Instant]("created_time").get
+    val message = row[Option[String]]("message")
 
     MyRow(
         id,
@@ -365,7 +333,7 @@ Suppose you use K keys to get values of some type T, and then use T to update ro
 
 ```scala
 
-val keyStream: Process[Task, K]
+val keyStream: Stream[Task, K]
 
 implicit val keySelectable = new Selectable[K, T] {...}
 
@@ -376,6 +344,14 @@ keyStream.through(Process.jdbc.keys.select[K, T](pool)).to(Process.jdbc.update[T
 ```
 
 ## Changelog
+
+### 2.0
+
+* JDBC Connection types are now per-DBMS (i.e. they are path dependent).
+* Update scalaz streams to [FS2](https://github.com/functional-streams-for-scala/fs2).
+* Support for multiple results per query from SQL Server.
+* Stream support is built-in.
+* Instant without an offset is interpreted as being in UTC rather than 
 
 ### 1.0
 
