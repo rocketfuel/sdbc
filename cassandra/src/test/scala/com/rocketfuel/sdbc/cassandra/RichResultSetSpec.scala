@@ -10,7 +10,8 @@ class RichResultSetSpec
   extends CassandraSuite
   with GeneratorDrivenPropertyChecks {
 
-  override implicit val generatorDrivenConfig: PropertyCheckConfig = PropertyCheckConfig(maxSize = 10)
+  override implicit val generatorDrivenConfig: PropertyCheckConfiguration =
+    PropertyCheckConfiguration(sizeRange = 10)
 
   test("iterator() works on several results") {implicit connection =>
     Query(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x int)").execute()

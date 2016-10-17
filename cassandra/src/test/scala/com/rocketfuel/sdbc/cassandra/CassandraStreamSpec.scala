@@ -11,7 +11,8 @@ class CassandraStreamSpec
   implicit val strategy =
     fs2.Strategy.sequential
 
-  override implicit val generatorDrivenConfig: PropertyCheckConfig = PropertyCheckConfig(maxSize = 10)
+  override implicit val generatorDrivenConfig: PropertyCheckConfiguration =
+    PropertyCheckConfiguration(sizeRange = 10)
 
   test("values are inserted and selected") {implicit connection =>
     Query(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x int)").execute()
