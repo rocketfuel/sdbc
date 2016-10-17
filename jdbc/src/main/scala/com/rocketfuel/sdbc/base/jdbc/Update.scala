@@ -5,7 +5,7 @@ import com.rocketfuel.sdbc.base.Logging
 trait Update {
   self: DBMS with Connection =>
 
-  case class Update private (
+  case class Update private[jdbc] (
     override val statement: CompiledStatement,
     override val parameters: Parameters
   ) extends ParameterizedQuery[Update]

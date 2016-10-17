@@ -3,7 +3,6 @@ package com.rocketfuel.sdbc.base
 import shapeless._
 import shapeless.record._
 import shapeless.ops.record._
-import shapeless.ops.hlist._
 
 trait ParameterValue {
 
@@ -82,7 +81,7 @@ trait ParameterValue {
     }
 
     override def toString: String = {
-      value.toString
+      s"ParameterValue($value)"
     }
   }
 
@@ -124,16 +123,12 @@ trait ParameterValue {
     def product[
       A,
       Repr <: HList,
-      ReprKeys <: HList,
-      ReprValues <: HList,
-      MappedRepr <: HList
+      Key <: Symbol,
+      AsParameters <: HList
     ](t: A
     )(implicit genericA: LabelledGeneric.Aux[A, Repr],
-      keys: Keys.Aux[Repr, ReprKeys],
-      values: Values.Aux[Repr, ReprValues],
-      valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
-      ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, ParameterValue]
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+      toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
     ): Parameters = {
       val asGeneric = genericA.to(t)
       record(asGeneric)
@@ -141,18 +136,15 @@ trait ParameterValue {
 
     def record[
       Repr <: HList,
-      ReprKeys <: HList,
-      ReprValues <: HList,
-      MappedRepr <: HList
+      Key <: Symbol,
+      AsParameters <: HList
     ](t: Repr
-    )(implicit keys: Keys.Aux[Repr, ReprKeys],
-      values: Values.Aux[Repr, ReprValues],
-      valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
-      ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, ParameterValue]
+    )(implicit valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+      toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
     ): Parameters = {
-      val mapped = t.values.map(ToParameterValue)
-      t.keys.toList.map(_.name).zip(mapped.toList).toMap
+      t.mapValues(ToParameterValue).toMap[Key, ParameterValue].map {
+        case (symbol, value) => symbol.name -> value
+      }
     }
 
   }
@@ -196,16 +188,12 @@ trait ParameterValue {
     implicit def products[
       A,
       Repr <: HList,
-      ReprKeys <: HList,
-      ReprValues <: HList,
-      MappedRepr <: HList
+      Key <: Symbol,
+      AsParameters <: HList
     ](ts: Seq[A]
     )(implicit genericA: LabelledGeneric.Aux[A, Repr],
-      keys: Keys.Aux[Repr, ReprKeys],
-      values: Values.Aux[Repr, ReprValues],
-      valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
-      ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, ParameterValue]
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+      toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
     ): ParameterBatches = {
       val asGeneric = ts.map(genericA.to)
       records(asGeneric)
@@ -213,15 +201,11 @@ trait ParameterValue {
 
     implicit def records[
       Repr <: HList,
-      ReprKeys <: HList,
-      ReprValues <: HList,
-      MappedRepr <: HList
+      Key <: Symbol,
+      AsParameters <: HList
     ](ts: Seq[Repr]
-    )(implicit keys: Keys.Aux[Repr, ReprKeys],
-      values: Values.Aux[Repr, ReprValues],
-      valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
-      ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, ParameterValue]
+    )(implicit valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+      toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
     ): ParameterBatches = {
       ts.map(Parameters.record(_))
     }

@@ -2,8 +2,7 @@ package com.rocketfuel.sdbc.base.jdbc
 
 import java.sql.SQLFeatureNotSupportedException
 import com.rocketfuel.sdbc.base.Logging
-import shapeless.ops.hlist._
-import shapeless.ops.record.{Keys, Values}
+import shapeless.ops.record.{MapValues, ToMap}
 import shapeless.{HList, LabelledGeneric}
 
 trait Batch {
@@ -20,7 +19,7 @@ trait Batch {
     * @param parameters
     * @param batches
     */
-  case class Batch private (
+  case class Batch private[jdbc] (
     statement: CompiledStatement,
     parameters: Parameters,
     batches: ParameterBatches
@@ -44,31 +43,23 @@ trait Batch {
     def addProduct[
       A,
       Repr <: HList,
-      ReprKeys <: HList,
-      ReprValues <: HList,
-      MappedRepr <: HList
+      Key <: Symbol,
+      AsParameters <: HList
     ](t: A
     )(implicit genericA: LabelledGeneric.Aux[A, Repr],
-      keys: Keys.Aux[Repr, ReprKeys],
-      values: Values.Aux[Repr, ReprValues],
-      valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
-      ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, ParameterValue]
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+      toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
     ): Batch = {
       addParameters(Parameters.product(t))
     }
 
     def addRecord[
       Repr <: HList,
-      ReprKeys <: HList,
-      ReprValues <: HList,
-      MappedRepr <: HList
+      Key <: Symbol,
+      AsParameters <: HList
     ](t: Repr
-    )(implicit keys: Keys.Aux[Repr, ReprKeys],
-      values: Values.Aux[Repr, ReprValues],
-      valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
-      ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, ParameterValue]
+    )(implicit valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+      toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
     ): Batch = {
       addParameters(Parameters.record(t))
     }

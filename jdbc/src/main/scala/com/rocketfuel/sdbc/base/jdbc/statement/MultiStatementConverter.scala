@@ -1,7 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc.statement
 
 import com.rocketfuel.sdbc.base.jdbc.DBMS
-import java.io.Closeable
 import java.sql.{ResultSet, SQLFeatureNotSupportedException, Statement}
 import shapeless.{::, HList, HNil}
 
@@ -30,7 +29,7 @@ trait MultiStatementConverter {
         } catch {
           case _: UnsupportedOperationException |
                _: SQLFeatureNotSupportedException =>
-            v1.getUpdateCount
+            v1.getUpdateCount.toLong
         }
         v1.getMoreResults()
         if (count == -1) None.get else QueryResult.UpdateCount(count)

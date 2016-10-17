@@ -6,7 +6,6 @@ description := "An implementation of SDBC for accessing Apache Cassandra using t
 
 libraryDependencies ++= Seq(
   "com.datastax.cassandra" % "cassandra-driver-core" % "3.1.1",
-  "com.chuusai" %% "shapeless" % "2.2.5",
   "com.google.code.findbugs" % "jsr305" % "3.0.1",
   "org.scodec" %% "scodec-bits" % "1.1.2",
   "co.fs2" %% "fs2-core" % "0.9.1",

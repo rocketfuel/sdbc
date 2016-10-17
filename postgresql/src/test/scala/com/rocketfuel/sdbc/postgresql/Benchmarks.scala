@@ -3,7 +3,6 @@ package com.rocketfuel.sdbc.postgresql
 import java.sql.{PreparedStatement, ResultSet}
 import java.util.UUID
 import com.rocketfuel.sdbc.PostgreSql._
-import com.rocketfuel.sdbc.base.CloseableIterator
 import org.apache.commons.lang3.time.StopWatch
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.prop.GeneratorDrivenPropertyChecks

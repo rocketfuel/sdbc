@@ -4,6 +4,8 @@ name := "base"
 
 description := "SDBC is a database API for Scala."
 
+val macroParadiseVersion = "2.1.0"
+
 libraryDependencies ++= Seq(
   //Logging
   "org.slf4j" % "slf4j-api" % "1.7.21",
@@ -21,21 +23,16 @@ libraryDependencies ++= Seq(
   "org.apache.commons" % "commons-lang3" % "3.4" % "test"
 )
 
-libraryDependencies <++= scalaVersion { version =>
-  val VersionRegex = """(\d+).(\d+)\.?.*""".r("major", "minor")
-  lazy val xmlDependency = "org.scala-lang.modules" %% "scala-xml" % "1.0.5"
-  val VersionRegex(major, minor) = version
-  (major.toInt, minor.toInt) match {
-    case (2,minor) if minor < 11 =>
-      Vector.empty
-    case (2,_) =>
-      Vector(xmlDependency)
-    case _ =>
-      //We're not in version 2, and who knows what
-      //xml support is like.
-      ???
+libraryDependencies ++= {
+  CrossVersion.partialVersion(scalaVersion.value) match {
+    case Some((2, 10)) =>
+      Seq(
+        compilerPlugin("org.scalamacros" % "paradise" % macroParadiseVersion cross CrossVersion.full),
+        "org.scalamacros" %% "quasiquotes" % macroParadiseVersion
+      )
+    case Some((2, _)) =>
+      Seq("org.scala-lang.modules" %% "scala-xml" % "1.0.5")
   }
-
 }
 
 crossScalaVersions := Seq("2.10.6")

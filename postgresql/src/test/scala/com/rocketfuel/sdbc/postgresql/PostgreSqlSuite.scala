@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.postgresql
 
-import java.time.{Instant, OffsetDateTime}
+import java.time.OffsetDateTime
 import com.rocketfuel.sdbc.config.TestingConfig
 import com.typesafe.config.{Config, ConfigFactory}
 import org.scalatest._

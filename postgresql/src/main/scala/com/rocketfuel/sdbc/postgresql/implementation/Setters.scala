@@ -1,7 +1,6 @@
 package com.rocketfuel.sdbc.postgresql.implementation
 
 import com.rocketfuel.sdbc.base.jdbc.statement._
-import java.sql.{Types, PreparedStatement}
 import com.rocketfuel.sdbc.base.jdbc._
 import org.postgresql.util.PGobject
 import scala.collection.convert.decorateAsJava._

@@ -24,7 +24,7 @@ trait StringContextMethods {
         map {
           case (parameter, ix) =>
             (ix.toString, parameter)
-        } toMap
+        }.toMap
     }
 
     object execute extends ProductArgs {

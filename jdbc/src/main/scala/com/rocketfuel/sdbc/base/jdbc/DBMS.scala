@@ -96,7 +96,7 @@ object DBMS {
     new java.util.concurrent.ConcurrentSkipListMap[String, DBMS](String.CASE_INSENSITIVE_ORDER).asScala
   }
 
-  private val productNames: collection.mutable.Map[String, DBMS] = collection.mutable.Map.empty
+  private val productNames: collection.mutable.Map[String, DBMS] = collection.concurrent.TrieMap.empty[String, DBMS]
 
   private val jdbcURIRegex = "(?i)^jdbc:(.+):".r
 

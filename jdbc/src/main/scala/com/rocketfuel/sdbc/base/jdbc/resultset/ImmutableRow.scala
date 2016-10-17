@@ -4,7 +4,7 @@ import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.jdbc.DBMS
 import java.math.BigDecimal
 import java.net.URL
-import java.sql.{Array => JdbcArray, _}
+import java.sql.{Array => _, _}
 
 trait ImmutableRow {
   self: DBMS =>

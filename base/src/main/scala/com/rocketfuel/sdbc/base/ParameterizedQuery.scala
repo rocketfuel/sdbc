@@ -1,8 +1,7 @@
 package com.rocketfuel.sdbc.base
 
-import shapeless.{HList, LabelledGeneric}
-import shapeless.ops.hlist.{Mapper, _}
-import shapeless.ops.record.{Keys, Values}
+import shapeless._
+import shapeless.ops.record._
 
 trait ParameterizedQuery {
   self: ParameterValue =>
@@ -39,31 +38,23 @@ trait ParameterizedQuery {
     def onProduct[
       A,
       Repr <: HList,
-      ReprKeys <: HList,
-      ReprValues <: HList,
-      MappedRepr <: HList
+      Key <: Symbol,
+      AsParameters <: HList
     ](t: A
     )(implicit genericA: LabelledGeneric.Aux[A, Repr],
-      keys: Keys.Aux[Repr, ReprKeys],
-      values: Values.Aux[Repr, ReprValues],
-      valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
-      ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, ParameterValue]
+      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+      toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
     ): Self = {
       subclassConstructor(Parameters.product(t))
     }
 
     def onRecord[
       Repr <: HList,
-      ReprKeys <: HList,
-      ReprValues <: HList,
-      MappedRepr <: HList
+      Key <: Symbol,
+      AsParameters <: HList
     ](t: Repr
-    )(implicit keys: Keys.Aux[Repr, ReprKeys],
-      values: Values.Aux[Repr, ReprValues],
-      valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
-      ktl: ToList[ReprKeys, Symbol],
-      vtl: ToList[MappedRepr, ParameterValue]
+    )(implicit valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+      toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
     ): Self = {
       subclassConstructor(Parameters.record(t))
     }

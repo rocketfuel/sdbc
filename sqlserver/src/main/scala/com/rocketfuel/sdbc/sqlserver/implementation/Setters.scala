@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.sqlserver.implementation
 
-import com.rocketfuel.sdbc.base.jdbc.statement.{ParameterValue, _}
+import com.rocketfuel.sdbc.base.jdbc.statement._
 import java.util.UUID
 import com.rocketfuel.sdbc.sqlserver.HierarchyId
 import java.time.{Instant, OffsetDateTime, ZoneOffset}

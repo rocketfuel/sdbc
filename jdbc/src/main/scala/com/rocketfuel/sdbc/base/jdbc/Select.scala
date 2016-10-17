@@ -5,7 +5,7 @@ import com.rocketfuel.sdbc.base.Logging
 trait Select {
   self: DBMS with Connection =>
 
-  case class Select[A] private (
+  case class Select[A] private[jdbc] (
     override val statement: CompiledStatement,
     override val parameters: Parameters
   )(implicit rowConverter: RowConverter[A]

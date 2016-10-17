@@ -7,8 +7,7 @@ import fs2.util.Async
 import fs2.{Pipe, Sink, Strategy, Stream, Task}
 import scala.collection.convert.wrapAsScala._
 import scala.concurrent.{ExecutionContext, Future}
-import shapeless.ops.hlist._
-import shapeless.ops.record.{Keys, Values}
+import shapeless.ops.record.{MapValues, ToMap}
 import shapeless.{HList, LabelledGeneric}
 
 trait Query {
@@ -131,19 +130,15 @@ trait Query {
       def product[
         A,
         Repr <: HList,
-        ReprKeys <: HList,
-        ReprValues <: HList,
-        MappedRepr <: HList
+        Key <: Symbol,
+        AsParameters <: HList
       ](implicit
         session: Session,
         rowConverter: RowConverter[T],
         async: Async[F],
         genericA: LabelledGeneric.Aux[A, Repr],
-        keys: Keys.Aux[Repr, ReprKeys],
-        values: Values.Aux[Repr, ReprValues],
-        valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
-        ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, ParameterValue]
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
       ): Pipe[F, A, Stream[F, T]] = {
         fs2.pipe.lift[F, A, Stream[F, T]] { parameters =>
           Query.iteratorToStream(onProduct(parameters).iterator())
@@ -152,17 +147,13 @@ trait Query {
 
       def record[
         Repr <: HList,
-        ReprKeys <: HList,
-        ReprValues <: HList,
-        MappedRepr <: HList
+        Key <: Symbol,
+        AsParameters <: HList
       ](implicit session: Session,
         rowConverter: RowConverter[T],
         async: Async[F],
-        keys: Keys.Aux[Repr, ReprKeys],
-        values: Values.Aux[Repr, ReprValues],
-        valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
-        ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, ParameterValue]
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
       ): Pipe[F, Repr, Stream[F, T]] = {
         fs2.pipe.lift[F, Repr, Stream[F, T]] { parameters =>
           Query.iteratorToStream(onRecord(parameters).iterator())
@@ -184,19 +175,15 @@ trait Query {
       def product[
         A,
         Repr <: HList,
-        ReprKeys <: HList,
-        ReprValues <: HList,
-        MappedRepr <: HList
+        Key <: Symbol,
+        AsParameters <: HList
       ](implicit
         session: Session,
         rowConverter: RowConverter[T],
         async: Async[F],
         genericA: LabelledGeneric.Aux[A, Repr],
-        keys: Keys.Aux[Repr, ReprKeys],
-        values: Values.Aux[Repr, ReprValues],
-        valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
-        ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, ParameterValue]
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
       ): Sink[F, A] = {
         fs2.pipe.lift[F, A, Unit] { parameters =>
           onProduct(parameters).execute()
@@ -205,17 +192,13 @@ trait Query {
 
       def record[
         Repr <: HList,
-        ReprKeys <: HList,
-        ReprValues <: HList,
-        MappedRepr <: HList
+        Key <: Symbol,
+        AsParameters <: HList
       ](implicit session: Session,
         rowConverter: RowConverter[T],
         async: Async[F],
-        keys: Keys.Aux[Repr, ReprKeys],
-        values: Values.Aux[Repr, ReprValues],
-        valuesMapper: Mapper.Aux[ToParameterValue.type, ReprValues, MappedRepr],
-        ktl: ToList[ReprKeys, Symbol],
-        vtl: ToList[MappedRepr, ParameterValue]
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
       ): Sink[F, Repr] = {
         fs2.pipe.lift[F, Repr, Unit] { parameters =>
           onRecord(parameters).execute()

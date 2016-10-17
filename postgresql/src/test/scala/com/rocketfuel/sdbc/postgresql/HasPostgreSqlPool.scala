@@ -48,6 +48,19 @@ trait HasPostgreSqlPool {
     }
   }
 
+  protected val selectTestCatalogs =
+    Select[String]("SELECT datname FROM pg_database WHERE datname LIKE @catalogPrefix").
+      on("catalogPrefix" -> (pgTestCatalogPrefix + "%"))
+
+  protected val closeConnections =
+    Execute(
+      """SELECT pg_terminate_backend(pid)
+        |FROM pg_stat_activity
+        |WHERE pg_stat_activity.datname = @databaseName
+        |AND pid <> pg_backend_pid();
+      """.stripMargin
+    )
+
   protected def pgDropTestCatalogs(): Unit = {
     pgPool.foreach(_.close())
     pgPool = None
@@ -56,19 +69,11 @@ trait HasPostgreSqlPool {
       connection.setAutoCommit(true)
 
       val databases =
-        Select[String]("SELECT datname FROM pg_database WHERE datname LIKE @catalogPrefix").
-          on("catalogPrefix" -> (pgTestCatalogPrefix + "%")).
-          iterator().toVector
+        selectTestCatalogs.iterator().toVector
 
       for (database <- databases) {
         util.Try {
-          Execute(
-            """SELECT pg_terminate_backend(pid)
-              |FROM pg_stat_activity
-              |WHERE pg_stat_activity.datname = @databaseName
-              |AND pid <> pg_backend_pid();
-            """.stripMargin
-          ).on("databaseName" -> database).execute()
+          closeConnections.on("databaseName" -> database).execute()
 
           Execute(s"DROP DATABASE $database").execute()
         }

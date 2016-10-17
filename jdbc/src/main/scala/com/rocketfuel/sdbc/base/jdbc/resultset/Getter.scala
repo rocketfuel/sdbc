@@ -2,7 +2,6 @@ package com.rocketfuel.sdbc.base.jdbc.resultset
 
 import com.rocketfuel.sdbc.base
 import com.rocketfuel.sdbc.base.jdbc.DBMS
-import java.io.{InputStream, Reader}
 import java.lang
 import java.net.URL
 import java.nio.ByteBuffer
