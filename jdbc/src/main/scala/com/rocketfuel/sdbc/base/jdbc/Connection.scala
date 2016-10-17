@@ -220,6 +220,9 @@ trait Connection {
       self.toBaseConnection(connection)
     }
 
+    implicit def fromConnection(implicit connection: sql.Connection): Connection =
+      new Connection(connection)
+
   }
 
   /**
