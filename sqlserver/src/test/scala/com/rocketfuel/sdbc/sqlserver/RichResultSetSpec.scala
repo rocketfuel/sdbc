@@ -3,7 +3,6 @@ package com.rocketfuel.sdbc.sqlserver
 import org.scalatest.BeforeAndAfterEach
 import scala.collection.immutable.Seq
 import com.rocketfuel.sdbc.SqlServer._
-import com.rocketfuel.sdbc.base.CloseableIterator
 
 class RichResultSetSpec
   extends SqlServerSuite
