@@ -27,11 +27,6 @@ private[sdbc] abstract class H2
    */
   override def dataSourceClassName: String = "org.h2.jdbcx.JdbcDataSource"
 
-  /**
-   * Class name for the JDBC driver class.
-   */
-  override def driverClassName: String = "org.h2.Driver"
-
   //http://www.h2database.com/html/cheatSheet.html
   override def jdbcSchemes: Set[String] = {
     CISet(

@@ -5,6 +5,9 @@ import java.util.logging.Logger
 import javax.sql.DataSource
 
 class TestDataSource extends DataSource {
+
+  classOf[TestDriver]
+
   override def getConnection: java.sql.Connection = ???
 
   override def getConnection(username: String, password: String): java.sql.Connection = ???

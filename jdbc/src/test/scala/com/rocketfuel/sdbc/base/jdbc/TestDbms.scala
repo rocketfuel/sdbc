@@ -12,8 +12,6 @@ class TestDbms extends DBMS
 
   override def dataSourceClassName: String = classOf[TestDataSource].getCanonicalName
 
-  override def driverClassName: String = classOf[TestDriver].getCanonicalName
-
   override def supportsIsValid: Boolean = false
 
   override def productName: String = "test"

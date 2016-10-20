@@ -44,11 +44,6 @@ abstract class DBMS
    */
   def dataSourceClassName: String
 
-  /**
-   * Class name for the JDBC driver class.
-   */
-  def driverClassName: String
-
   def jdbcSchemes: Set[String]
 
   /**
@@ -107,7 +102,6 @@ object DBMS {
         jdbcSchemes(scheme) = dbms
       }
       productNames(dbms.productName) = dbms
-      Class.forName(dbms.driverClassName)
     }
   }
 

@@ -42,7 +42,6 @@ private[sdbc] abstract class SqlServer
     offsetDateTimeFormatter.
     withZone(ZoneOffset.UTC)
 
-  override def driverClassName = "net.sourceforge.jtds.jdbc.Driver"
   override def dataSourceClassName ="net.sourceforge.jtds.jdbcx.JtdsDataSource"
   override def jdbcSchemes = CISet("jtds:sqlserver")
   override def productName: String = "Microsoft SQL Server"

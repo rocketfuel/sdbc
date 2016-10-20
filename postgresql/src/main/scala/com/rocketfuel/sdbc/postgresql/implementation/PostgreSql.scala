@@ -13,7 +13,6 @@ private[sdbc] abstract class PostgreSql
   with PgConnection {
 
   override def dataSourceClassName = "org.postgresql.ds.PGSimpleDataSource"
-  override def driverClassName = "org.postgresql.Driver"
   override def jdbcSchemes = CISet("postgresql")
   override def productName: String = "PostgreSQL"
   override val supportsIsValid: Boolean = true
