@@ -1,5 +1,8 @@
 package com.rocketfuel.sdbc.sqlserver
 
+/**
+  * Represents a node in a [[HierarchyId]].
+  */
 case class HierarchyNode(start: Int, path: Int*) {
   override def toString: String = {
     (start +: path).mkString(".")

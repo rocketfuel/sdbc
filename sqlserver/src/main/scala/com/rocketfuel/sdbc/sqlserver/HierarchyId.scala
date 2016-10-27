@@ -1,5 +1,10 @@
 package com.rocketfuel.sdbc.sqlserver
 
+/**
+  * Corresponds to SQL Server's [[https://msdn.microsoft.com/en-us/library/bb677290.aspx hierarchyid]].
+  * You must use {{{.ToString()}}} in your SELECT queries for SDBC to understand a hierarchyid. It does
+  * not have a parser for the binary format.
+  */
 case class HierarchyId(path: HierarchyNode*) {
   override def toString: String = {
     if (path.isEmpty) {

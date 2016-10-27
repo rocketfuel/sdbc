@@ -5,18 +5,17 @@ import org.postgresql.util.PGobject
 import scala.collection.immutable.Seq
 
 /**
- * LTree class for use by the PostgreSQL JDBC driver.
- * It requires the class be a subclass of PGobject. It creates a new instance
- * using the zero-arg constructor, and then sets the value using setValue().
- * This mutable method of creating an object is not very scala-like, so we
- * supply custom apply and unapply methods.
+ * Corresponds to PostgreSql's [[https://www.postgresql.org/docs/current/static/ltree.html ltree]] type.
  */
-class LTree(
+class LTree private (
   private var path: Option[Seq[String]]
 ) extends PGobject()
   with collection.immutable.Iterable[String]
   with PartialFunction[Int, String] {
 
+  /**
+    * Use [[LTree.apply]] or [[LTree.valueOf]] instead. This constructor is for use by the PostgreSql driver.
+    */
   def this() {
     this(None)
   }
@@ -70,7 +69,7 @@ class LTree(
   }
 
   def ++(that: String): LTree = {
-    LTree(this.getPath ++ LTree.fromString(that): _*)
+    LTree(this.getPath ++ LTree.valueOf(that): _*)
   }
 
   def ++(that: Iterable[String]): LTree = {
@@ -118,11 +117,11 @@ object LTree {
     new LTree(path = Some(path))
   }
 
-  def unapply(ltree: LTree): Option[Seq[String]] = {
-    Some(ltree.getPath)
+  def unapplySeq(lTree: LTree): Option[Seq[String]] = {
+    Some(lTree.getPath)
   }
 
-  def fromString(path: String): LTree = {
+  def valueOf(path: String): LTree = {
     val pathParts = path.split('.')
     apply(pathParts: _*)
   }

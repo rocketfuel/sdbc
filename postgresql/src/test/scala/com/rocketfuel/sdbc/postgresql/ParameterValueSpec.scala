@@ -88,7 +88,7 @@ class ParameterValueSpec
 
   testSelect[InetAddress]("SELECT '1.1.1.1'::inet", Some(InetAddress.getByName("1.1.1.1")))
 
-  testSelect[Cidr]("SELECT '1.1.1.0/24'::cidr", Some(Cidr("1.1.1.0", "24")))
+  testSelect[Cidr]("SELECT '1.1.1.0/24'::cidr", Some(Cidr(InetAddress.getByName("1.1.1.0"), 24)))
 
   testSelect[Map[String, String]]("SELECT 'a=>b'::hstore", Some(Map("a" -> "b")))
 }
