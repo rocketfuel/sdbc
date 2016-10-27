@@ -17,11 +17,11 @@ class CassandraStreamSpec
   test("values are inserted and selected") {implicit connection =>
     Query(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x int)").execute()
 
-    case class IdAndX(x: Int, id: Int)
+    case class IdAndX(id: Int, x: Int)
 
     forAll { randomValues: Seq[Int] =>
       val randoms: Seq[IdAndX] =
-        randomValues.zipWithIndex.map(IdAndX.tupled)
+        randomValues.zipWithIndex.map(t => IdAndX.tupled(t.swap))
 
       val insert: Stream[Task, Unit] = {
         val randomStream = Stream[Task, IdAndX](randoms: _*)

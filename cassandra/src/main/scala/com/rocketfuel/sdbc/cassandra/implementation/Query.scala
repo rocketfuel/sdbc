@@ -1,10 +1,11 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
 import com.datastax.driver.core
-import com.rocketfuel.sdbc.base.CompiledStatement
+import com.rocketfuel.sdbc.base._
 import com.rocketfuel.sdbc.cassandra._
 import fs2.util.Async
-import fs2.{Pipe, Sink, Strategy, Stream, Task}
+import fs2.util.syntax._
+import fs2._
 import scala.collection.convert.wrapAsScala._
 import scala.concurrent.{ExecutionContext, Future}
 import shapeless.ops.record.{MapValues, ToMap}
@@ -13,21 +14,261 @@ import shapeless.{HList, LabelledGeneric}
 trait Query {
   self: Cassandra =>
 
-  case class Query[T] private [cassandra] (
+  /**
+    * Represents a query that is ready to be run against a [[Session]].
+    * @param statement is the text of the query. You can supply a String, and it will be converted to a
+    *                  [[CompiledStatement]] by [[CompiledStatement!.apply(String)]].
+    * @param parameters
+    * @param queryOptions
+    * @param converter
+    * @tparam T
+    */
+  case class Query[T](
     override val statement: CompiledStatement,
-    override val queryOptions: QueryOptions,
-    override val parameters: Parameters
+    override val parameters: Parameters = Parameters.empty,
+    queryOptions: QueryOptions = QueryOptions.default
   )(implicit val converter: RowConverter[T]
-  ) extends ParameterizedQuery[Query[T]]
-    with HasQueryOptions {
+  ) extends ParameterizedQuery[Query[T]] {
     query =>
 
     override protected def subclassConstructor(parameters: Parameters): Query[T] = {
       copy(parameters = parameters)
     }
 
-    private def prepare()(implicit session: Session): core.BoundStatement = {
-      val prepared = session.prepare(query.queryText)
+    def execute()(implicit session: Session): core.ResultSet = {
+      Query.execute(statement, parameters, queryOptions)
+    }
+
+    def iterator()(implicit session: Session): Iterator[T] = {
+      Query.iterator(statement, parameters, queryOptions)
+    }
+
+    def option()(implicit session: Session): Option[T] = {
+      Query.option(statement, parameters, queryOptions)
+    }
+
+    def stream[F[_]](implicit session: Session, async: Async[F]): Stream[F, T] = {
+      Query.stream[F, T](statement, parameters, queryOptions)
+    }
+
+    object future {
+
+      def execute()(implicit session: Session, ec: ExecutionContext): Future[core.ResultSet] = {
+        Query.future.execute(statement, queryOptions, parameters)
+      }
+
+      def iterator()(implicit session: Session, ec: ExecutionContext): Future[Iterator[T]] = {
+        Query.future.iterator(statement, queryOptions, parameters)
+      }
+
+      def option()(implicit session: Session, ec: ExecutionContext): Future[Option[T]] = {
+        Query.future.option(statement, queryOptions, parameters)
+      }
+
+    }
+
+    object async {
+
+      def execute[F[_]]()(implicit session: Session, async: Async[F]): F[core.ResultSet] = {
+        Query.async.execute(statement, queryOptions, parameters)
+      }
+
+      def iterator[F[_]]()(implicit session: Session, async: Async[F]): F[Iterator[T]] = {
+        Query.async.iterator(statement, queryOptions, parameters)
+      }
+
+      def option[F[_]]()(implicit session: Session, async: Async[F]): F[Option[T]] = {
+        Query.async.option(statement, queryOptions, parameters)
+      }
+
+    }
+
+    object task {
+
+      def execute()(implicit session: Session, strategy: Strategy): Task[core.ResultSet] = {
+        async.execute[Task]()
+      }
+
+      def iterator(implicit session: Session, strategy: Strategy): Task[Iterator[T]] = {
+        async.iterator[Task]()
+      }
+
+      def option()(implicit session: Session, strategy: Strategy): Task[Option[T]] = {
+        async.option[Task]()
+      }
+
+    }
+
+    def pipe[F[_]](implicit async: Async[F]): Query.Pipe[F, T] =
+      new Query.Pipe[F, T](statement, parameters, queryOptions)
+
+    def sink[F[_]](implicit async: Async[F]): Query.Sink[F] =
+      new Query.Sink[F](statement, parameters, queryOptions)
+
+  }
+
+  object Query
+    extends QueryCompanionOps
+      with Logging {
+
+    def execute(
+      statement: CompiledStatement,
+      parameters: Parameters = Parameters.empty,
+      queryOptions: QueryOptions = QueryOptions.default
+    )(implicit session: Session
+    ): core.ResultSet = {
+      logExecution(statement, parameters)
+
+      val prepared = prepare(statement, parameters, queryOptions)
+      session.execute(prepared)
+    }
+
+    def iterator[A](
+      statement: CompiledStatement,
+      parameters: Parameters = Parameters.empty,
+      queryOptions: QueryOptions = QueryOptions.default
+    )(implicit converter: RowConverter[A],
+      session: Session
+    ): Iterator[A] = {
+      execute(statement, parameters, queryOptions).iterator().map(converter)
+    }
+
+    def stream[F[_], A](
+      statement: CompiledStatement,
+      parameters: Parameters = Parameters.empty,
+      queryOptions: QueryOptions = QueryOptions.default
+    )(implicit converter: RowConverter[A],
+      session: Session,
+      async: Async[F]
+    ): Stream[F, A] = {
+
+      def currentChunk(results: core.ResultSet, chunkSize: Int): Stream[F, A] = {
+        val chunk = Vector.fill[A](chunkSize)(results.one())
+        Stream.chunk(Chunk.seq(chunk))
+      }
+
+      def chunks(results: core.ResultSet): Stream[F, A] = {
+        (results.getAvailableWithoutFetching, results.isFullyFetched) match {
+          case (0, false) =>
+            for {
+              nextResults <- Stream.eval(toAsync[F, core.ResultSet](results.fetchMoreResults()))
+              one <- chunks(nextResults)
+            } yield one
+
+          case (0, true) =>
+            Stream.empty[F, A]
+
+          case (chunkSize, _) =>
+            //Get results that won't cause any IO, then append the ones that do.
+            currentChunk(results, chunkSize) ++ chunks(results)
+        }
+      }
+
+      for {
+        results <- Stream.eval(this.async[F].execute(statement, queryOptions, parameters))
+        next <- chunks(results)
+      } yield next
+    }
+
+    def option[A](
+      statement: CompiledStatement,
+      parameters: Parameters = Parameters.empty,
+      queryOptions: QueryOptions = QueryOptions.default
+    )(implicit converter: RowConverter[A],
+      session: Session
+    ): Option[A] = {
+      Option(execute(statement, parameters, queryOptions).one()).map(converter)
+    }
+
+    abstract class PipeAux[F[_], A] private[Query] (
+      statement: CompiledStatement,
+      defaultParameters: Parameters,
+      queryOptions: QueryOptions
+    )(implicit async: Async[F]
+    ) {
+      protected def aux(additionalParameters: Parameters)(implicit session: Session): A
+
+      def parameters(implicit session: Session): fs2.Pipe[F, Parameters, A] = {
+        fs2.pipe.lift[F, Parameters, A] { parameters =>
+          aux(parameters)
+        }
+      }
+
+      def product[
+        B,
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit session: Session,
+        genericA: LabelledGeneric.Aux[B, Repr],
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+      ): fs2.Pipe[F, B, A] = {
+        fs2.pipe.lift[F, B, A] { parameters =>
+          aux(Parameters.product(parameters))
+        }
+      }
+
+      def record[
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit session: Session,
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+      ): fs2.Pipe[F, Repr, A] = {
+        fs2.pipe.lift[F, Repr, A] { parameters =>
+          aux(Parameters.record(parameters))
+        }
+      }
+    }
+
+    case class Pipe[F[_], A](
+      statement: CompiledStatement,
+      defaultParameters: Parameters = Parameters.empty,
+      queryOptions: QueryOptions = QueryOptions.default
+    )(implicit async: Async[F],
+      converter: RowConverter[A]
+    ) extends PipeAux[F, Stream[F, A]](
+      statement,
+      defaultParameters,
+      queryOptions
+    ) {
+      override protected def aux(additionalParameters: Parameters)(implicit session: Session): Stream[F, A] = {
+        stream[F, A](statement, defaultParameters ++ additionalParameters, queryOptions)
+      }
+    }
+
+    case class Sink[F[_]](
+      statement: CompiledStatement,
+      defaultParameters: Parameters = Parameters.empty,
+      queryOptions: QueryOptions = QueryOptions.default
+    )(implicit async: Async[F]
+    ) extends PipeAux[F, Unit](
+      statement,
+      defaultParameters,
+      queryOptions
+    ) {
+      override protected def aux(additionalParameters: Parameters)(implicit session: Session): Unit = {
+        execute(statement, defaultParameters ++ additionalParameters, queryOptions)
+      }
+    }
+
+}
+
+  //This class exists merely to solve the name clash that occurs
+  //when a class and its companion object have objects with the same
+  //name.
+  trait QueryCompanionOps {
+    self: Logging =>
+
+    protected def prepare(
+      statement: CompiledStatement,
+      parameters: Parameters,
+      queryOptions: QueryOptions
+    )(implicit session: Session
+    ): core.BoundStatement = {
+      val prepared = session.prepare(statement.queryText)
 
       val forBinding = prepared.bind()
 
@@ -43,202 +284,95 @@ trait Query {
       forBinding
     }
 
-    def execute()(implicit session: Session): core.ResultSet = {
-      logExecution()
+    protected def logExecution(statement: CompiledStatement, parameters: Parameters): Unit =
+      logger.debug(s"""Executing "${statement.originalQueryText}" with parameters $parameters.""")
 
-      val prepared = prepare()
-      session.execute(prepared)
+    class AsyncMethods[F[_]] private[Query] (implicit async: Async[F]) {
+
+      def execute(
+        statement: CompiledStatement,
+        queryOptions: QueryOptions,
+        parameters: Parameters
+      )(implicit session: Session
+      ): F[core.ResultSet] = {
+        logExecution(statement, parameters)
+
+        val prepared = prepare(statement, parameters, queryOptions)
+        toAsync[F, core.ResultSet](session.executeAsync(prepared))
+      }
+
+      def iterator[A](
+        statement: CompiledStatement,
+        queryOptions: QueryOptions,
+        parameters: Parameters
+      )(implicit converter: RowConverter[A],
+        session: Session
+      ): F[Iterator[A]] = {
+        for {
+          results <- execute(statement, queryOptions, parameters)
+        } yield results.iterator().map(converter)
+      }
+
+      def option[A](
+        statement: CompiledStatement,
+        queryOptions: QueryOptions,
+        parameters: Parameters
+      )(implicit converter: RowConverter[A],
+        session: Session
+      ): F[Option[A]] = {
+        for {
+          results <- execute(statement, queryOptions, parameters)
+        } yield Option(results.one()).map(converter)
+      }
+
     }
 
-    def iterator()(implicit session: Session): Iterator[T] = {
-      val results = execute()
-      results.iterator().map(converter)
-    }
+    def async[F[_]](implicit async: Async[F]): AsyncMethods[F] =
+      new AsyncMethods[F]
 
-    def option()(implicit session: Session): Option[T] = {
-      val results = execute()
-      Option(results.one()).map(converter)
-    }
+    def task(implicit strategy: Strategy): AsyncMethods[Task] =
+      new AsyncMethods[Task]
 
     object future {
 
-      def execute()(implicit session: Session, ec: ExecutionContext): Future[core.ResultSet] = {
-        logExecution()
+      def execute(
+        statement: CompiledStatement,
+        queryOptions: QueryOptions,
+        parameters: Parameters
+      )(implicit session: Session,
+        ec: ExecutionContext
+      ): Future[core.ResultSet] = {
+        logExecution(statement, parameters)
 
-        val prepared = prepare()
+        val prepared = prepare(statement, parameters, queryOptions)
         toScalaFuture(session.executeAsync(prepared))
       }
 
-      def iterator()(implicit session: Session, ec: ExecutionContext): Future[Iterator[T]] = {
-        execute().map(_.iterator().map(converter))
+      def iterator[A](
+        statement: CompiledStatement,
+        queryOptions: QueryOptions,
+        parameters: Parameters
+      )(implicit converter: RowConverter[A],
+        session: Session,
+        ec: ExecutionContext
+      ): Future[Iterator[A]] = {
+        execute(statement, queryOptions, parameters).map(_.iterator().map(converter))
       }
 
-      def option()(implicit session: Session, ec: ExecutionContext): Future[Option[T]] = {
+      def option[A](
+        statement: CompiledStatement,
+        queryOptions: QueryOptions,
+        parameters: Parameters
+      )(implicit converter: RowConverter[A],
+        session: Session,
+        ec: ExecutionContext
+      ): Future[Option[A]] = {
         for {
-          results <- execute()
+          results <- execute(statement, queryOptions, parameters)
         } yield Option(results.one()).map(converter)
       }
 
     }
-
-    object task {
-
-      def execute()(implicit session: Session, strategy: Strategy): Task[core.ResultSet] = {
-        logExecution()
-
-        val prepared = prepare()
-        toAsync[Task, core.ResultSet](session.executeAsync(prepared))
-      }
-
-      def iterator()(implicit session: Session, strategy: Strategy): Task[Iterator[T]] = {
-        execute().map(_.iterator().map(converter))
-      }
-
-      def option()(implicit session: Session, strategy: Strategy): Task[Option[T]] = {
-        for {
-          results <- execute()
-        } yield Option(results.one()).map(converter)
-      }
-
-    }
-
-    def pipe[F[_]](implicit
-      session: Session,
-      rowConverter: RowConverter[T],
-      async: Async[F]
-    ): PipeOps[F] =
-      new PipeOps[F]
-
-    def sink[F[_]](implicit
-      session: Session,
-      rowConverter: RowConverter[T],
-      async: Async[F]
-    ): SinkOps[F] =
-      new SinkOps[F]
-
-    class PipeOps[F[_]] private[Query] {
-      def parameters(implicit
-        session: Session,
-        rowConverter: RowConverter[T],
-        async: Async[F]
-      ): Pipe[F, Parameters, Stream[F, T]] = {
-        fs2.pipe.lift[F, Parameters, Stream[F, T]] { parameters =>
-          Query.iteratorToStream(onParameters(parameters).iterator())
-        }
-      }
-
-      def product[
-        A,
-        Repr <: HList,
-        Key <: Symbol,
-        AsParameters <: HList
-      ](implicit
-        session: Session,
-        rowConverter: RowConverter[T],
-        async: Async[F],
-        genericA: LabelledGeneric.Aux[A, Repr],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
-      ): Pipe[F, A, Stream[F, T]] = {
-        fs2.pipe.lift[F, A, Stream[F, T]] { parameters =>
-          Query.iteratorToStream(onProduct(parameters).iterator())
-        }
-      }
-
-      def record[
-        Repr <: HList,
-        Key <: Symbol,
-        AsParameters <: HList
-      ](implicit session: Session,
-        rowConverter: RowConverter[T],
-        async: Async[F],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
-      ): Pipe[F, Repr, Stream[F, T]] = {
-        fs2.pipe.lift[F, Repr, Stream[F, T]] { parameters =>
-          Query.iteratorToStream(onRecord(parameters).iterator())
-        }
-      }
-    }
-
-    class SinkOps[F[_]] private[Query] {
-      def parameters(implicit
-        session: Session,
-        rowConverter: RowConverter[T],
-        async: Async[F]
-      ): Sink[F, Parameters] = {
-        fs2.pipe.lift[F, Parameters, Unit] { parameters =>
-          onParameters(parameters).execute()
-        }
-      }
-
-      def product[
-        A,
-        Repr <: HList,
-        Key <: Symbol,
-        AsParameters <: HList
-      ](implicit
-        session: Session,
-        rowConverter: RowConverter[T],
-        async: Async[F],
-        genericA: LabelledGeneric.Aux[A, Repr],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
-      ): Sink[F, A] = {
-        fs2.pipe.lift[F, A, Unit] { parameters =>
-          onProduct(parameters).execute()
-        }
-      }
-
-      def record[
-        Repr <: HList,
-        Key <: Symbol,
-        AsParameters <: HList
-      ](implicit session: Session,
-        rowConverter: RowConverter[T],
-        async: Async[F],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
-      ): Sink[F, Repr] = {
-        fs2.pipe.lift[F, Repr, Unit] { parameters =>
-          onRecord(parameters).execute()
-        }
-      }
-    }
-
-  }
-
-  object Query {
-
-    def apply[T](
-      queryText: String,
-      hasParameters: Boolean = true,
-      queryOptions: QueryOptions = QueryOptions.default
-    )(implicit converter: RowConverter[T]
-    ): Query[T] = {
-      Query[T](
-        if (hasParameters) CompiledStatement(queryText) else CompiledStatement.literal(queryText),
-        queryOptions,
-        Parameters.empty
-      )
-    }
-
-    private[implementation] def iteratorToStream[F[_], A](i: Iterator[A])(implicit a: Async[F]): Stream[F, A] = {
-      val step: F[Option[A]] = a.delay {
-        if (i.hasNext) Some(i.next)
-        else None
-      }
-
-      Stream.eval(step).repeat.through(fs2.pipe.unNoneTerminate)
-    }
-
-    private[implementation] def iteratorToStream[F[_], A](i: F[Iterator[A]])(implicit a: Async[F]): Stream[F, A] = {
-      for {
-        iterator <- Stream.eval(i)
-        elem <- iteratorToStream(iterator)
-      } yield elem
-    }
-
   }
 
 }

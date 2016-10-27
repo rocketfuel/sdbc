@@ -4,6 +4,8 @@ import org.slf4j.LoggerFactory
 
 trait Logging {
 
-  val logger = LoggerFactory.getLogger(getClass)
+  protected val logClass: Class[_] = getClass
+
+  protected val logger = LoggerFactory.getLogger(logClass)
 
 }

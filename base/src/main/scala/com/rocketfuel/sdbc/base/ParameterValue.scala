@@ -1,5 +1,7 @@
 package com.rocketfuel.sdbc.base
 
+import fs2.pipe
+import fs2.util.Async
 import shapeless._
 import shapeless.record._
 import shapeless.ops.record._
@@ -147,6 +149,34 @@ trait ParameterValue {
       }
     }
 
+    case class Pipe[F[_]](implicit async: Async[F]) {
+      def combine(p: Parameters): fs2.Pipe[F, Parameters, Parameters] = {
+        pipe.lift(p ++ _)
+      }
+
+      def products[
+        A,
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit genericA: LabelledGeneric.Aux[A, Repr],
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+      ): fs2.Pipe[F, A, Parameters] = {
+        pipe.lift(Parameters.product[A, Repr, Key, AsParameters])
+      }
+
+      def records[
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+      ): fs2.Pipe[F, Repr, Parameters] = {
+        pipe.lift(Parameters.record[Repr, Key, AsParameters])
+      }
+    }
+
   }
 
   object ToParameterValue extends Poly {
@@ -180,36 +210,4 @@ trait ParameterValue {
   }
 
   type ParameterBatches = Seq[Parameters]
-
-  object ParameterBatches {
-
-    val empty: ParameterBatches = Seq.empty
-
-    implicit def products[
-      A,
-      Repr <: HList,
-      Key <: Symbol,
-      AsParameters <: HList
-    ](ts: Seq[A]
-    )(implicit genericA: LabelledGeneric.Aux[A, Repr],
-      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-      toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
-    ): ParameterBatches = {
-      val asGeneric = ts.map(genericA.to)
-      records(asGeneric)
-    }
-
-    implicit def records[
-      Repr <: HList,
-      Key <: Symbol,
-      AsParameters <: HList
-    ](ts: Seq[Repr]
-    )(implicit valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-      toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
-    ): ParameterBatches = {
-      ts.map(Parameters.record(_))
-    }
-
-  }
-
 }

@@ -233,9 +233,9 @@ trait Connection {
     *
     * @param connection
     */
-  def initializeConnection(connection: Connection): Unit = ()
+  protected def initializeConnection(connection: Connection): Unit = ()
 
-  def toBaseConnection(connection: Connection): BaseConnection
+  protected def toBaseConnection(connection: Connection): BaseConnection
 
 }
 
@@ -247,7 +247,7 @@ trait JdbcConnection
   override protected val baseConnection: Class[sql.Connection] =
     classOf[sql.Connection]
 
-  override def toBaseConnection(connection: Connection): BaseConnection =
+  override protected def toBaseConnection(connection: Connection): BaseConnection =
     connection
 
 }

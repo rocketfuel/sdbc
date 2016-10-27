@@ -1,16 +1,27 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.Logging
+import com.rocketfuel.sdbc.base.{Logging, StreamUtils}
+import fs2.{Stream, pipe}
+import fs2.util.Async
+import shapeless.ops.record.{MapValues, ToMap}
+import shapeless.{HList, LabelledGeneric}
 
 trait Select {
   self: DBMS with Connection =>
 
-  case class Select[A] private[jdbc] (
+  /**
+    * Represents a query that is ready to be run against a [[Connection]].
+    * @param statement is the text of the query. You can supply a String, and it will be converted to a
+    *                  [[CompiledStatement]] by [[CompiledStatement!.apply(String)]].
+    * @param parameters
+    * @param rowConverter
+    * @tparam A
+    */
+  case class Select[A](
     override val statement: CompiledStatement,
-    override val parameters: Parameters
+    override val parameters: Parameters = Parameters.empty
   )(implicit rowConverter: RowConverter[A]
-  ) extends ParameterizedQuery[Select[A]]
-    with Executes {
+  ) extends IgnorableQuery[Select[A]] {
 
     override def subclassConstructor(parameters: Parameters): Select[A] = {
       copy(parameters = parameters)
@@ -24,44 +35,13 @@ trait Select {
       Select.option(statement, parameters)
     }
 
-    override def execute()(implicit connection: Connection): Unit = {
-      Execute.execute(statement, parameters)
-    }
+    def pipe[F[_]](implicit async: Async[F]): Select.Pipe[F, A] =
+      Select.Pipe(statement, parameters)
 
   }
 
   object Select
     extends Logging {
-
-    def apply[A](
-      queryText: String
-    )(implicit rowConverter: RowConverter[A]
-    ): Select[A] = {
-      Select[A](
-        statement = CompiledStatement(queryText),
-        parameters = Parameters.empty
-      )
-    }
-
-    /**
-      * Construct the query without finding named parameters. No escaping will
-      * need to be performed for a literal '@' to appear in the query. You will
-      * not be able to use parameters when running this query.
-      *
-      * @param queryText
-      * @param rowConverter
-      * @tparam A
-      * @return
-      */
-    def literal[A](
-      queryText: String
-    )(implicit rowConverter: RowConverter[A]
-    ): Select[A] = {
-      Select[A](
-        statement = CompiledStatement.literal(queryText),
-        parameters = Parameters.empty
-      )
-    }
 
     def iterator[A](
       queryText: String,
@@ -74,7 +54,7 @@ trait Select {
       iterator(statement, parameterValues)
     }
 
-    private def iterator[A](
+    def iterator[A](
       statement: CompiledStatement,
       parameterValues: Parameters
     )(implicit connection: Connection,
@@ -95,7 +75,7 @@ trait Select {
       option(statement, parameterValues)
     }
 
-    private def option[A](
+    def option[A](
       statement: CompiledStatement,
       parameterValues: Parameters
     )(implicit connection: Connection,
@@ -104,6 +84,52 @@ trait Select {
       logRun(statement, parameterValues)
       val executed = QueryMethods.execute(statement, parameterValues)
       StatementConverter.convertedRowOption.apply(executed)
+    }
+
+    case class Pipe[F[_], A](
+      statement: CompiledStatement,
+      defaultParameters: Parameters
+    )(implicit async: Async[F],
+      rowConverter: RowConverter[A]
+    ) {
+      private val parameterPipe = Parameters.Pipe[F]
+
+      def parameters(implicit pool: Pool): fs2.Pipe[F, Parameters, Stream[F, A]] = {
+        parameterPipe.combine(defaultParameters).andThen(
+          pipe.lift[F, Parameters, Stream[F, A]] { params =>
+            StreamUtils.fromIteratorR[F, Connection, A](
+              async.delay(pool.getConnection()),
+              {implicit connection: Connection => async.delay(iterator(statement, params))},
+              (connection: Connection) => async.delay(connection.close())
+            )
+          }
+        )
+      }
+
+      def products[
+        B,
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit pool: Pool,
+        genericA: LabelledGeneric.Aux[B, Repr],
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+      ): fs2.Pipe[F, B, Stream[F, A]] = {
+        parameterPipe.products.andThen(parameters)
+      }
+
+      def records[
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit pool: Pool,
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+      ): fs2.Pipe[F, Repr, Stream[F, A]] = {
+        parameterPipe.records.andThen(parameters)
+      }
+
     }
 
     private def logRun(

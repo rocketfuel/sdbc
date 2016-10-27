@@ -2,6 +2,8 @@ package com.rocketfuel.sdbc.base.jdbc
 
 import java.sql.SQLFeatureNotSupportedException
 import com.rocketfuel.sdbc.base.Logging
+import fs2._
+import fs2.util.Async
 import shapeless.ops.record.{MapValues, ToMap}
 import shapeless.{HList, LabelledGeneric}
 
@@ -16,24 +18,20 @@ trait Batch {
     * or by passing parameters to {@link #addBatch}.
     *
     * @param statement
-    * @param parameters
-    * @param batches
+    * @param defaultParameters are parameters included in each batch.
+    * @param batches are parameters to add or replace the defaultParameters for each batch.
     */
-  case class Batch private[jdbc] (
+  case class Batch(
     statement: CompiledStatement,
-    parameters: Parameters,
-    batches: ParameterBatches
-  ) extends ParameterizedQuery[Batch]
-    with Executes {
+    defaultParameters: Parameters = Parameters.empty,
+    batches: ParameterBatches = Vector.empty[Parameters]
+  ) extends ParameterizedQuery[Batch] {
+    batchSelf =>
 
-    def addParameters(parameters: Parameters): Batch = {
-      val newBatch = setParameters(parameters)
+    override def parameters: Parameters = defaultParameters
 
-      Batch(
-        statement,
-        Parameters.empty,
-        batches :+ newBatch
-      )
+    def addParameters(batchParameters: Parameters): Batch = {
+      copy(batches = batches :+ batchParameters)
     }
 
     def add(additionalParameter: (String, ParameterValue), additionalParameters: (String, ParameterValue)*): Batch = {
@@ -64,71 +62,50 @@ trait Batch {
       addParameters(Parameters.record(t))
     }
 
-    def run()(implicit connection: Connection): IndexedSeq[Long] = {
-      Batch.run(statement, batches)
+    def batch()(implicit connection: Connection): IndexedSeq[Long] = {
+      Batch.run(statement, defaultParameters, batches)
     }
 
-    override def execute()(implicit connection: Connection): Unit = {
-      run()
+    def execute()(implicit connection: Connection): Unit = {
+      batch()
     }
+
+    def pipe[F[_]](implicit async: Async[F]): Batch.Pipe[F] =
+      Batch.Pipe[F](statement, parameters)
+
+    def sink[F[_]](implicit async: Async[F]): Batch.Sink[F] =
+      Batch.Sink[F](statement, parameters)
 
     override protected def subclassConstructor(
       parameters: Parameters
     ): Batch = {
-      copy(parameters = parameters)
+      copy(defaultParameters = parameters)
     }
+
   }
 
   object Batch
     extends Logging {
 
-    def apply(
-      queryText: String
-    ): Batch = {
-      val statement = CompiledStatement(queryText)
-      apply(statement)
-    }
-
-    def apply(
-      statement: CompiledStatement
-    ): Batch = {
-      Batch(
-        statement = statement,
-        parameters = Parameters.empty,
-        batches = Vector.empty[Parameters]
-      )
-    }
-
-    def literal(
-      queryText: String
-    ): Batch = {
-      Batch(
-        statement = CompiledStatement.literal(queryText),
-        parameters = Parameters.empty,
-        batches = Vector.empty[Parameters]
-      )
-    }
-
-    def run(
-      queryText: String,
-      batches: ParameterBatches
-    )(implicit connection: Connection): IndexedSeq[Long] = {
-      val statement = CompiledStatement(queryText)
-      run(statement, batches)
-    }
-
     protected def prepare(
       compiledStatement: CompiledStatement,
+      defaultParameters: Parameters,
       batches: ParameterBatches
     )(implicit connection: Connection
     ): PreparedStatement = {
       val prepared = connection.prepareStatement(compiledStatement.queryText)
-      for (batch <- batches) {
-        for ((name, value) <- batch) {
+
+      def setParameters(parameters: Parameters): Unit = {
+        for ((name, value) <- parameters) {
           for (index <- compiledStatement.parameterPositions(name)) {
             value.set(prepared, index)
           }
         }
+      }
+
+      for (batch <- batches) {
+        setParameters(defaultParameters)
+        setParameters(batch)
         prepared.addBatch()
       }
       prepared
@@ -136,11 +113,12 @@ trait Batch {
 
     def run(
       compiledStatement: CompiledStatement,
-      batches: Seq[Parameters]
+      defaultParameters: Parameters = Parameters.empty,
+      batches: ParameterBatches
     )(implicit connection: Connection
     ): IndexedSeq[Long] = {
 
-      val prepared = prepare(compiledStatement, batches)
+      val prepared = prepare(compiledStatement, defaultParameters, batches)
 
       logRun(compiledStatement, batches)
 
@@ -153,6 +131,89 @@ trait Batch {
       }
       prepared.close()
       result.toVector
+    }
+
+    case class Sink[F[_]](
+      statement: CompiledStatement,
+      defaultParameters: Parameters = Parameters.empty
+    )(implicit async: Async[F]
+    ) {
+      def parameters(implicit pool: Pool): fs2.Pipe[F, Seq[Parameters], Unit] = {
+        paramStream =>
+          for {
+            params <- paramStream
+            result <- Stream.bracket[F, Connection, IndexedSeq[Long]](
+              r = async.delay(pool.getConnection())
+            )(use = {implicit connection: Connection => Stream.eval(async.delay(Batch.run(statement, defaultParameters, params)))},
+              release = connection => async.delay(connection.close())
+            )
+          } yield ()
+      }
+
+      def products[
+        A,
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit pool: Pool,
+        genericA: LabelledGeneric.Aux[A, Repr],
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+      ): fs2.Pipe[F, Seq[A], Unit] = {
+        _.map(_.map(Parameters.product[A, Repr, Key, AsParameters])).to(parameters)
+      }
+
+      def records[
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit pool: Pool,
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+      ): fs2.Pipe[F, Seq[Repr], Unit] = {
+        _.map(_.map(Parameters.record[Repr, Key, AsParameters])).to(parameters)
+      }
+    }
+
+    case class Pipe[F[_]](
+      statement: CompiledStatement,
+      defaultParameters: Parameters = Parameters.empty
+    )(implicit async: Async[F]
+    ) {
+      def parameters(implicit pool: Pool): fs2.Pipe[F, Seq[Parameters], IndexedSeq[Long]] = {
+        pipe.lift[F, Seq[Parameters], IndexedSeq[Long]] { params =>
+          val withParams =
+            params.map(defaultParameters ++ _)
+
+          pool.withConnection { implicit connection =>
+            Batch.run(statement, defaultParameters, withParams)
+          }
+        }
+      }
+
+      def products[
+        A,
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit pool: Pool,
+        genericA: LabelledGeneric.Aux[A, Repr],
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+      ): fs2.Pipe[F, Seq[A], IndexedSeq[Long]] = {
+        _.map(_.map(Parameters.product[A, Repr, Key, AsParameters])).through(parameters)
+      }
+
+      def records[
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit pool: Pool,
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+      ): fs2.Pipe[F, Seq[Repr], IndexedSeq[Long]] = {
+        _.map(_.map(Parameters.record[Repr, Key, AsParameters])).through(parameters)
+      }
     }
 
     private def logRun(

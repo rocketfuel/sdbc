@@ -2,6 +2,10 @@ package com.rocketfuel.sdbc.base.jdbc
 
 import com.rocketfuel.sdbc.base.Logging
 import com.rocketfuel.sdbc.base.jdbc.statement.MultiStatementConverter
+import fs2.Stream
+import fs2.util.Async
+import shapeless.ops.record.{MapValues, ToMap}
+import shapeless.{HList, LabelledGeneric}
 
 /**
   * Add support for queries with multiple result sets, for use with DBMSs
@@ -11,11 +15,11 @@ import com.rocketfuel.sdbc.base.jdbc.statement.MultiStatementConverter
 trait MultiQuery extends MultiStatementConverter {
   self: DBMS with Connection =>
 
-  case class MultiQuery[A] private[jdbc] (
+  case class MultiQuery[A](
     override val statement: CompiledStatement,
     override val parameters: Parameters
   )(implicit statementConverter: MultiStatementConverter[A]
-  ) extends ParameterizedQuery[MultiQuery[A]] {
+  ) extends IgnorableQuery[MultiQuery[A]] {
 
     override def subclassConstructor(parameters: Parameters): MultiQuery[A] = {
       copy(parameters = parameters)
@@ -25,39 +29,13 @@ trait MultiQuery extends MultiStatementConverter {
       MultiQuery.run(statement, parameters)
     }
 
+    def pipe[F[_]](implicit async: Async[F]): MultiQuery.Pipe[F, A] =
+      MultiQuery.pipe(statement, parameters)
+
   }
 
   object MultiQuery
     extends Logging {
-
-    def apply[A](
-      queryText: String
-    )(implicit statementConverter: MultiStatementConverter[A]
-    ): MultiQuery[A] = {
-      MultiQuery[A](
-        statement = CompiledStatement(queryText),
-        parameters = Map.empty[String, ParameterValue]
-      )
-    }
-
-    /**
-      * Construct the query without named parameters. No escaping will
-      * need to be performed for a literal '@' to appear in the query.
-      *
-      * @param queryText
-      * @param statementConverter
-      * @tparam A
-      * @return
-      */
-    def literal[A](
-      queryText: String
-    )(implicit statementConverter: MultiStatementConverter[A]
-    ): MultiQuery[A] = {
-      MultiQuery[A](
-        statement = CompiledStatement.literal(queryText),
-        parameters = Map.empty[String, ParameterValue]
-      )
-    }
 
     def run[A](
       compiledStatement: CompiledStatement,
@@ -73,6 +51,63 @@ trait MultiQuery extends MultiStatementConverter {
       bound
     }
 
+    class Pipe[F[_], A] private[MultiQuery] (
+      statement: CompiledStatement,
+      defaultParameters: Parameters
+    )(implicit async: Async[F],
+      statementConverter: MultiStatementConverter[A]
+    ) {
+      private val parameterPipe = Parameters.Pipe[F]
+
+      def parameters(implicit pool: Pool): fs2.Pipe[F, Parameters, A] = {
+        parameterPipe.combine(defaultParameters).andThen(
+          paramStream =>
+            for {
+              params <- paramStream
+              result <-
+              Stream.bracket(
+                r = async.delay(pool.getConnection())
+              )(use = {implicit connection => Stream.eval(async.delay(run(statement, params)))},
+                release = connection => async.delay(connection.close())
+              )
+            } yield result
+        )
+      }
+
+      def products[
+        B,
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit pool: Pool,
+        genericA: LabelledGeneric.Aux[B, Repr],
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+      ): fs2.Pipe[F, B, A] = {
+        _.map(p => Parameters.product(p)).through(parameters)
+      }
+
+      def records[
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit pool: Pool,
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+      ): fs2.Pipe[F, Repr, A] = {
+        _.map(p => Parameters.record(p)).through(parameters)
+      }
+
+    }
+
+    def pipe[F[_], A](
+      statement: CompiledStatement,
+      defaultParameters: Parameters = Parameters.empty
+    )(implicit async: Async[F],
+      statementConverter: MultiStatementConverter[A]
+    ): Pipe[F, A] =
+      new Pipe[F, A](statement, defaultParameters)
+
     private def logRun(
       compiledStatement: CompiledStatement,
       parameters: Parameters
@@ -81,6 +116,5 @@ trait MultiQuery extends MultiStatementConverter {
     }
 
   }
-
 
 }

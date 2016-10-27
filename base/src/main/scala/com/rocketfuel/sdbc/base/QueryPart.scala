@@ -6,7 +6,7 @@ private sealed trait QueryPart {
     */
   val value: Vector[Int]
 
-  override def toString: String = value.flatMap(Character.toChars(_).toVector).mkString
+  override def toString: String = new String(value.toArray.flatMap(Character.toChars(_)))
 }
 
 private case class Parameter(value: Vector[Int]) extends QueryPart

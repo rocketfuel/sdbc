@@ -7,6 +7,7 @@ description := "SDBC is a database API for Scala."
 val macroParadiseVersion = "2.1.0"
 
 libraryDependencies ++= Seq(
+  "co.fs2" %% "fs2-core" % "0.9.1",
   //Logging
   "org.slf4j" % "slf4j-api" % "1.7.21",
   "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.7" % "test",

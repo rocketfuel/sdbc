@@ -22,7 +22,7 @@ class RichResultSetSpec
         batch.add("x" -> r)
     }
 
-    val insertions = batch.run()
+    val insertions = batch.batch()
 
     assertResult(randoms.size)(insertions.sum)
 
@@ -40,7 +40,7 @@ class RichResultSetSpec
         batch.add("x" -> r)
     }
 
-    batch.run()
+    batch.batch()
 
     val select =
       Select[Int]("SELECT x FROM tbl ORDER BY id ASC")

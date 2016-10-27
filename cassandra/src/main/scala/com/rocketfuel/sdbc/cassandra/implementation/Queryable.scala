@@ -1,6 +1,7 @@
 package com.rocketfuel.sdbc.cassandra.implementation
 
 import com.datastax.driver.core
+import com.rocketfuel.sdbc.base.StreamUtils
 import fs2.util.Async
 import fs2.{Pipe, Stream}
 
@@ -40,7 +41,7 @@ trait Queryable {
       }
       fs2.pipe.lift[F, Key, Stream[F, Value]] { key =>
         def use(session: Session) = {
-          Query.iteratorToStream(queryable.query(key).iterator()(session))
+          StreamUtils.fromIterator(queryable.query(key).iterator()(session))
         }
         fs2.Stream.bracket(req)(use, release)
       }
@@ -58,7 +59,7 @@ trait Queryable {
         case (keyspace, key) =>
           val req = toAsync(cluster.connectAsync(keyspace))
           def use(session: Session) = {
-            Query.iteratorToStream(queryable.query(key).iterator()(session))
+            StreamUtils.fromIterator(queryable.query(key).iterator()(session))
           }
           fs2.Stream.bracket(req)(use, release)
       }

@@ -1,7 +1,5 @@
 package com.rocketfuel.sdbc.base
 
-import java.util.function.IntConsumer
-
 /**
   * Represents a query with named parameters.
   *
@@ -41,17 +39,20 @@ object CompiledStatement {
     *
     * {{{"@_i_am_busy"}}}
     *
-    * @param queryText
+    * @param originalQueryText
     */
-  def apply(
-    queryText: String
+  implicit def apply(
+    originalQueryText: String
   ): CompiledStatement = {
-    val parts = findParts(queryText)
+    val parts = findParts(originalQueryText)
     val positions = findParameterPositions(parts)
-    val statement = partsToStatement(parts)
-    CompiledStatement(statement, queryText, positions)
+    val queryText = partsToStatement(parts)
+    CompiledStatement(queryText, originalQueryText, positions)
   }
 
+  /**
+    * Construct a CompiledStatement without altering the queryText.
+    */
   def literal(
     queryText: String
   ): CompiledStatement = {
@@ -63,8 +64,8 @@ object CompiledStatement {
    * the string context (they're replaced by empty strings),
    * use numbers to represent the parameter names, starting
    * from 0.
-    *
-    * @param sc
+   *
+   * @param sc
    * @return
    */
   def apply(sc: StringContext): CompiledStatement = {
@@ -74,7 +75,7 @@ object CompiledStatement {
 
     builder.append(StringContext.treatEscapes(parts.next()))
 
-    while(parts.hasNext) {
+    while (parts.hasNext) {
       builder.append(s"@`$i`")
       i += 1
       builder.append(StringContext.treatEscapes(parts.next()))
@@ -104,7 +105,8 @@ object CompiledStatement {
   }
 
   private case class FindPartsAccum(
-    accum: Vector[QueryPart],maybeParamAccum: Option[ParamAccum],
+    accum: Vector[QueryPart],
+    maybeParamAccum: Option[ParamAccum],
     literalAccum: Vector[Int]
   ) {
     def append(codePoint: Int): FindPartsAccum = {
@@ -181,15 +183,7 @@ object CompiledStatement {
   }
 
   private def findParts(value: String): Vector[QueryPart] = {
-
-    val codePoints = collection.mutable.Buffer.empty[Int]
-
-    value.codePoints.forEach(new IntConsumer {
-      override def accept(value: Int): Unit = {
-        codePoints.append(value)
-      }
-    })
-
+    val codePoints = value.codePoints().toArray
     codePoints.foldLeft(FindPartsAccum.empty)(_.append(_)).finish
   }
 

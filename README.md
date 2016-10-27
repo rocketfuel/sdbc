@@ -19,10 +19,6 @@ Include an implementation of the [SLF4J](http://slf4j.org/) logging interface, t
 
 Packages exist on Maven Central for Scala 2.10 and 2.11. Cassandra packages only exist for Scala 2.11. The Scala 2.10 builds for PostgreSQL do not include support for arrays.
 
-For Java 7, append "_java7" to the package name.
-
-### Java 8
-
 #### Cassandra
 
 ```scala
@@ -77,7 +73,7 @@ For Java 7, append "_java7" to the package name.
 | --- | --- | --- |
 | timestamp or datetime | GMT | Instant |
 | timestamp or datetime | same as client | LocalDateTime |
-| timestamp or datetime | not GMT and not client's | java.sql.Timestamp, then convert to LocalDateTime with server's time zone |
+| timestamp or datetime | not GMT and not client's | Timestamp, then convert to LocalDateTime with desired time zone |
 | timestamptz or timestamp with time zone or datetimeoffset |  | OffsetDateTime |
 | date |  | LocalDate |
 | time |  | LocalTime |
@@ -91,14 +87,30 @@ For Java 7, append "_java7" to the package name.
 import java.sql.DriverManager
 import com.rocketfuel.sdbc.H2._
 
+case class Person(id: Int, name: String)
+
+object Person {
+  case class Name(name: String)
+}
+
 implicit val connection = DriverManager.getConnection("jdbc:h2:mem:example")
+
+Execute("CREATE TABLE xs (id int auto_increment PRIMARY KEY, name varchar(255))").execute()
+
+//Use named parameters and a case class to insert a row.
+Execute("INSERT INTO xs (name) VALUES (@name)").onProduct(Person.Name("jeff")).execute()
+
+//prints "Person(1, jeff)"
+for (x <- Select[Person]("SELECT * FROM xs").iterator())
+  println(x)
 
 /*
 You can select directly to tuples if you name your columns appropriately.
-If you select a Tuple2, you can create a map from the results.
+If you select Tuple2s, you can create a map from the results.
 */
  
-Select[(Int, String)]("SELECT id AS _1, value AS _2 FROM tbl").iterator().toMap
+//yields Map(1 -> "jeff")
+Select[(Int, String)]("SELECT id AS _1, name AS _2 FROM xs").iterator().toMap
 ```
 
 ### Use implicit conversion to map rows to other data types
@@ -106,44 +118,58 @@ Select[(Int, String)]("SELECT id AS _1, value AS _2 FROM tbl").iterator().toMap
 ```scala
 import java.sql.DriverManager
 import java.time.Instant
-import com.rocketfuel.sdbc.postgresql._
+import com.rocketfuel.sdbc.H2._
 
-case class MyRow(
+case class Log(
 	id: Int,
 	createdTime: Instant,
 	message: Option[String]
 )
 
-implicit def RowToMyRow(row: ConnectedRow): MyRow = {
-    val id = row[Int]("id")
-    val createdTime = row[Instant]("created_time").get
-    val message = row[Option[String]]("message")
-
-    MyRow(
-        id,
-        createdTime,
-        message
-    )
-}
-
-val query =
-    Select[MyRow]("SELECT * FROM tbl WHERE message = @message").
-    on("message" -> "hello there!")
-
-val myRow = {
-    /* If you are using a Select, SelectForUpdate, Update, or Batch value,
-     * you don't need the connection until you call .iterator(),
-     * .option() (jdbc only), iteratorAsync() (cassandra only), update(),
-     * or batch().
-     */
-	implicit val connection: Connection = DriverManager.getConnection("...")
-	try {
-	    //Retrieve at most one row.
-	    query.option()
-    } finally {
-        connection.close()
+object Log {
+    implicit def valueOf(row: ConnectedRow): Log = {
+        val id = row[Int]("id")
+        val createdTime = row[Instant]("createdTime")
+        val message = row[Option[String]]("message")
+    
+        Log(
+            id = id,
+            createdTime = createdTime,
+            message = message
+        )
     }
+    
+    val create =
+      Execute(
+          """CREATE TABLE log (
+            |  id int auto_increment,
+            |  createdTime timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            |  message varchar(max)
+            |)""".stripMargin
+      )
+      
+    val drop = Execute("DROP TABLE log")
+    
+    case class Message(
+        message: String
+    )
+    
+    val insert =
+        Execute("INSERT INTO log (message) VALUES (@message)")
+    
+    val selectByMessage =
+        Select[Log]("SELECT * FROM log WHERE message = @message")
 }
+
+implicit val connection = DriverManager.getConnection("jdbc:h2:mem:example")
+
+Log.create.execute()
+
+Log.insert.onProduct(Log.Message("hi")).execute()
+
+//yields Some(Log(1,2016-10-17T19:41:43.164Z,Some(hi)))
+Log.selectByMessage.onProduct(Log.Message("hi")).option()
+
 ```
 
 ### Set parameter values using string interpolation
@@ -157,13 +183,16 @@ implicit val connection: Connection = ???
 
 val id = 1
 
-select"SELECT * FROM table WHERE id = $id"
+val query = select"SELECT * FROM table WHERE id = $id"
+
+//yields Map(0 -> ParameterValue(Some(1)))
+q.parameters
 ```
 
 If you want to set the `id` value in the above query to a different value, you use the parameter "0".
 
 ```scala
-select"SELECT * FROM table WHERE id = $id".on("0" -> 3)
+query.on("0" -> 3)
 ```
 
 You can use interpolated parameters and named parameters in the same query.
@@ -180,11 +209,11 @@ The query classes Select, SelectForUpdate, Update, and Batch are immutable. Addi
 import java.sql.DriverManager
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import com.rocketfuel.sdbc.postgresql.jdbc._
+import com.rocketfuel.sdbc.postgresql._
 
 val query =
     Select[Int]("SELECT id FROM tbl WHERE message = @message AND created_time >= @time").
-    on("message" -> "hello there!")
+        on("message" -> "hello there!")
 
 val minTimes = Seq(
     //today
@@ -198,7 +227,7 @@ val results = {
 	val results =
         try {
             minTimes.map(minTime =>
-                minTime -> query.on("time" -> minTime).iterator().toSeq
+                minTime -> query.on("created_time" -> minTime).iterator().toSeq
             )
         } finally {
             connection.close()
@@ -210,11 +239,11 @@ val results = {
 ### Update
 ```scala
 import java.sql.DriverManager
-import com.rocketfuel.sdbc.postgresql.jdbc._
+import com.rocketfuel.sdbc.postgresql._
 
 implicit val connection: Connection = DriverManager.getConnection("...")
 
-val queryText = "UPDATE tbl SET unique_id = @uuid WHERE id = @id"
+val query = Update("UPDATE tbl SET unique_id = @uuid WHERE id = @id")
 
 val parameters: ParameterList =
     Seq(
@@ -223,14 +252,7 @@ val parameters: ParameterList =
     )
 
 val updatedRowCount =
-	connection.update(
-	    queryText,
-		parameters: _*
-	)
-
-//The above is equivalent to
-val updatedRowCount2 =
-    Update(queryText).on(parameters: _*).update()
+	query.on(parameters: _*).update()
 ```
 
 ### Batch Update
@@ -240,8 +262,8 @@ import com.rocketfuel.sdbc.postgresql.jdbc._
 
 val batchUpdate =
 	Batch("UPDATE tbl SET x = @x WHERE id = @id").
-	addBatch("x" -> 3, "id" -> 10).
-    addBatch("x" -> 4, "id" -> 11)
+	    add("x" -> 3, "id" -> 10).
+        add("x" -> 4, "id" -> 11)
 
 val updatedRowCount = {
     implicit val connection: Connection = DriverManager.getConnection("...")
@@ -255,19 +277,17 @@ val updatedRowCount = {
 
 ### Update rows in a result set
 ```scala
-import java.sql.DriverManager
-import com.rocketfuel.sdbc.postgresql.jdbc._
+val actionLogger = Update("INSERT INTO action_log (account_id, action) VALUES (@accountId, @action)")
 
-implicit val connection: Connection = DriverManager.getConnection("...")
+val accountUpdateQuery = SelectForUpdate("SELECT * FROM accounts WHERE id = @id")
 
-val actionLogger = Update("INSERT INTO action_log (account_id, action) VALUES (@account_id, @action)")
+case class Action(accountId: Int, action: String)
 
-for (row <- SelectForUpdate("SELECT * FROM accounts").iterator()) {
-	val accountId = row.get[Int]("account_id")
-	if (accountId == Some(314)) {
-		row("gold_nuggets") = row.get[Int]("gold_nuggets").get + 159
-		actionLogger.on("account_id" -> 314, "action" -> "added 159 gold nuggets").execute()
-	}
+def addGold(accountId: Int, quantity: Int)(implicit connection: Connection): Unit = {
+    for (row <- accountUpdateQuery.on("id" -> accountId).iterator()) {
+        row("gold_nuggets") = row[Int]("gold_nuggets") + 159
+        actionLogger.onProduct(Action(accountId, s"added $quantity gold nuggets")).execute()
+    }
 }
 ```
 
@@ -309,9 +329,8 @@ You can use one of the type classes for generating queries to create query strea
 For JDBC the type classes are Batchable, Executable, Selectable, Updatable. For Cassandra they are Executable and Selectable.
 
 ```scala
-import com.rocketfuel.sdbc.h2.jdbc._
-import scalaz.stream._
-import com.rocketfuel.sdbc.scalaz.jdbc._
+import com.rocketfuel.sdbc.h2._
+import fs2._
 
 val pool: Pool = ???
 
@@ -323,7 +342,7 @@ implicit val SelectableIntKey = new Selectable[Int, String] {
   }
 }
 
-val idStream: Process[Task, Int] = ???
+val idStream: Stream[Task, Int] = ???
 
 //print the strings retreived from H2 using the stream of ids.
 merge.mergeN(idStream.through(Process.jdbc.keys.select[Int, String](pool))).to(io.stdOutLines)
@@ -349,9 +368,9 @@ keyStream.through(Process.jdbc.keys.select[K, T](pool)).to(Process.jdbc.update[T
 
 * JDBC Connection types are now per-DBMS (i.e. they are path dependent).
 * Update scalaz streams to [FS2](https://github.com/functional-streams-for-scala/fs2).
-* Support for multiple results per query from SQL Server.
 * Stream support is built-in.
-* Instant without an offset is interpreted as being in UTC rather than 
+* Support for multiple results per query from SQL Server.
+* A datetime without an offset from a DBMS is interpreted as being in UTC rather than the system default time zone.
 
 ### 1.0
 

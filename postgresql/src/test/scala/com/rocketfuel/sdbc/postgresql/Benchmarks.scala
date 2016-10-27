@@ -112,7 +112,7 @@ class Benchmarks
   ignore("test JDBC select") {implicit connection =>
     val batch = values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}
 
-    batch.run()
+    batch.batch()
 
     val selectedRows = Array.ofDim[TestTable](rowCount)
 
@@ -136,7 +136,7 @@ class Benchmarks
   }
 
   ignore("time JDBC select") {implicit connection =>
-    values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}.run()
+    values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}.batch()
 
     connection.commit()
 
@@ -161,7 +161,7 @@ class Benchmarks
   ignore("time com.rocketfuel.sql batch insert") {implicit connection =>
 
     val insertDuration = averageTime(repetitions) {
-      values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}.run()
+      values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}.batch()
       connection.commit()
     }{
       TestTable.truncate.execute()
@@ -176,7 +176,7 @@ class Benchmarks
 
     val batch = values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}
 
-    val insertedRows = batch.run()
+    val insertedRows = batch.batch()
 
     connection.commit()
 
@@ -186,7 +186,7 @@ class Benchmarks
 
   ignore("time com.rocketfuel.sql select") {implicit connection =>
 
-    values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}.run()
+    values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}.batch()
 
     connection.commit()
 
@@ -200,7 +200,7 @@ class Benchmarks
 
   ignore("test com.rocketfuel.sql select") {implicit connection =>
 
-    values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}.run()
+    values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}.batch()
 
     connection.commit()
 
@@ -258,7 +258,7 @@ class Benchmarks
          |);
        """.stripMargin
 
-      Execute.literal(queryText)
+      Execute(queryText)
     }
 
     val insert = {
@@ -288,13 +288,14 @@ class Benchmarks
         |(?, ?, ?)
       """.stripMargin
 
-    val select = Select.literal[TestTable]("SELECT * FROM test ORDER BY id;")
+    val select =
+      Select[TestTable]("SELECT * FROM test ORDER BY id;")
 
     val drop =
-      Execute.literal("DROP TABLE test;")
+      Execute("DROP TABLE test;")
 
     val truncate =
-      Execute.literal("TRUNCATE TABLE test RESTART IDENTITY;")
+      Execute("TRUNCATE TABLE test RESTART IDENTITY;")
 
   }
 

@@ -70,8 +70,6 @@ trait ParameterizedQuery {
 
     protected def subclassConstructor(parameters: Parameters): Self
 
-    def logExecution(): Unit =
-      logger.debug(s"""Executing "$originalQueryText" with parameters $parameters.""")
   }
 
 }

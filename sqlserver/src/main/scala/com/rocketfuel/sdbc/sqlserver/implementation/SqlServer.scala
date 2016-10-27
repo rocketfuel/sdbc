@@ -1,7 +1,6 @@
 package com.rocketfuel.sdbc.sqlserver.implementation
 
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
-import com.rocketfuel.sdbc.base.CISet
 import com.rocketfuel.sdbc.base.jdbc._
 import java.time.ZoneOffset
 
@@ -42,9 +41,7 @@ private[sdbc] abstract class SqlServer
     offsetDateTimeFormatter.
     withZone(ZoneOffset.UTC)
 
-  override def dataSourceClassName ="net.sourceforge.jtds.jdbcx.JtdsDataSource"
-  override def jdbcSchemes = CISet("jtds:sqlserver")
   override def productName: String = "Microsoft SQL Server"
-  override val supportsIsValid = false
+  override val connectionTestQuery: Option[String] = Some("SELECT 1")
 
 }

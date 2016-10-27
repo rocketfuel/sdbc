@@ -45,7 +45,7 @@ class RichResultSpec
         batch.add("x" -> r)
     }
 
-    val insertions = batch.run()
+    val insertions = batch.batch()
 
     assertResult(randoms.size)(insertions.sum[Long])
 

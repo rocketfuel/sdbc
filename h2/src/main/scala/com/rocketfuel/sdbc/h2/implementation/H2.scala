@@ -4,7 +4,6 @@ import com.rocketfuel.sdbc.base.jdbc.resultset.{DefaultGetters, SeqGetter}
 import com.rocketfuel.sdbc.base.jdbc.statement.{DefaultParameters, SeqParameter}
 import java.nio.file.Path
 import java.sql.DriverManager
-import com.rocketfuel.sdbc.base.CISet
 import com.rocketfuel.sdbc.base.jdbc
 import com.rocketfuel.sdbc.h2
 
@@ -21,25 +20,6 @@ private[sdbc] abstract class H2
 
   type Serialized = h2.Serialized
   val Serialized = h2.Serialized
-
-  /**
-   * Class name for the DataSource class.
-   */
-  override def dataSourceClassName: String = "org.h2.jdbcx.JdbcDataSource"
-
-  //http://www.h2database.com/html/cheatSheet.html
-  override def jdbcSchemes: Set[String] = {
-    CISet(
-      "h2",
-      "h2:mem",
-      "h2:tcp"
-    )
-  }
-
-  /**
-   * If the JDBC driver supports the .isValid() method.
-   */
-  override def supportsIsValid: Boolean = true
 
   /**
    * The result of getMetaData.getDatabaseProductName

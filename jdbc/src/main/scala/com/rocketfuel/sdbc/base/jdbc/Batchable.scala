@@ -12,7 +12,7 @@ trait Batchable {
   )(implicit batchable: Batchable[Key],
     connection: Connection
   ): IndexedSeq[Long] = {
-    batchable.batch(key).run()
+    batchable.batch(key).batch()
   }
 
 }

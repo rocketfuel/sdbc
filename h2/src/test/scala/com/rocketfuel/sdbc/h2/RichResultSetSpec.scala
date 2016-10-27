@@ -22,7 +22,7 @@ class RichResultSetSpec
         batch.add("x" -> r)
     }
 
-    val insertions = batch.run()
+    val insertions = batch.batch()
 
     assertResult(randoms.size)(insertions.sum)
 
@@ -41,7 +41,7 @@ class RichResultSetSpec
         batch.add("x" -> r)
     }
 
-    batch.run()
+    batch.batch()
 
     for(row <- SelectForUpdate("SELECT * FROM tbl").iterator()) {
       row("x") = row[Int]("x") + 1
@@ -65,7 +65,7 @@ class RichResultSetSpec
         batch.add("x" -> r)
     }
 
-    batch.run()
+    batch.batch()
 
     val result = Select[Int]("SELECT x FROM tbl ORDER BY id ASC").iterator().toVector
 

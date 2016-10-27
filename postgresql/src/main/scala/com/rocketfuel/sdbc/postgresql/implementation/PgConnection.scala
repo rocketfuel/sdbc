@@ -19,7 +19,7 @@ trait PgConnection
     *
     * @param connection
     */
-  override def initializeConnection(connection: Connection): Unit = {
+  override protected def initializeConnection(connection: Connection): Unit = {
     connection.addDataType("ltree", classOf[LTree])
     connection.addDataType("inet", classOf[PGInetAddress])
     connection.addDataType("cidr", classOf[Cidr])
@@ -31,7 +31,7 @@ trait PgConnection
     //    pgConnection.addDataType("timestamptz", classOf[PGTimestampTz])
   }
 
-  override def toBaseConnection(connection: Connection): BaseConnection = {
+  override protected def toBaseConnection(connection: Connection): BaseConnection = {
     connection.unwrap[org.postgresql.core.BaseConnection](baseConnection)
   }
 

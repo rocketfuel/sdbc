@@ -9,9 +9,7 @@ trait Pool {
   class Pool(configuration: HikariConfig) {
 
     //Set the test query if the driver doesn't support .isValid().
-    if (!self.supportsIsValid) {
-      configuration.setConnectionTestQuery("SELECT 1")
-    }
+    connectionTestQuery.foreach(configuration.setConnectionTestQuery)
 
     val underlying = new HikariDataSource(configuration)
 
@@ -41,12 +39,16 @@ trait Pool {
 
   object Pool {
     def apply(config: Config): Pool = {
-      new Pool(config.toHikariConfig)
+      Pool(config.toHikariConfig)
     }
-  }
 
-  implicit def poolToHikariDataSource(pool: Pool): HikariDataSource = {
-    pool.underlying
+    def apply(config: HikariConfig): Pool = {
+      new Pool(config)
+    }
+
+    implicit def toHikariDataSource(pool: Pool): HikariDataSource = {
+      pool.underlying
+    }
   }
 
 }
