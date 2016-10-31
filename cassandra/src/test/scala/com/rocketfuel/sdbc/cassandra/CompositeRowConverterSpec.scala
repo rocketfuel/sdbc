@@ -1,4 +1,4 @@
-package com.rocketfuel.sdbc.cassandra.implementation
+package com.rocketfuel.sdbc.cassandra
 
 import com.rocketfuel.sdbc.Cassandra._
 import org.scalatest.FunSuite

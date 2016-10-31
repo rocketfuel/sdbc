@@ -1,4 +1,4 @@
-package com.rocketfuel.sdbc.cassandra.implementation
+package com.rocketfuel.sdbc.cassandra
 
 import shapeless._
 import shapeless.labelled._
@@ -92,5 +92,5 @@ trait CompositeTupleGetter {
       }
 
   }
-  
+
 }

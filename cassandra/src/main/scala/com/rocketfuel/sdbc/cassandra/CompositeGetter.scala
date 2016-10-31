@@ -1,14 +1,14 @@
-package com.rocketfuel.sdbc.cassandra.implementation
+package com.rocketfuel.sdbc.cassandra
 
 import com.datastax.driver.core.{LocalDate, Row}
+import com.google.common.reflect.TypeToken
 import java.net.InetAddress
 import java.util.{Date, UUID}
-import com.google.common.reflect.TypeToken
+import scala.collection.convert.decorateAsScala._
+import scala.reflect.ClassTag
 import scodec.bits.ByteVector
 import shapeless._
 import shapeless.labelled._
-import scala.collection.convert.decorateAsScala._
-import scala.reflect.ClassTag
 
 trait CompositeGetter {
   self: Cassandra =>

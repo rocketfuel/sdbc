@@ -1,4 +1,4 @@
-package com.rocketfuel.sdbc.cassandra.implementation
+package com.rocketfuel.sdbc.cassandra
 
 import com.datastax.driver.core
 import com.datastax.driver.core.{CodecRegistry, ProtocolVersion}

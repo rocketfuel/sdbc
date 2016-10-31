@@ -1,16 +1,16 @@
-package com.rocketfuel.sdbc.cassandra.implementation
+package com.rocketfuel.sdbc.cassandra
 
 import com.datastax.driver.core
 import com.datastax.driver.core.{BoundStatement, LocalDate}
+import com.rocketfuel.sdbc.base
 import java.lang
 import java.math.BigInteger
 import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.{Date, UUID}
-import com.rocketfuel.sdbc.base
-import scodec.bits.ByteVector
 import scala.collection.convert.decorateAsJava._
+import scodec.bits.ByteVector
 
 private[sdbc] trait ParameterValue
   extends base.ParameterValue

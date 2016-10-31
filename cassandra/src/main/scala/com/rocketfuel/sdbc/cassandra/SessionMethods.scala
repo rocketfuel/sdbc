@@ -1,4 +1,4 @@
-package com.rocketfuel.sdbc.cassandra.implementation
+package com.rocketfuel.sdbc.cassandra
 
 private[sdbc] trait SessionMethods {
   self: Cassandra =>

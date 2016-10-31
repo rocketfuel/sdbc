@@ -1,13 +1,13 @@
-package com.rocketfuel.sdbc.cassandra.implementation
+package com.rocketfuel.sdbc.cassandra
 
+import com.datastax.driver.core
+import com.datastax.driver.core.{LocalDate, TypeCodec}
+import com.google.common.reflect.TypeToken
 import java.math.{BigDecimal, BigInteger}
 import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.util
 import java.util.{Date, UUID}
-import com.datastax.driver.core
-import com.datastax.driver.core.{LocalDate, TypeCodec}
-import com.google.common.reflect.TypeToken
 
 trait TupleValue {
   self: Cassandra =>

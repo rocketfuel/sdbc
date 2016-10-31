@@ -1,4 +1,4 @@
-package com.rocketfuel.sdbc.cassandra.implementation
+package com.rocketfuel.sdbc.cassandra
 
 import com.datastax.driver.core
 
@@ -23,5 +23,9 @@ private[sdbc] abstract class Cassandra
   type UDTValue = core.UDTValue
 
   type Token = core.Token
+
+  type QueryOptions = com.rocketfuel.sdbc.cassandra.QueryOptions
+
+  val QueryOptions = com.rocketfuel.sdbc.cassandra.QueryOptions
 
 }

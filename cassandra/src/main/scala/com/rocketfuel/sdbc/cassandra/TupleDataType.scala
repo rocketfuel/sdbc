@@ -1,13 +1,13 @@
-package com.rocketfuel.sdbc.cassandra.implementation
+package com.rocketfuel.sdbc.cassandra
 
 import com.datastax.driver.core
+import com.datastax.driver.core.DataType
 import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.UUID
-import com.datastax.driver.core.DataType
-import scodec.bits.ByteVector
 import scala.collection.convert.decorateAll._
+import scodec.bits.ByteVector
 
 private[sdbc] trait TupleDataType {
   self: Cassandra =>

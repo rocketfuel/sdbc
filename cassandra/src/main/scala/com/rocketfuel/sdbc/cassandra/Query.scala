@@ -1,11 +1,10 @@
-package com.rocketfuel.sdbc.cassandra.implementation
+package com.rocketfuel.sdbc.cassandra
 
 import com.datastax.driver.core
 import com.rocketfuel.sdbc.base._
-import com.rocketfuel.sdbc.cassandra._
+import fs2._
 import fs2.util.Async
 import fs2.util.syntax._
-import fs2._
 import scala.collection.convert.wrapAsScala._
 import scala.concurrent.{ExecutionContext, Future}
 import shapeless.ops.record.{MapValues, ToMap}

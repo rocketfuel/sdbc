@@ -1,9 +1,8 @@
-package com.rocketfuel.sdbc.cassandra.implementation
+package com.rocketfuel.sdbc.cassandra
 
 import com.rocketfuel.sdbc.base.CompiledStatement
-import com.rocketfuel.sdbc.cassandra.QueryOptions
-import shapeless.{HList, ProductArgs}
 import shapeless.ops.hlist._
+import shapeless.{HList, ProductArgs}
 
 private[sdbc] trait StringContextMethods {
   self: Cassandra =>

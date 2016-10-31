@@ -1,14 +1,14 @@
-package com.rocketfuel.sdbc.cassandra.implementation
+package com.rocketfuel.sdbc.cassandra
 
 import com.datastax.driver.core.LocalDate
+import com.google.common.reflect.TypeToken
+import com.rocketfuel.sdbc.base
 import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.{Date, UUID}
-import com.google.common.reflect.TypeToken
-import com.rocketfuel.sdbc.base
-import scodec.bits.ByteVector
 import scala.collection.convert.wrapAsScala._
+import scodec.bits.ByteVector
 
 trait TupleGetter {
   self: Cassandra =>
