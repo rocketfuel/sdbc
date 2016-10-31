@@ -1,8 +1,7 @@
-package com.rocketfuel.sdbc.examples
+package com.example
 
 import com.rocketfuel.sdbc.H2
-import org.scalatest.BeforeAndAfterEach
-import org.scalatest._
+import org.scalatest.{BeforeAndAfterEach, _}
 
 class TestClassSpec
  extends fixture.FunSuite
@@ -20,7 +19,7 @@ class TestClassSpec
 
   val after = "bye"
 
-  test("insert and select works") { implicit connection =>
+  test("insert and select works") {implicit connection =>
     assertResult(1)(H2.update(TestClass.Value(before)))
     val rows = H2.iterator(TestClass.All).toSeq
     assert(rows.exists(_.value == before), "The row wasn't inserted.")

@@ -1,4 +1,4 @@
-package com.rocketfuel.sdbc.examples
+package com.example
 
 import com.rocketfuel.sdbc.H2._
 
@@ -49,6 +49,7 @@ object TestClass {
 
   implicit val updateValues = new SelectForUpdatable[All.type] {
     val query = SelectForUpdate("SELECT id, value FROM test_class")
+
     override def selectForUpdate(key: All.type): SelectForUpdate = {
       query
     }

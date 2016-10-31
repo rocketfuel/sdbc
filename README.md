@@ -28,19 +28,19 @@ Packages exist on Maven Central for Scala 2.10 and 2.11. Cassandra packages only
 #### H2
 
 ```scala
-"com.rocketfuel.sdbc" %% "jdbc-h2" % "1.0"
+"com.rocketfuel.sdbc" %% "jdbc-h2" % "2.0"
 ```
 
 #### PostgreSql
 
 ```scala
-"com.rocketfuel.sdbc" %% "jdbc-postgresql" % "1.0"
+"com.rocketfuel.sdbc" %% "jdbc-postgresql" % "2.0"
 ```
 
 #### SQL Server
 
 ```scala
-"com.rocketfuel.sdbc" %% "jdbc-sqlserver" % "1.0"
+"com.rocketfuel.sdbc" %% "jdbc-sqlserver" % "2.0"
 ```
 
 ## License
@@ -50,13 +50,15 @@ Packages exist on Maven Central for Scala 2.10 and 2.11. Cassandra packages only
 ## Features
 
 * Use generics to retrieve column values.
-* Use generics to update column values.
-* Use implicit conversions to convert rows into your own data types.
-* Use Scala collection combinators to manipulate result sets.
 * Use named parameters with queries.
+* Get tuples or case classes from rows without any extra work. (thanks to [shapeless](https://github.com/milessabin/shapeless))
+* Use tuples or case classes to set query parameters. (thanks to [shapeless](https://github.com/milessabin/shapeless))
+* Use generics to update column values.
+* Use Scala collection combinators to manipulate result sets.
 * Query execution logging.
 * Supports Java 8's java.time package.
-* [FS2 Streams](https://github.com/functional-streams-for-scala/fs2) for Cassandra results
+* [FS2 Streams](https://github.com/functional-streams-for-scala/fs2) for query results
+* Easily add column types.
 
 ## Feature restrictions
 
@@ -209,7 +211,7 @@ The query classes Select, SelectForUpdate, Update, and Batch are immutable. Addi
 import java.sql.DriverManager
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import com.rocketfuel.sdbc.postgresql._
+import com.rocketfuel.sdbc.PostgreSql._
 
 val query =
     Select[Int]("SELECT id FROM tbl WHERE message = @message AND created_time >= @time").
@@ -239,26 +241,28 @@ val results = {
 ### Update
 ```scala
 import java.sql.DriverManager
-import com.rocketfuel.sdbc.postgresql._
-
-implicit val connection: Connection = DriverManager.getConnection("...")
+import com.rocketfuel.sdbc.PostgreSql._
 
 val query = Update("UPDATE tbl SET unique_id = @uuid WHERE id = @id")
 
-val parameters: ParameterList =
-    Seq(
+val parameters: Parameters =
+    Map(
         "id" -> 3,
         "uuid" -> java.util.UUID.randomUUID()
     )
 
-val updatedRowCount =
-	query.on(parameters: _*).update()
+val updatedRowCount = {
+    implicit val connection: Connection = DriverManager.getConnection("...")
+    try {
+	  query.onParameters(parameters: _*).update()
+    } finally connection.close()
+}
 ```
 
 ### Batch Update
 ```scala
 import java.sql.DriverManager
-import com.rocketfuel.sdbc.postgresql.jdbc._
+import com.rocketfuel.sdbc.PostgreSql._
 
 val batchUpdate =
 	Batch("UPDATE tbl SET x = @x WHERE id = @id").
@@ -269,9 +273,7 @@ val updatedRowCount = {
     implicit val connection: Connection = DriverManager.getConnection("...")
     try {
     	batchUpdate.batch().sum
-    finally {
-        connection.close()
-    }
+    } finally connection.close()
 }
 ```
 
@@ -295,7 +297,7 @@ def addGold(accountId: Int, quantity: Int)(implicit connection: Connection): Uni
 
 ```scala
 import com.typesafe.config.ConfigFactory
-import com.rocketfuel.sdbc.postgresql.jdbc._
+import com.rocketfuel.sdbc.PostgreSql._
 
 val pool = Pool(ConfigFactory.load())
 
@@ -306,39 +308,50 @@ val result = pool.withConnection { implicit connection =>
 
 ### Streaming parameter lists.
 
-Constructors for Processes are added to the Process object via implicit conversion to JdbcProcess.
+```scala
+import com.rocketfuel.sdbc.H2._
+import fs._
+
+val parameterListStream: Stream[Task, Parameters] = ???
+
+val update = Update("...")
+
+implicit val pool = Pool(...)
+
+parameterListStream.through(update.pipe[Task].parameters)
+```
+
+### Streaming Products
 
 ```scala
-import com.rocketfuel.sdbc.h2.jdbc._
-import scalaz.stream._
-import com.rocketfuel.sdbc.scalaz.jdbc._
+case class Id(id: Long)
 
-val parameterListStream: Process[Task, ParameterList] = ???
+case class Row(id: Long, value: String)
 
-val update: Update = ???
+val parameters: Stream[Task, Id] = ???
 
-implicit val pool: Pool = ???
+val select = Select[Row]("SELECT id, value FROM table WHERE id = @id")
 
-parameterListStream.through(Process.jdbc.params.update(update)).run.run
+parameters.through(select.pipe[Task].products)
 ```
 
 ### Streaming with type class support.
 
 You can use one of the type classes for generating queries to create query streams from values.
 
-For JDBC the type classes are Batchable, Executable, Selectable, Updatable. For Cassandra they are Executable and Selectable.
+For JDBC the type classes are Batchable, Executable, Selectable, SelectForUpdatable, and Updatable. For Cassandra there is Queryable.
 
 ```scala
 import com.rocketfuel.sdbc.h2._
 import fs2._
 
-val pool: Pool = ???
+val pool = Pool(...)
 
 implicit val SelectableIntKey = new Selectable[Int, String] {
-  val selectString = Select[String]("SELECT s FROM tbl WHERE id = @id")
+  val query = Select[String]("SELECT value FROM table WHERE id = @id")
 
   override def select(id: Int): Select[String] = {
-    selectString.on("id" -> id)
+    query.on("id" -> id)
   }
 }
 
@@ -371,6 +384,8 @@ keyStream.through(Process.jdbc.keys.select[K, T](pool)).to(Process.jdbc.update[T
 * Stream support is built-in.
 * Support for multiple results per query from SQL Server.
 * A datetime without an offset from a DBMS is interpreted as being in UTC rather than the system default time zone.
+* No longer supports Scala 2.10.
+* Moved database objects to com.rocketfuel.sdbc.{Cassandra, H2, PostgreSql, SqlServer}.
 
 ### 1.0
 
