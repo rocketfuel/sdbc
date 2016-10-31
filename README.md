@@ -22,25 +22,25 @@ Packages exist on Maven Central for Scala 2.10 and 2.11. Cassandra packages only
 #### Cassandra
 
 ```scala
-"com.rocketfuel.sdbc" %% "datastax-cassandra" % "2.0"
+"com.rocketfuel.sdbc.cassandra" %% "datastax" % "2.0"
 ```
 
 #### H2
 
 ```scala
-"com.rocketfuel.sdbc" %% "jdbc-h2" % "2.0"
+"com.rocketfuel.sdbc.h2" %% "jdbc" % "2.0"
 ```
 
 #### PostgreSql
 
 ```scala
-"com.rocketfuel.sdbc" %% "jdbc-postgresql" % "2.0"
+"com.rocketfuel.sdbc.postgresql" %% "jdbc" % "2.0"
 ```
 
 #### SQL Server
 
 ```scala
-"com.rocketfuel.sdbc" %% "jdbc-sqlserver" % "2.0"
+"com.rocketfuel.sdbc.sqlserver" %% "jdbc" % "2.0"
 ```
 
 ## License

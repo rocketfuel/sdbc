@@ -1,6 +1,6 @@
-organization := "com.rocketfuel.sdbc"
+organization := "com.rocketfuel.sdbc.cassandra"
 
-name := "datastax-cassandra"
+name := "datastax"
 
 description := "An implementation of SDBC for accessing Apache Cassandra using the DataStax driver."
 

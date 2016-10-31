@@ -1,6 +1,6 @@
-organization := "com.rocketfuel.sdbc"
+organization := "com.rocketfuel.sdbc.h2"
 
-name := "jdbc-h2"
+name := "jdbc"
 
 description := "An implementation of SDBC for accessing H2 using JDBC."
 
