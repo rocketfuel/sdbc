@@ -9,8 +9,6 @@ class TestDbms extends DBMS
   with DefaultUpdaters
   with JdbcConnection {
 
-  override def productName: String = "test"
-
 }
 
 object TestDbms extends TestDbms

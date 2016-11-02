@@ -21,10 +21,6 @@ private[sdbc] abstract class H2
   type Serialized = h2.Serialized
   val Serialized = h2.Serialized
 
-  /**
-   * The result of getMetaData.getDatabaseProductName
-   */
-  override def productName: String = "H2"
 
   /**
    *

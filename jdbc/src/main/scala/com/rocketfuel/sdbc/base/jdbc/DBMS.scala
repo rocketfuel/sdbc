@@ -40,11 +40,6 @@ abstract class DBMS
   val CompiledStatement = base.CompiledStatement
 
   /**
-   * The result of getMetaData.getDatabaseProductName
-   */
-  def productName: String
-
-  /**
    * Override if the driver does not support .isValid().
    */
   def connectionTestQuery: Option[String] = None

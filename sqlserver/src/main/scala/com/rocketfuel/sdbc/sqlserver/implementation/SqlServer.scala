@@ -41,7 +41,6 @@ private[sdbc] abstract class SqlServer
     offsetDateTimeFormatter.
     withZone(ZoneOffset.UTC)
 
-  override def productName: String = "Microsoft SQL Server"
   override val connectionTestQuery: Option[String] = Some("SELECT 1")
 
 }

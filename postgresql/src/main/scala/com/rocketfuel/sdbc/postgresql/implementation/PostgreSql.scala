@@ -11,6 +11,4 @@ private[sdbc] abstract class PostgreSql
   with ArrayTypes
   with PgConnection {
 
-  override def productName: String = "PostgreSQL"
-
 }
