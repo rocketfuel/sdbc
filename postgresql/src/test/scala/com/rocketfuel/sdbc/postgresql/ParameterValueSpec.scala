@@ -9,11 +9,28 @@ import com.rocketfuel.sdbc.PostgreSql._
 import org.json4s.JValue
 import org.json4s.jackson.JsonMethods
 import org.postgresql.util.PGInterval
-
 import scalaz.Scalaz._
 
 class ParameterValueSpec
   extends PostgreSqlSuite {
+
+  test("Identifier that appears as a word in the text can be assigned a value.") {implicit connection =>
+    val query = Execute("@t").on("t" -> None)
+
+    assertResult(
+      Map("t" -> ParameterValue.empty)
+    )(query.parameters
+    )
+  }
+
+  test("Identifier that does not appear as a word in the text is not assigned a value.") {implicit connection =>
+    val query = Execute("@t").on("u" -> None)
+
+    assertResult(
+      Map.empty
+    )(query.parameters
+    )
+  }
 
   val jsonString = """{"hi":"there"}"""
 

@@ -23,7 +23,7 @@ trait ParameterizedQuery {
 
     def parameterPositions: Map[String, Set[Int]] = statement.parameterPositions
 
-    def unassignedParameters: Set[String] = parameterPositions.keySet -- parameters.keySet
+    lazy val unassignedParameters: Set[String] = parameterPositions.keySet -- parameters.keySet
 
     def clear: Self = subclassConstructor(parameters = Parameters.empty)
 
@@ -32,7 +32,9 @@ trait ParameterizedQuery {
     }
 
     def onParameters(additionalParameters: Parameters): Self = {
-      subclassConstructor(parameters ++ additionalParameters)
+      val parametersHavingPositions =
+        additionalParameters.filter(kvp => parameterPositions.contains(kvp._1))
+      subclassConstructor(parameters ++ parametersHavingPositions)
     }
 
     def onProduct[

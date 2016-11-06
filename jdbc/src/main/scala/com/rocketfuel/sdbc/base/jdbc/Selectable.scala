@@ -1,5 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc
 
+import fs2.util.Async
+
 trait Selectable {
   self: DBMS with Connection =>
 
@@ -29,6 +31,15 @@ trait Selectable {
     connection: Connection
   ): Option[Result] = {
     selectable.select(key).option()
+  }
+
+  def stream[F[_], Key, Result](
+    key: Key
+  )(implicit selectable: Selectable[Key, Result],
+    pool: Pool,
+    async: Async[F]
+  ): Select.Pipe[F, Result] = {
+    selectable.select(key).pipe[F]
   }
 
 }

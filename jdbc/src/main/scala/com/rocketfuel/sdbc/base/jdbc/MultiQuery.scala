@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 import com.rocketfuel.sdbc.base.Logging
-import com.rocketfuel.sdbc.base.jdbc.statement.MultiStatementConverter
+import com.rocketfuel.sdbc.base.jdbc.statement.MultiResultConverter
 import fs2.Stream
 import fs2.util.Async
 import shapeless.ops.record.{MapValues, ToMap}
@@ -12,13 +12,13 @@ import shapeless.{HList, LabelledGeneric}
   * that can return more than one ResultSet per statement.
   *
   */
-trait MultiQuery extends MultiStatementConverter {
+trait MultiQuery extends MultiResultConverter {
   self: DBMS with Connection =>
 
   case class MultiQuery[A](
     override val statement: CompiledStatement,
-    override val parameters: Parameters
-  )(implicit statementConverter: MultiStatementConverter[A]
+    override val parameters: Parameters = Parameters.empty
+  )(implicit multiResultConverter: MultiResultConverter[A]
   ) extends IgnorableQuery[MultiQuery[A]] {
 
     override def subclassConstructor(parameters: Parameters): MultiQuery[A] = {
@@ -41,7 +41,7 @@ trait MultiQuery extends MultiStatementConverter {
       compiledStatement: CompiledStatement,
       parameters: Parameters
     )(implicit connection: Connection,
-      statementConverter: MultiStatementConverter[A]
+      statementConverter: MultiResultConverter[A]
     ): A = {
       logRun(compiledStatement, parameters)
 
@@ -55,7 +55,7 @@ trait MultiQuery extends MultiStatementConverter {
       statement: CompiledStatement,
       defaultParameters: Parameters
     )(implicit async: Async[F],
-      statementConverter: MultiStatementConverter[A]
+      statementConverter: MultiResultConverter[A]
     ) {
       private val parameterPipe = Parameters.Pipe[F]
 
@@ -104,7 +104,7 @@ trait MultiQuery extends MultiStatementConverter {
       statement: CompiledStatement,
       defaultParameters: Parameters = Parameters.empty
     )(implicit async: Async[F],
-      statementConverter: MultiStatementConverter[A]
+      statementConverter: MultiResultConverter[A]
     ): Pipe[F, A] =
       new Pipe[F, A](statement, defaultParameters)
 

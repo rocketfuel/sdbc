@@ -53,8 +53,8 @@ trait CompositeGetter extends Getter {
     ): CompositeGetter[FieldType[K, H] :: T] =
       new CompositeGetter[FieldType[K, H] :: T] {
         override def apply(row: ConnectedRow, ix: Index): FieldType[K, H] :: T = {
-          val head = H(row.asInstanceOf[ConnectedRow], ix)
-          val tail = T(row.asInstanceOf[ConnectedRow], ix + H.length)
+          val head = H(row, ix)
+          val tail = T(row, ix + H.length)
 
           field[K](head) :: tail
         }

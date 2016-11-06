@@ -44,7 +44,7 @@ abstract class DBMS
    */
   def connectionTestQuery: Option[String] = None
 
-  type Statement = sql.PreparedStatement
+  type Statement = sql.Statement
 
   type CallableStatement = sql.CallableStatement
 

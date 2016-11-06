@@ -113,6 +113,7 @@ trait ParameterValue {
       Some(p)
     }
 
+    //this is lazy to prevent a stack overflow on class loading.
     lazy val empty = ParameterValue(None, setNone)
   }
 

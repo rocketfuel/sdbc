@@ -4,6 +4,8 @@ import java.{sql, util}
 import java.sql.{Array => _, _}
 import java.util.Properties
 import java.util.concurrent.Executor
+import javax.sql.DataSource
+import scala.annotation.implicitNotFound
 
 trait Connection {
   self =>
@@ -27,6 +29,7 @@ trait Connection {
   We also can't have separate implicit conversions to Connection and BaseConnection, because BaseConnection
   is also a Connection, and so they conflict.
    */
+  @implicitNotFound("Import an implicit Pool, or wrap a JDBC Connection with DBMS#Connection.")
   class Connection(underlying: sql.Connection) extends sql.Connection {
     initializeConnection(this)
 
@@ -66,15 +69,15 @@ trait Connection {
 
     override def rollback(savepoint: Savepoint): Unit = underlying.rollback(savepoint: Savepoint)
 
-    override def createStatement(): Statement = underlying.createStatement()
+    override def createStatement(): java.sql.Statement = underlying.createStatement()
 
-    override def createStatement(resultSetType: Int, resultSetConcurrency: Int): Statement = underlying.createStatement(resultSetType: Int, resultSetConcurrency: Int)
+    override def createStatement(resultSetType: Int, resultSetConcurrency: Int): java.sql.Statement = underlying.createStatement(resultSetType: Int, resultSetConcurrency: Int)
 
     override def createStatement(
       resultSetType: Int,
       resultSetConcurrency: Int,
       resultSetHoldability: Int
-    ): Statement = underlying.createStatement(
+    ): java.sql.Statement = underlying.createStatement(
       resultSetType: Int,
       resultSetConcurrency: Int,
       resultSetHoldability: Int
@@ -216,12 +219,32 @@ trait Connection {
 
   object Connection {
 
+    def apply(c: sql.Connection): Connection =
+      new Connection(c)
+
     implicit def toBaseConnection(connection: Connection): BaseConnection = {
       self.toBaseConnection(connection)
     }
 
-    implicit def fromConnection(implicit connection: sql.Connection): Connection =
-      new Connection(connection)
+    protected def finallyClose[T](connection: Connection)(f: Connection => T): T = {
+      try f(connection)
+      finally connection.close()
+    }
+
+    def using[T](connectionString: String): (Connection => T) => T = {
+      val connection = Connection(DriverManager.getConnection(connectionString))
+      finallyClose[T](connection)
+    }
+
+    def using[T](dataSource: DataSource): (Connection => T) => T = {
+      val connection = Connection(dataSource.getConnection())
+      finallyClose[T](connection)
+    }
+
+    def using[T](dataSource: DataSource, username: String, password: String): (Connection => T) => T = {
+      val connection = Connection(dataSource.getConnection(username, password))
+      finallyClose[T](connection)
+    }
 
   }
 
@@ -241,6 +264,7 @@ trait Connection {
 
 trait JdbcConnection
   extends Connection {
+  self: DBMS =>
 
   override type BaseConnection = sql.Connection
 

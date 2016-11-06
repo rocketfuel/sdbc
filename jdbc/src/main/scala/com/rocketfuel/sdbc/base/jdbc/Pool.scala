@@ -17,13 +17,12 @@ trait Pool {
       new Connection(underlying.getConnection())
     }
 
+    def getConnection(username: String, password: String): Connection = {
+      new Connection(underlying.getConnection(username, password))
+    }
+
     def withConnection[T](f: Connection => T): T = {
-      val connection = getConnection()
-      try {
-        f(connection)
-      } finally {
-        connection.close()
-      }
+      Connection.using(this)(f)
     }
 
     def withTransaction[T](f: Connection => T): T = {

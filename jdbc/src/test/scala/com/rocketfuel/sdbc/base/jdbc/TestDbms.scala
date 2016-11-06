@@ -7,7 +7,8 @@ class TestDbms extends DBMS
   with DefaultParameters
   with DefaultGetters
   with DefaultUpdaters
-  with JdbcConnection {
+  with JdbcConnection
+  with MultiQuery {
 
 }
 

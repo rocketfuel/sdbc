@@ -40,8 +40,8 @@ trait StatementConverter {
       result.get
   }
 
-  trait StatementConverter[A] extends (Statement => A) {
-    def prepareStatement(statement: CompiledStatement)(implicit connection: Connection): Statement = {
+  trait StatementConverter[A] extends (PreparedStatement => A) {
+    def prepareStatement(statement: CompiledStatement)(implicit connection: Connection): PreparedStatement = {
       connection.prepareStatement(statement.queryText)
     }
   }
@@ -53,13 +53,13 @@ trait StatementConverter {
 
     implicit val unit: StatementConverter[Unit] =
       new StatementConverter[Unit] {
-        override def apply(v1: Statement): Unit = {
+        override def apply(v1: PreparedStatement): Unit = {
           ()
         }
       }
 
     implicit val update: StatementConverter[QueryResult.UpdateCount] = {
-      (v1: Statement) =>
+      (v1: PreparedStatement) =>
         val count = try {
           v1.getLargeUpdateCount
         } catch {
@@ -75,7 +75,7 @@ trait StatementConverter {
       A
     ](implicit converter: RowConverter[A]
     ): StatementConverter[CloseableIterator[A]] = {
-      (v1: Statement) =>
+      (v1: PreparedStatement) =>
         connectedResults(v1).mapCloseable(converter)
     }
 
@@ -83,7 +83,7 @@ trait StatementConverter {
       A
     ](implicit converter: RowConverter[A]
     ): StatementConverter[QueryResult.Vector[A]] = {
-      (v1: Statement) =>
+      (v1: PreparedStatement) =>
         val i = updatableResults(v1)
         try QueryResult.Vector(i.map(converter).toVector)
         finally i.close()
@@ -93,7 +93,7 @@ trait StatementConverter {
       A
     ](implicit converter: RowConverter[A]
     ): StatementConverter[QueryResult.Option[A]] = {
-      (v1: Statement) =>
+      (v1: PreparedStatement) =>
         val i = updatableResults(v1)
         try {
           if (i.hasNext)
@@ -106,7 +106,7 @@ trait StatementConverter {
       A
     ](implicit converter: RowConverter[A]
     ): StatementConverter[QueryResult.Singleton[A]] =  {
-      (v1: Statement) =>
+      (v1: PreparedStatement) =>
         val i = updatableResults(v1)
         try {
           if (i.hasNext) QueryResult.Singleton(converter(i.next()))
@@ -114,43 +114,43 @@ trait StatementConverter {
         } finally i.close()
     }
 
-    implicit def ofFunction[A](f: Statement => A): StatementConverter[A] =
+    implicit def ofFunction[A](f: PreparedStatement => A): StatementConverter[A] =
       new StatementConverter[A] {
-        override def apply(v1: Statement): A = f(v1)
+        override def apply(v1: PreparedStatement): A = f(v1)
       }
 
     implicit val results: StatementConverter[ResultSet] = {
-      (v1: Statement) => {
+      (v1: PreparedStatement) => {
         Option(v1.getResultSet()).get
       }
     }
 
     implicit val immutableResults: StatementConverter[QueryResult.Vector[ImmutableRow]] = {
-      (v1: Statement) => {
+      (v1: PreparedStatement) => {
         QueryResult.Vector(ImmutableRow.iterator(results(v1)).toVector)
       }
     }
 
     val connectedResults: StatementConverter[QueryResult.Iterator[ConnectedRow]] =
       new StatementConverter[QueryResult.Iterator[ConnectedRow]] {
-        override def apply(v1: Statement): QueryResult.Iterator[ConnectedRow] = {
+        override def apply(v1: PreparedStatement): QueryResult.Iterator[ConnectedRow] = {
           val resultSet = results(v1)
           QueryResult.Iterator(ConnectedRow.iterator(resultSet), resultSet.close)
         }
 
-        override def prepareStatement(statement: CompiledStatement)(implicit connection: Connection): Statement = {
+        override def prepareStatement(statement: CompiledStatement)(implicit connection: Connection): PreparedStatement = {
           connection.prepareStatement(statement.queryText)
         }
       }
 
     implicit val updatableResults: StatementConverter[QueryResult.Iterator[UpdatableRow]] =
       new StatementConverter[QueryResult.Iterator[UpdatableRow]] {
-        override def apply(v1: Statement): QueryResult.Iterator[UpdatableRow] = {
+        override def apply(v1: PreparedStatement): QueryResult.Iterator[UpdatableRow] = {
           val resultSet = results(v1)
           QueryResult.Iterator(UpdatableRow.iterator(resultSet), resultSet.close)
         }
 
-        override def prepareStatement(statement: CompiledStatement)(implicit connection: Connection): Statement = {
+        override def prepareStatement(statement: CompiledStatement)(implicit connection: Connection): PreparedStatement = {
           connection.prepareStatement(statement.queryText, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)
         }
       }
