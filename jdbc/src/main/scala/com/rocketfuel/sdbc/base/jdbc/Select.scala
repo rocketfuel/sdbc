@@ -89,7 +89,7 @@ trait Select {
 
     case class Pipe[F[_], A](
       statement: CompiledStatement,
-      defaultParameters: Parameters
+      defaultParameters: Parameters = Parameters.empty
     )(implicit async: Async[F],
       rowConverter: RowConverter[A]
     ) {

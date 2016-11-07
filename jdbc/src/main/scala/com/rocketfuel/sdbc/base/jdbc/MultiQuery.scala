@@ -30,7 +30,7 @@ trait MultiQuery extends MultiResultConverter {
     }
 
     def pipe[F[_]](implicit async: Async[F]): MultiQuery.Pipe[F, A] =
-      MultiQuery.pipe(statement, parameters)
+      MultiQuery.Pipe(statement, parameters)
 
   }
 
@@ -39,22 +39,22 @@ trait MultiQuery extends MultiResultConverter {
 
     def run[A](
       compiledStatement: CompiledStatement,
-      parameters: Parameters
+      parameters: Parameters = Parameters.empty
     )(implicit connection: Connection,
-      statementConverter: MultiResultConverter[A]
+      multiResultConverter: MultiResultConverter[A]
     ): A = {
       logRun(compiledStatement, parameters)
 
       val bound =
-        statementConverter.createStatement(compiledStatement, parameters)
+        multiResultConverter.createStatement(compiledStatement, parameters)
 
       bound.execute()
       bound
     }
 
-    class Pipe[F[_], A] private[MultiQuery] (
+    case class Pipe[F[_], A](
       statement: CompiledStatement,
-      defaultParameters: Parameters
+      defaultParameters: Parameters = Parameters.empty
     )(implicit async: Async[F],
       statementConverter: MultiResultConverter[A]
     ) {
@@ -66,11 +66,11 @@ trait MultiQuery extends MultiResultConverter {
             for {
               params <- paramStream
               result <-
-              Stream.bracket(
-                r = async.delay(pool.getConnection())
-              )(use = {implicit connection => Stream.eval(async.delay(run(statement, params)))},
-                release = connection => async.delay(connection.close())
-              )
+                Stream.bracket(
+                  r = async.delay(pool.getConnection())
+                )(use = {implicit connection => Stream.eval(async.delay(run(statement, params)))},
+                  release = connection => async.delay(connection.close())
+                )
             } yield result
         )
       }
@@ -100,14 +100,6 @@ trait MultiQuery extends MultiResultConverter {
       }
 
     }
-
-    def pipe[F[_], A](
-      statement: CompiledStatement,
-      defaultParameters: Parameters = Parameters.empty
-    )(implicit async: Async[F],
-      statementConverter: MultiResultConverter[A]
-    ): Pipe[F, A] =
-      new Pipe[F, A](statement, defaultParameters)
 
     private def logRun(
       compiledStatement: CompiledStatement,

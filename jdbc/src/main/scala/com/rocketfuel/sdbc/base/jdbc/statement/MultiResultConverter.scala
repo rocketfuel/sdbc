@@ -22,7 +22,7 @@ trait MultiResultConverter {
 
     case object Unit extends Unit
 
-    case class UpdateCount(
+    case class Update(
       override val get: Long
     ) extends QueryResult[Long]
 
@@ -42,11 +42,14 @@ trait MultiResultConverter {
       override val get: scala.Option[A]
     ) extends QueryResult[scala.Option[A]]
 
+    /**
+      * Allow a QueryResult to pose as its wrapped value.
+      */
     implicit def toGet[A](result: QueryResult[A]): A =
       result.get
 
     object get extends (QueryResult ~> Id) {
-      def apply[T](f: QueryResult[T]): Id[T] = f.get
+      override def apply[A](f: QueryResult[A]): Id[A] = f.get
     }
 
   }
@@ -116,9 +119,9 @@ trait MultiResultConverter {
           QueryResult.Unit
       }
 
-    implicit val update: MultiResultConverter[QueryResult.UpdateCount] = {
+    implicit val update: MultiResultConverter[QueryResult.Update] = {
       (v1: PreparedStatement) =>
-        QueryResult.UpdateCount(StatementConverter.update(v1))
+        QueryResult.Update(StatementConverter.update(v1))
     }
 
     implicit def convertedRowIterator[A](implicit

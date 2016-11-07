@@ -3,11 +3,13 @@ package com.rocketfuel.sdbc.base.jdbc
 import org.scalatest.FunSuite
 import TestDbms._
 import shapeless._
-import shapeless.ops.tuple.Mapper
 import shapeless.syntax.std.tuple._
 
 class MultiResultConverterSpec
   extends FunSuite {
+
+  implicit def c: TestDbms.Connection = ???
+
   test("Unit") {
     assertCompiles("MultiQuery[QueryResult.Unit](\"\")")
   }
@@ -28,19 +30,18 @@ class MultiResultConverterSpec
     assertCompiles("MultiQuery[QueryResult.Unit::QueryResult.Unit::HNil](\"\")")
   }
 
-  test("QueryResult.UpdateCount") {
-    assertCompiles("MultiQuery[QueryResult.UpdateCount](\"\")")
+  test("QueryResult.Update") {
+    assertCompiles("MultiQuery[QueryResult.Update](\"\")")
   }
 
-  test("(Unit, QueryResult.UpdateCount)") {
-    assertCompiles("MultiQuery[(QueryResult.Unit, QueryResult.UpdateCount)](\"\")")
+  test("(QueryResult.Unit, QueryResult.Update)") {
+    assertCompiles("MultiQuery[(QueryResult.Unit, QueryResult.Update)](\"\")")
   }
 
-  test("(Unit, QueryResult.UpdateCount).map(QueryResult.get)") {
+  test("(QueryResult.Unit, QueryResult.Update).map(QueryResult.get)") {
     assertCompiles(
-      """implicit def c: TestDbms.Connection = ???
-        |implicit def r = MultiQuery[(QueryResult.Unit, QueryResult.UpdateCount)]("").run().map(QueryResult.get): (Unit, Long)
-        |""".stripMargin)
+      "val ((), u: Long) = MultiQuery.run[(QueryResult.Unit, QueryResult.Update)](\"\").map(QueryResult.get)"
+    )
   }
 
 }
