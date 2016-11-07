@@ -29,7 +29,7 @@ trait Connection {
   We also can't have separate implicit conversions to Connection and BaseConnection, because BaseConnection
   is also a Connection, and so they conflict.
    */
-  @implicitNotFound("Import an implicit Pool, or wrap a JDBC Connection with DBMS#Connection.")
+  @implicitNotFound("Use Pool#withConnection, or wrap a JDBC Connection with DBMS#Connection.")
   class Connection(underlying: sql.Connection) extends sql.Connection {
     initializeConnection(this)
 

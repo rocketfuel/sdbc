@@ -16,7 +16,7 @@ private[sdbc] trait SerializedParameter {
 
   implicit val SerializedUpdater: Updater[Serialized] =
     new Updater[Serialized] {
-      override def update(row: UpdatableRow, columnIndex: Int, x: Serialized): Unit = {
+      override def update(row: UpdateableRow, columnIndex: Int, x: Serialized): Unit = {
         row.updateObject(columnIndex + 1, x.value, Types.JAVA_OBJECT)
       }
     }

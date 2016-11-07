@@ -37,7 +37,7 @@ trait Update {
     ): Long = {
       logRun(compiledStatement, parameters)
       val runStatement = QueryMethods.execute(compiledStatement, parameters)
-      try StatementConverter.update(runStatement).get
+      try StatementConverter.update(runStatement)
       finally runStatement.close()
     }
 

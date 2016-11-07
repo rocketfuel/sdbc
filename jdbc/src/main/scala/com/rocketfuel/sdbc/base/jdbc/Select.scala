@@ -62,7 +62,8 @@ trait Select {
     ): CloseableIterator[A] = {
       logRun(statement, parameterValues)
       val executed = QueryMethods.execute(statement, parameterValues)
-      StatementConverter.convertedRowIterator[A].apply(executed)
+
+      StatementConverter.convertedRowIterator[A](executed)
     }
 
     def option[A](
@@ -83,7 +84,7 @@ trait Select {
     ): Option[A] = {
       logRun(statement, parameterValues)
       val executed = QueryMethods.execute(statement, parameterValues)
-      StatementConverter.convertedRowOption.apply(executed)
+      StatementConverter.convertedRowOption(executed)
     }
 
     case class Pipe[F[_], A](

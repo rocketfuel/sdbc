@@ -11,7 +11,7 @@ trait SelectForUpdatable {
     key: Key
   )(implicit selectable: SelectForUpdatable[Key],
     connection: Connection
-  ): CloseableIterator[UpdatableRow] = {
+  ): CloseableIterator[UpdateableRow] = {
     selectable.selectForUpdate(key).iterator()
   }
 

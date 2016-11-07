@@ -1,94 +1,154 @@
 package com.rocketfuel.sdbc.base.jdbc.statement
 
-import com.rocketfuel.sdbc.base.jdbc.DBMS
-import java.sql.{PreparedStatement, _}
+import com.rocketfuel.sdbc.base.jdbc.{Connection, DBMS}
+import java.sql._
+import shapeless._
 import shapeless.labelled._
-import shapeless.{::, Generic, HList, HNil, Lazy}
+import shapeless.poly._
+import shapeless.syntax.std.tuple._
 
 trait MultiResultConverter {
-  self: DBMS =>
+  self: DBMS with Connection =>
 
-  trait MultiResultConverter[A] extends (PreparedStatement => A)
+  sealed trait QueryResult[A] {
+    val get: A
+  }
+
+  object QueryResult {
+
+    abstract class Unit private extends QueryResult[scala.Unit] {
+      override val get: scala.Unit = ()
+    }
+
+    case object Unit extends Unit
+
+    case class UpdateCount(
+      override val get: Long
+    ) extends QueryResult[Long]
+
+    case class Iterator[A](
+      get: CloseableIterator[A]
+    ) extends QueryResult[CloseableIterator[A]]
+
+    case class Vector[A](
+      override val get: scala.Vector[A]
+    ) extends QueryResult[scala.Vector[A]]
+
+    case class Singleton[A](
+      override val get: A
+    ) extends QueryResult[A]
+
+    case class Option[A](
+      override val get: scala.Option[A]
+    ) extends QueryResult[scala.Option[A]]
+
+    implicit def toGet[A](result: QueryResult[A]): A =
+      result.get
+
+    object get extends (QueryResult ~> Id) {
+      def apply[T](f: QueryResult[T]): Id[T] = f.get
+    }
+
+  }
+
+  trait MultiResultConverter[A] extends (PreparedStatement => A) {
+    def createStatement(
+      statement: CompiledStatement,
+      parameters: Parameters
+    )(implicit c: Connection
+    ): PreparedStatement =
+      QueryMethods.execute(
+        statement,
+        parameters,
+        resultSetType.getOrElse(MultiResultConverter.defaultResultSetType),
+        resultSetConcurrency.getOrElse(MultiResultConverter.defaultResultSetConcurrency)
+      )
+
+    val resultSetType: Option[Int] = None
+
+    val resultSetConcurrency: Option[Int] = None
+  }
 
   object MultiResultConverter extends LowerPriorityMultiResultConverter {
+
+    val defaultResultSetType = ResultSet.TYPE_FORWARD_ONLY
+
+    val defaultResultSetConcurrency = ResultSet.CONCUR_READ_ONLY
 
     def apply[A](implicit statementConverter: MultiResultConverter[A]): MultiResultConverter[A] =
       statementConverter
 
-    implicit def ofFunction[A](f: PreparedStatement => A): MultiResultConverter[A] =
+    private implicit def ofFunction[A](f: PreparedStatement => A): MultiResultConverter[A] =
       new MultiResultConverter[A] {
         override def apply(v1: PreparedStatement): A = f(v1)
       }
 
-    implicit val results: MultiResultConverter[ResultSet] = {
+    implicit val results: MultiResultConverter[ResultSet] =
+      StatementConverter.results _
+
+    implicit val immutableResults: MultiResultConverter[QueryResult.Iterator[ImmutableRow]] = {
       (v1: PreparedStatement) => {
-        Option(v1.getResultSet()).get
+        QueryResult.Iterator(ImmutableRow.iterator(results(v1)))
       }
     }
 
-    implicit val immutableResults: MultiResultConverter[CloseableIterator[ImmutableRow]] = {
+    implicit val connectedResults: MultiResultConverter[QueryResult.Iterator[ConnectedRow]] = {
       (v1: PreparedStatement) => {
-        ImmutableRow.iterator(results(v1))
+        QueryResult.Iterator(ConnectedRow.iterator(results(v1)))
       }
     }
 
-    implicit val connectedResults: MultiResultConverter[CloseableIterator[ConnectedRow]] = {
-      (v1: PreparedStatement) => {
-        ConnectedRow.iterator(results(v1))
-      }
-    }
+    implicit val updateableResults: MultiResultConverter[QueryResult.Iterator[UpdateableRow]] =
+      new MultiResultConverter[QueryResult.Iterator[UpdateableRow]] {
+        override def apply(v1: PreparedStatement): QueryResult.Iterator[UpdateableRow] =
+          QueryResult.Iterator(StatementConverter.updatableResults(v1))
 
-    implicit val unit: MultiResultConverter[Unit] =
-      new MultiResultConverter[Unit] {
-        override def apply(v1: PreparedStatement): Unit = ()
+        override val resultSetType: Option[Int] =
+          Some(ResultSet.TYPE_SCROLL_SENSITIVE)
+
+        override val resultSetConcurrency: Option[Int] =
+          Some(ResultSet.CONCUR_UPDATABLE)
+      }
+
+    implicit val unit: MultiResultConverter[QueryResult.Unit] =
+      new MultiResultConverter[QueryResult.Unit] {
+        override def apply(v1: PreparedStatement): QueryResult.Unit =
+          QueryResult.Unit
       }
 
     implicit val update: MultiResultConverter[QueryResult.UpdateCount] = {
       (v1: PreparedStatement) =>
-        val count = try {
-          v1.getLargeUpdateCount
-        } catch {
-          case _: UnsupportedOperationException |
-               _: SQLFeatureNotSupportedException =>
-            v1.getUpdateCount.toLong
-        }
-        if (count == -1) None.get else QueryResult.UpdateCount(count)
+        QueryResult.UpdateCount(StatementConverter.update(v1))
     }
 
     implicit def convertedRowIterator[A](implicit
       converter: RowConverter[A]
-    ): MultiResultConverter[Iterator[A]] = {
+    ): MultiResultConverter[QueryResult.Iterator[A]] = {
       (v1: PreparedStatement) =>
-        connectedResults(v1).mapCloseable(converter)
+        QueryResult.Iterator(StatementConverter.convertedRowIterator(v1))
     }
 
     implicit def convertedRowVector[A](implicit
       converter: RowConverter[A]
-    ): MultiResultConverter[Vector[A]] = {
+    ): MultiResultConverter[QueryResult.Vector[A]] = {
       (v1: PreparedStatement) =>
-        val i = connectedResults(v1)
-        try i.map(converter).toVector
-        finally i.close()
+        QueryResult.Vector(StatementConverter.convertedRowVector(v1))
     }
 
     implicit def convertedRowOption[A](implicit
       converter: RowConverter[A]
-    ): MultiResultConverter[Option[A]] = {
+    ): MultiResultConverter[QueryResult.Option[A]] = {
       (v1: PreparedStatement) =>
-        val i = connectedResults(v1)
-        try i.map(converter).toStream.headOption
-        finally i.close()
+        QueryResult.Option(StatementConverter.convertedRowOption(v1))
     }
 
     implicit def convertedRowSingleton[
       R <: Row,
       A
     ](implicit converter: RowConverter[A]
-    ): MultiResultConverter[A] =  {
+    ): MultiResultConverter[QueryResult.Singleton[A]] =  {
       (v1: PreparedStatement) =>
-        val i = connectedResults(v1)
-        try i.map(converter).toStream.head
-        finally i.close()
+        QueryResult.Singleton(StatementConverter.convertedRowSingleton[A](v1))
     }
 
     implicit def recordComposite[
@@ -100,13 +160,18 @@ trait MultiResultConverter {
       T: MultiResultConverter[T]
     ): MultiResultConverter[FieldType[K, H] :: T] =
       new MultiResultConverter[FieldType[K, H] :: T] {
-
         override def apply(v1: PreparedStatement): ::[FieldType[K, H], T] = {
           val head = H(v1)
+          v1.getMoreResults(Statement.KEEP_CURRENT_RESULT)
           val tail = T(v1)
-
           field[K](head) :: tail
         }
+
+        override val resultSetType: Option[Int] =
+          H.resultSetType.orElse(T.resultSetType)
+
+        override val resultSetConcurrency: Option[Int] =
+          H.resultSetConcurrency.orElse(T.resultSetConcurrency)
       }
 
   }
@@ -129,6 +194,12 @@ trait MultiResultConverter {
           val t = T(v1)
           h :: t
         }
+
+        override val resultSetType: Option[Int] =
+          H.resultSetType.orElse(T.resultSetType)
+
+        override val resultSetConcurrency: Option[Int] =
+          H.resultSetConcurrency.orElse(T.resultSetConcurrency)
       }
     }
 

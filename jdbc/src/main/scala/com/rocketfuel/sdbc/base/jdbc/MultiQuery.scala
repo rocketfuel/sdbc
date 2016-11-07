@@ -45,7 +45,8 @@ trait MultiQuery extends MultiResultConverter {
     ): A = {
       logRun(compiledStatement, parameters)
 
-      val bound = QueryMethods.execute(compiledStatement, parameters)
+      val bound =
+        statementConverter.createStatement(compiledStatement, parameters)
 
       bound.execute()
       bound

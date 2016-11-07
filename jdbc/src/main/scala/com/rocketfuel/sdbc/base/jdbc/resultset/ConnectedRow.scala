@@ -502,7 +502,7 @@ trait ConnectedRow {
   }
 
 
-  class UpdatableRow private[sdbc](
+  class UpdateableRow private[sdbc](
     underlying: ResultSet,
     columnNames: IndexedSeq[String],
     columnIndexes: Map[String, Int]
@@ -514,24 +514,24 @@ trait ConnectedRow {
 
   }
 
-  private[sdbc] object UpdatableRow {
-    def apply(resultSet: ResultSet): UpdatableRow = {
+  private[sdbc] object UpdateableRow {
+    def apply(resultSet: ResultSet): UpdateableRow = {
       val columnNames = Row.columnNames(resultSet.getMetaData)
       val columnIndexes = Row.columnIndexes(columnNames)
 
-      new UpdatableRow(
+      new UpdateableRow(
         underlying = resultSet,
         columnNames = columnNames,
         columnIndexes = columnIndexes
       )
     }
 
-    def iterator(resultSet: ResultSet): CloseableIterator[UpdatableRow]  = {
+    def iterator(resultSet: ResultSet): CloseableIterator[UpdateableRow]  = {
       val columnNames = Row.columnNames(resultSet.getMetaData)
       val columnIndexes = Row.columnIndexes(columnNames)
 
       resultSet.iterator().mapCloseable { resultSet =>
-        new UpdatableRow(
+        new UpdateableRow(
           underlying = resultSet,
           columnNames = columnNames,
           columnIndexes = columnIndexes

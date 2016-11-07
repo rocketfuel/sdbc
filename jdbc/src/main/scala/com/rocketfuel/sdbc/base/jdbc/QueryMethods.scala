@@ -23,7 +23,9 @@ private[jdbc] trait QueryMethods {
 
     def execute(
       compiledStatement: CompiledStatement,
-      parameters: Parameters
+      parameters: Parameters,
+      resultSetType: Int = ResultSet.TYPE_FORWARD_ONLY,
+      resultSetConcurrency: Int = ResultSet.CONCUR_READ_ONLY
     )(implicit connection: Connection
     ): PreparedStatement = {
       val prepared = connection.prepareStatement(compiledStatement.queryText)
@@ -40,11 +42,7 @@ private[jdbc] trait QueryMethods {
       parameters: Parameters
     )(implicit connection: Connection
     ): PreparedStatement = {
-      val prepared = connection.prepareStatement(compiledStatement.queryText, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-      val bound = bind(prepared, compiledStatement, parameters)
-
-      bound.execute()
-      bound
+      execute(compiledStatement, parameters, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
     }
   }
 
