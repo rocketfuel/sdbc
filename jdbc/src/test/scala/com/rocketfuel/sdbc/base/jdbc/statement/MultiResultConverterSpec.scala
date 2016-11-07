@@ -1,14 +1,14 @@
-package com.rocketfuel.sdbc.base.jdbc
+package com.rocketfuel.sdbc.base.jdbc.statement
 
+import com.rocketfuel.sdbc.base.jdbc.TestDbms._
 import org.scalatest.FunSuite
-import TestDbms._
 import shapeless._
 import shapeless.syntax.std.tuple._
 
 class MultiResultConverterSpec
   extends FunSuite {
 
-  implicit def c: TestDbms.Connection = ???
+  implicit def c: Connection = ???
 
   test("Unit") {
     assertCompiles("MultiQuery[QueryResult.Unit](\"\")")
