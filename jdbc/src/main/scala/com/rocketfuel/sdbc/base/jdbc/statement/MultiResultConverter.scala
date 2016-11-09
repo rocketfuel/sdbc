@@ -4,7 +4,6 @@ import com.rocketfuel.sdbc.base.jdbc.{Connection, DBMS}
 import java.sql._
 import shapeless._
 import shapeless.labelled._
-import shapeless.poly._
 import shapeless.syntax.std.tuple._
 
 trait MultiResultConverter {
@@ -48,8 +47,24 @@ trait MultiResultConverter {
     implicit def toGet[A](result: QueryResult[A]): A =
       result.get
 
-    object get extends (QueryResult ~> Id) {
-      override def apply[A](f: QueryResult[A]): Id[A] = f.get
+    object get extends Poly1 {
+      implicit val caseUnit =
+        at[Unit](_.get)
+
+      implicit val caseUpdate =
+        at[Update](_.get)
+
+      implicit def caseIterator[A] =
+        at[Iterator[A]](_.get)
+
+      implicit def caseVector[A] =
+        at[Vector[A]](_.get)
+
+      implicit def caseSingleton[A] =
+        at[Singleton[A]](_.get)
+
+      implicit def caseOption[A] =
+        at[Option[A]](_.get)
     }
 
   }

@@ -38,6 +38,12 @@ class MultiResultConverterSpec
     assertCompiles("MultiQuery[(QueryResult.Unit, QueryResult.Update)](\"\")")
   }
 
+  test("(QueryResult.Unit, QueryResult.Update(3)).map(QueryResult.get)") {
+    assertCompiles(
+      "val (u0: Long, u1: Long) = (QueryResult.Update(3), QueryResult.Update(3)).map(QueryResult.get)"
+    )
+  }
+
   test("(QueryResult.Unit, QueryResult.Update).map(QueryResult.get)") {
     assertCompiles(
       "val ((), u: Long) = MultiQuery.run[(QueryResult.Unit, QueryResult.Update)](\"\").map(QueryResult.get)"
