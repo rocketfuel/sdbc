@@ -48,7 +48,6 @@ trait MultiQuery extends MultiResultConverter {
       val bound =
         multiResultConverter.createStatement(compiledStatement, parameters)
 
-      bound.execute()
       bound
     }
 
