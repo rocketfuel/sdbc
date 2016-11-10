@@ -44,19 +44,8 @@ trait Select {
     extends Logging {
 
     def iterator[A](
-      queryText: String,
-      parameterValues: Parameters = Parameters.empty
-    )(implicit connection: Connection,
-      rowConverter: RowConverter[A]
-    ): CloseableIterator[A] = {
-      val statement = CompiledStatement(queryText)
-
-      iterator(statement, parameterValues)
-    }
-
-    def iterator[A](
       statement: CompiledStatement,
-      parameterValues: Parameters
+      parameterValues: Parameters = Parameters.empty
     )(implicit connection: Connection,
       rowConverter: RowConverter[A]
     ): CloseableIterator[A] = {
@@ -67,24 +56,26 @@ trait Select {
     }
 
     def option[A](
-      queryText: String,
-      parameterValues: Parameters = Parameters.empty
-    )(implicit connection: Connection,
-      rowConverter: RowConverter[A]
-    ): Option[A] = {
-      val statement = CompiledStatement(queryText)
-      option(statement, parameterValues)
-    }
-
-    def option[A](
       statement: CompiledStatement,
-      parameterValues: Parameters
+      parameterValues: Parameters = Parameters.empty
     )(implicit connection: Connection,
       rowConverter: RowConverter[A]
     ): Option[A] = {
       logRun(statement, parameterValues)
       val executed = QueryMethods.execute(statement, parameterValues)
       StatementConverter.convertedRowOption(executed)
+    }
+
+    def vector[A](
+      statement: CompiledStatement,
+      parameterValues: Parameters = Parameters.empty
+    )(implicit connection: Connection,
+      rowConverter: RowConverter[A]
+    ): Vector[A] = {
+      logRun(statement, parameterValues)
+      val executed = QueryMethods.execute(statement, parameterValues)
+
+      StatementConverter.convertedRowVector[A](executed)
     }
 
     case class Pipe[F[_], A](
