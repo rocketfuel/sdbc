@@ -69,20 +69,23 @@ trait MultiResultConverter {
 
   }
 
-  sealed trait MultiResultConverter[A] extends (PreparedStatement => A) {
-    val resultSetType: Option[Int] = None
+  case class MultiResultConverter[A] private(
+    impl: PreparedStatement => A,
+    resultSetType: Option[Int] = None,
+    resultSetConcurrency: Option[Int] = None,
+    keepOpen: Boolean = false
+  ) extends (PreparedStatement => A) {
 
-    val resultSetConcurrency: Option[Int] = None
-
-    val keepOpen: Boolean = false
-
-    def moreArg =
-      if (keepOpen)
-        Statement.KEEP_CURRENT_RESULT
-      else Statement.CLOSE_CURRENT_RESULT
+    override def apply(v1: PreparedStatement): A =
+      impl(v1)
 
     def getMoreResults(s: Statement): Unit =
-      s.getMoreResults(moreArg)
+      s.getMoreResults(
+        if (keepOpen)
+          Statement.KEEP_CURRENT_RESULT
+        else Statement.CLOSE_CURRENT_RESULT
+      )
+
   }
 
   object MultiResultConverter extends LowerPriorityMultiResultConverter {
@@ -90,85 +93,71 @@ trait MultiResultConverter {
     def apply[A](implicit statementConverter: MultiResultConverter[A]): MultiResultConverter[A] =
       statementConverter
 
-    private implicit def ofFunction[A](f: PreparedStatement => A): MultiResultConverter[A] =
-      new MultiResultConverter[A] {
-        override def apply(v1: PreparedStatement): A = f(v1)
-      }
+    implicit lazy val results: MultiResultConverter[ResultSet] =
+      MultiResultConverter(
+        impl = StatementConverter.results
+      )
 
-    implicit val results: MultiResultConverter[ResultSet] =
-      StatementConverter.results _
+    implicit lazy val immutableResults: MultiResultConverter[QueryResult.Iterator[ImmutableRow]] =
+      MultiResultConverter(
+        impl = v1 => QueryResult.Iterator(ImmutableRow.iterator(results(v1))),
+        keepOpen = true
+      )
 
-    implicit val immutableResults: MultiResultConverter[QueryResult.Iterator[ImmutableRow]] = {
-      (v1: PreparedStatement) => {
-        QueryResult.Iterator(ImmutableRow.iterator(results(v1)))
-      }
-    }
+    implicit lazy val connectedResults: MultiResultConverter[QueryResult.Iterator[ConnectedRow]] =
+      MultiResultConverter(
+        impl = v1 => QueryResult.Iterator(ConnectedRow.iterator(results(v1))),
+        keepOpen = true
+      )
 
-    implicit val connectedResults: MultiResultConverter[QueryResult.Iterator[ConnectedRow]] =
-      new MultiResultConverter[QueryResult.Iterator[ConnectedRow]] {
-        override def apply(v1: PreparedStatement): QueryResult.Iterator[ConnectedRow] =
-          QueryResult.Iterator(ConnectedRow.iterator(results(v1)))
+    implicit lazy val updateableResults: MultiResultConverter[QueryResult.Iterator[UpdateableRow]] =
+      MultiResultConverter(
+        impl = v1 => QueryResult.Iterator(StatementConverter.updatableResults(v1)),
+        resultSetType = Some(ResultSet.TYPE_SCROLL_SENSITIVE),
+        resultSetConcurrency = Some(ResultSet.CONCUR_UPDATABLE),
+        keepOpen = true
+      )
 
-        override val keepOpen: Boolean = true
-      }
+    implicit lazy val unit: MultiResultConverter[QueryResult.Unit] =
+      MultiResultConverter(
+        impl = Function.const(QueryResult.Unit)
+      )
 
-    implicit val updateableResults: MultiResultConverter[QueryResult.Iterator[UpdateableRow]] =
-      new MultiResultConverter[QueryResult.Iterator[UpdateableRow]] {
-        override def apply(v1: PreparedStatement): QueryResult.Iterator[UpdateableRow] =
-          QueryResult.Iterator(StatementConverter.updatableResults(v1))
-
-        override val resultSetType: Option[Int] =
-          Some(ResultSet.TYPE_SCROLL_SENSITIVE)
-
-        override val resultSetConcurrency: Option[Int] =
-          Some(ResultSet.CONCUR_UPDATABLE)
-
-        override val keepOpen: Boolean = true
-      }
-
-    implicit val unit: MultiResultConverter[QueryResult.Unit] =
-      new MultiResultConverter[QueryResult.Unit] {
-        override def apply(v1: PreparedStatement): QueryResult.Unit =
-          QueryResult.Unit
-      }
-
-    implicit val update: MultiResultConverter[QueryResult.Update] = {
-      (v1: PreparedStatement) =>
-        QueryResult.Update(StatementConverter.update(v1))
-    }
+    implicit lazy val update: MultiResultConverter[QueryResult.Update] =
+      MultiResultConverter(
+        impl = v1 => QueryResult.Update(StatementConverter.update(v1))
+      )
 
     implicit def convertedRowIterator[A](implicit
       converter: RowConverter[A]
     ): MultiResultConverter[QueryResult.Iterator[A]] =
-      new MultiResultConverter[QueryResult.Iterator[A]] {
-        override def apply(v1: PreparedStatement): QueryResult.Iterator[A] =
-          QueryResult.Iterator(StatementConverter.convertedRowIterator(v1))
-
-        override val keepOpen: Boolean = true
-      }
+      MultiResultConverter(
+        impl = v1 => QueryResult.Iterator(StatementConverter.convertedRowIterator(v1)),
+        keepOpen = true
+      )
 
     implicit def convertedRowVector[A](implicit
       converter: RowConverter[A]
-    ): MultiResultConverter[QueryResult.Vector[A]] = {
-      (v1: PreparedStatement) =>
-        QueryResult.Vector(StatementConverter.convertedRowVector(v1))
-    }
+    ): MultiResultConverter[QueryResult.Vector[A]] =
+      MultiResultConverter(
+        impl = v1 => QueryResult.Vector(StatementConverter.convertedRowVector(v1))
+      )
 
     implicit def convertedRowOption[A](implicit
       converter: RowConverter[A]
-    ): MultiResultConverter[QueryResult.Option[A]] = {
-      (v1: PreparedStatement) =>
-        QueryResult.Option(StatementConverter.convertedRowOption(v1))
-    }
+    ): MultiResultConverter[QueryResult.Option[A]] =
+      MultiResultConverter(
+        impl = v1 => QueryResult.Option(StatementConverter.convertedRowOption(v1))
+      )
 
     implicit def convertedRowSingleton[
       R <: Row,
       A
     ](implicit converter: RowConverter[A]
-    ): MultiResultConverter[QueryResult.Singleton[A]] =  {
-      (v1: PreparedStatement) =>
-        QueryResult.Singleton(StatementConverter.convertedRowSingleton[A](v1))
-    }
+    ): MultiResultConverter[QueryResult.Singleton[A]] =
+      MultiResultConverter(
+        impl = v1 => QueryResult.Singleton(StatementConverter.convertedRowSingleton[A](v1))
+      )
 
     implicit def recordComposite[
       H,
@@ -178,59 +167,48 @@ trait MultiResultConverter {
       H: MultiResultConverter[H],
       T: MultiResultConverter[T]
     ): MultiResultConverter[FieldType[K, H] :: T] =
-      new MultiResultConverter[FieldType[K, H] :: T] {
-        override def apply(v1: PreparedStatement): ::[FieldType[K, H], T] = {
+      MultiResultConverter(
+        impl = { v1 =>
           val head = H(v1)
           H.getMoreResults(v1)
           val tail = T(v1)
           field[K](head) :: tail
-        }
-
-        override val resultSetType: Option[Int] =
-          H.resultSetType.orElse(T.resultSetType)
-
-        override val resultSetConcurrency: Option[Int] =
-          H.resultSetConcurrency.orElse(T.resultSetConcurrency)
-      }
+        },
+        resultSetType = H.resultSetType.orElse(T.resultSetType),
+        resultSetConcurrency = H.resultSetConcurrency.orElse(T.resultSetConcurrency)
+      )
 
   }
 
   trait LowerPriorityMultiResultConverter {
 
-    implicit val emptyProduct: MultiResultConverter[HNil] =
-      new MultiResultConverter[HNil] {
-        override def apply(v1: PreparedStatement): HNil = HNil
-      }
+    implicit lazy val emptyProduct: MultiResultConverter[HNil] =
+      MultiResultConverter(
+        impl = Function.const(HNil)
+      )
 
     implicit def product[H, T <: HList](implicit
       H: MultiResultConverter[H],
       T: MultiResultConverter[T]
-    ): MultiResultConverter[H :: T] = {
-      new MultiResultConverter[H :: T] {
-        override def apply(v1: PreparedStatement): H :: T = {
+    ): MultiResultConverter[H :: T] =
+      MultiResultConverter(
+        impl = { v1 =>
           val h = H(v1)
           H.getMoreResults(v1)
           val t = T(v1)
           h :: t
-        }
-
-        override val resultSetType: Option[Int] =
-          H.resultSetType.orElse(T.resultSetType)
-
-        override val resultSetConcurrency: Option[Int] =
-          H.resultSetConcurrency.orElse(T.resultSetConcurrency)
-      }
-    }
+        },
+        resultSetType = H.resultSetType.orElse(T.resultSetType),
+        resultSetConcurrency = H.resultSetConcurrency.orElse(T.resultSetConcurrency)
+      )
 
     implicit def generic[F, G](implicit
       gen: Generic.Aux[F, G],
       G: MultiResultConverter[G]
     ): MultiResultConverter[F] =
-      new MultiResultConverter[F] {
-        override def apply(v1: PreparedStatement): F = {
-          gen.from(G(v1))
-        }
-      }
+      MultiResultConverter(
+        impl = v1 => gen.from(G(v1))
+      )
 
   }
 
