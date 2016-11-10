@@ -28,14 +28,14 @@ abstract class H2
    * @tparam T
    * @return
    */
-  def withMemConnection[T](name: String = "", dbCloseDelay: Option[Int] = None): (Connection => T) => T = {
+  def usingMemConnection[T](name: String = "", dbCloseDelay: Option[Int] = None): (Connection => T) => T = {
     val dbCloseDelayArg = s";DB_CLOSE_DELAY=${dbCloseDelay.getOrElse(-1)}"
     val connectionString = s"jdbc:h2:mem:$name$dbCloseDelayArg"
-    withConnection[T](connectionString)
+    Connection.using[T](connectionString)
   }
 
-  def withFileConnection[T](path: Path): (Connection => T) => T = {
-    withConnection("jdbc:h2:" + path.toFile.getCanonicalPath)
+  def usingFileConnection[T](path: Path): (Connection => T) => T = {
+    Connection.using[T]("jdbc:h2:" + path.toFile.getCanonicalPath)
   }
 
 }
