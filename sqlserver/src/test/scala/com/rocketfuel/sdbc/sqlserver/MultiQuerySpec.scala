@@ -6,25 +6,24 @@ import shapeless._
 class MultiQuerySpec
   extends SqlServerSuite {
 
-  test("manual") {implicit connection =>
-    val s = connection.prepareStatement("SELECT * FROM (VALUES (1)) AS MyTable(a); SELECT * FROM (VALUES (2)) AS MyTable2(b)")
-    s.execute()
-    val r0 = s.getResultSet()
-    s.getMoreResults(java.sql.Statement.KEEP_CURRENT_RESULT)
-    val r1 = s.getResultSet()
-    r0.next()
-    println(s"val is ${r0.getInt(1)}")
-    r1.next()
-    println(s"val is ${r1.getInt(1)}")
-  }
-
-  test("multiselect") {implicit connection =>
-
+  test("vector vector") {implicit connection =>
     val (results0, results1) =
       MultiQuery[(QueryResult.Vector[Int], QueryResult.Vector[Int])]("SELECT * FROM (VALUES (1)) AS MyTable(a); SELECT * FROM (VALUES (2)) AS MyTable2(b)").run()
 
     assertResult(Vector(1))(results0.get)
     assertResult(Vector(2))(results1.get)
+  }
+
+  test("update vector") {implicit connection =>
+    connection.setAutoCommit(true)
+    val tbl = util.Random.nextString(10)
+    Execute.execute(s"CREATE TABLE [$tbl] (i int)")
+
+    val (results0, results1) =
+      MultiQuery[(QueryResult.Update, QueryResult.Vector[Int])](s"INSERT INTO [$tbl](i) VALUES (1); SELECT i FROM [$tbl];").run()
+
+    assertResult(1)(results0.get)
+    assertResult(Vector(1))(results1.get)
   }
 
 }

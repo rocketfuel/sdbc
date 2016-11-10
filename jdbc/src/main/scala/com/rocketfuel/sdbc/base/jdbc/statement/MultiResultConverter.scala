@@ -69,7 +69,7 @@ trait MultiResultConverter {
 
   }
 
-  trait MultiResultConverter[A] extends (PreparedStatement => A) {
+  sealed trait MultiResultConverter[A] extends (PreparedStatement => A) {
     def createStatement(
       statement: CompiledStatement,
       parameters: Parameters
@@ -180,7 +180,8 @@ trait MultiResultConverter {
       new MultiResultConverter[FieldType[K, H] :: T] {
         override def apply(v1: PreparedStatement): ::[FieldType[K, H], T] = {
           val head = H(v1)
-          v1.getMoreResults(Statement.KEEP_CURRENT_RESULT)
+          //TODO: Use Statement.KEEP_CURRENT_RESULT if H is an iterator
+          v1.getMoreResults()
           val tail = T(v1)
           field[K](head) :: tail
         }
@@ -208,7 +209,8 @@ trait MultiResultConverter {
       new MultiResultConverter[H :: T] {
         override def apply(v1: PreparedStatement): H :: T = {
           val h = H(v1)
-          v1.getMoreResults(Statement.KEEP_CURRENT_RESULT)
+          //TODO: Use Statement.KEEP_CURRENT_RESULT if H is an iterator
+          v1.getMoreResults()
           val t = T(v1)
           h :: t
         }
@@ -223,11 +225,11 @@ trait MultiResultConverter {
 
     implicit def generic[F, G](implicit
       gen: Generic.Aux[F, G],
-      G: Lazy[MultiResultConverter[G]]
+      G: MultiResultConverter[G]
     ): MultiResultConverter[F] =
       new MultiResultConverter[F] {
         override def apply(v1: PreparedStatement): F = {
-          gen.from(G.value(v1))
+          gen.from(G(v1))
         }
       }
 
