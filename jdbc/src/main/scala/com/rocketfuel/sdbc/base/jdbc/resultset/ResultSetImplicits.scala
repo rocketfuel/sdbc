@@ -3,6 +3,7 @@ package com.rocketfuel.sdbc.base.jdbc.resultset
 import com.rocketfuel.sdbc.base.CloseableIterator
 import com.rocketfuel.sdbc.base.jdbc.DBMS
 import java.sql.ResultSet
+import scala.collection._
 
 trait ResultSetImplicits {
   self: DBMS =>
@@ -16,34 +17,26 @@ class ResultSetIterator(val underlying: ResultSet) extends AnyVal {
 
   /**
     * Get an iterator over the mutable result set.
-    * It closes itself when you reach the end, or when you call close().
-    * Only one iterator is ever created for a result set.
-    * If you want another iterator, execute the select statement again.
+    * Iterators over the same result set will not
+    * share elements.
     *
-    * @return
+    * If you want two iterators for the same results,
+    * execute the query and create a new iterator.
     */
   def iterator(): CloseableIterator[ResultSet] = {
+    val i = new Iterator[ResultSet] {
+      override def hasNext: Boolean =
+        underlying.next()
 
-    new CloseableIterator[ResultSet] {
+      override def next(): ResultSet =
+        underlying
+    }
 
+    new CloseableIterator[ResultSet](i) {
       override def close(): Unit = {
         underlying.close()
       }
-
-      override def hasNext: Boolean = {
-        val result = underlying.next()
-        if (!result) {
-          underlying.close()
-        }
-        result
-      }
-
-      override def next(): ResultSet = {
-        underlying
-      }
-
     }
-
   }
 
 }

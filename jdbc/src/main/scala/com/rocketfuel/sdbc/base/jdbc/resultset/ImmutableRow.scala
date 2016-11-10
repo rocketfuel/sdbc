@@ -182,7 +182,7 @@ trait ImmutableRow {
       val columnNames = Row.columnNames(getMetadata)
       val columnIndexes = Row.columnIndexes(columnNames)
 
-      resultSet.iterator().mapCloseable { resultSet =>
+      resultSet.iterator().map { resultSet =>
         val getRow = resultSet.getRow - 1
         val toSeq = Row.toSeq(resultSet)
 

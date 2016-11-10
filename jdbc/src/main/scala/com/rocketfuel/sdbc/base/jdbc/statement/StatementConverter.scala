@@ -1,6 +1,5 @@
 package com.rocketfuel.sdbc.base.jdbc.statement
 
-import com.rocketfuel.sdbc.base.CloseableIterator
 import com.rocketfuel.sdbc.base.jdbc.DBMS
 import java.sql.{ResultSet, SQLFeatureNotSupportedException}
 
@@ -27,7 +26,7 @@ trait StatementConverter {
     ](v1: PreparedStatement
     )(implicit converter: RowConverter[A]
     ): CloseableIterator[A] = {
-      connectedResults(v1).mapCloseable(converter)
+      connectedResults(v1).map(converter)
     }
 
     def convertedRowVector[
@@ -73,17 +72,19 @@ trait StatementConverter {
     }
 
     def immutableResults(v1: PreparedStatement): Vector[ImmutableRow] = {
-      ImmutableRow.iterator(results(v1)).toVector
+      val i = ImmutableRow.iterator(results(v1))
+      try i.toVector
+      finally i.close()
     }
 
     def connectedResults(v1: PreparedStatement): CloseableIterator[ConnectedRow] = {
       val resultSet = results(v1)
-      CloseableIterator(ConnectedRow.iterator(resultSet), resultSet.close)
+      ConnectedRow.iterator(resultSet)
     }
 
     def updatableResults(v1: PreparedStatement): CloseableIterator[UpdateableRow] = {
       val resultSet = results(v1)
-      CloseableIterator(UpdateableRow.iterator(resultSet), resultSet.close)
+      UpdateableRow.iterator(resultSet)
     }
 
   }

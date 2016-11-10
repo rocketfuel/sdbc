@@ -490,7 +490,7 @@ trait ConnectedRow {
       val columnNames = Row.columnNames(resultSet.getMetaData)
       val columnIndexes = Row.columnIndexes(columnNames)
 
-      resultSet.iterator().mapCloseable { resultSet =>
+      resultSet.iterator().map { resultSet =>
         new ConnectedRow(
           underlying = resultSet,
           columnNames = columnNames,
@@ -500,7 +500,6 @@ trait ConnectedRow {
     }
 
   }
-
 
   class UpdateableRow private[sdbc](
     underlying: ResultSet,
@@ -530,7 +529,7 @@ trait ConnectedRow {
       val columnNames = Row.columnNames(resultSet.getMetaData)
       val columnIndexes = Row.columnIndexes(columnNames)
 
-      resultSet.iterator().mapCloseable { resultSet =>
+      resultSet.iterator().map { resultSet =>
         new UpdateableRow(
           underlying = resultSet,
           columnNames = columnNames,

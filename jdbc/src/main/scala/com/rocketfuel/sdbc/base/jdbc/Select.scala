@@ -91,7 +91,7 @@ trait Select {
           pipe.lift[F, Parameters, Stream[F, A]] { params =>
             StreamUtils.fromIteratorR[F, Connection, A](
               async.delay(pool.getConnection()),
-              {implicit connection: Connection => async.delay(iterator(statement, params))},
+              {implicit connection: Connection => async.delay(iterator(statement, params).toIterator)},
               (connection: Connection) => async.delay(connection.close())
             )
           }
