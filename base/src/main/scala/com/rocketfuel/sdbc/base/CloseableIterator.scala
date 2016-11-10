@@ -17,13 +17,15 @@ trait CloseableIterator[+A]
 
 object CloseableIterator {
 
-  def apply[A](underlying: Iterator[A], close: () => Unit): CloseableIterator[A] =
+  def apply[A](underlying: Iterator[A], close: () => Unit): CloseableIterator[A] = {
+    val closeArg = close
     new CloseableIterator[A] {
       override def hasNext: Boolean = underlying.hasNext
 
       override def next(): A = underlying.next()
 
-      override def close(): Unit = close()
+      override def close(): Unit = closeArg()
     }
+  }
 
 }
