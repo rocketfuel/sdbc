@@ -70,7 +70,7 @@ trait MultiResultConverter {
   }
 
   case class MultiResultConverter[A] private(
-    impl: PreparedStatement => A,
+    private val impl: PreparedStatement => A,
     resultSetType: Option[Int] = None,
     resultSetConcurrency: Option[Int] = None,
     keepOpen: Boolean = false
@@ -79,12 +79,13 @@ trait MultiResultConverter {
     override def apply(v1: PreparedStatement): A =
       impl(v1)
 
-    def getMoreResults(s: Statement): Unit =
-      s.getMoreResults(
-        if (keepOpen)
-          Statement.KEEP_CURRENT_RESULT
-        else Statement.CLOSE_CURRENT_RESULT
-      )
+    /**
+      * The argument passed to PreparedStatement#getMoreResults(int).
+      */
+    val current: Int =
+      if (keepOpen)
+        Statement.KEEP_CURRENT_RESULT
+      else Statement.CLOSE_CURRENT_RESULT
 
   }
 
@@ -171,7 +172,7 @@ trait MultiResultConverter {
       MultiResultConverter(
         impl = { v1 =>
           val head = H(v1)
-          H.getMoreResults(v1)
+          v1.getMoreResults(H.current)
           val tail = T(v1)
           field[K](head) :: tail
         },
@@ -195,7 +196,7 @@ trait MultiResultConverter {
       MultiResultConverter(
         impl = { v1 =>
           val h = H(v1)
-          H.getMoreResults(v1)
+          v1.getMoreResults(H.current)
           val t = T(v1)
           h :: t
         },
