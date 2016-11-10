@@ -4,6 +4,7 @@ import com.rocketfuel.sdbc.base.Logging
 import com.rocketfuel.sdbc.base.jdbc.statement.MultiResultConverter
 import fs2.Stream
 import fs2.util.Async
+import java.sql.ResultSet
 import shapeless.ops.record.{MapValues, ToMap}
 import shapeless.{HList, LabelledGeneric}
 
@@ -37,6 +38,10 @@ trait MultiQuery extends MultiResultConverter {
   object MultiQuery
     extends Logging {
 
+    val defaultResultSetType = ResultSet.TYPE_FORWARD_ONLY
+
+    val defaultResultSetConcurrency = ResultSet.CONCUR_READ_ONLY
+
     def run[A](
       compiledStatement: CompiledStatement,
       parameters: Parameters = Parameters.empty
@@ -44,7 +49,12 @@ trait MultiQuery extends MultiResultConverter {
       multiResultConverter: MultiResultConverter[A]
     ): A = {
       logRun(compiledStatement, parameters)
-      multiResultConverter.createStatement(compiledStatement, parameters)
+      QueryMethods.execute(
+        compiledStatement,
+        parameters,
+        multiResultConverter.resultSetType.getOrElse(defaultResultSetType),
+        multiResultConverter.resultSetConcurrency.getOrElse(defaultResultSetConcurrency)
+      )
     }
 
     case class Pipe[F[_], A](

@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc.statement
 
 import com.rocketfuel.sdbc.base.jdbc.{Connection, DBMS}
-import java.sql._
+import java.sql.ResultSet
 import shapeless._
 import shapeless.labelled._
 import shapeless.syntax.std.tuple._
@@ -70,28 +70,12 @@ trait MultiResultConverter {
   }
 
   sealed trait MultiResultConverter[A] extends (PreparedStatement => A) {
-    def createStatement(
-      statement: CompiledStatement,
-      parameters: Parameters
-    )(implicit c: Connection
-    ): PreparedStatement =
-      QueryMethods.execute(
-        statement,
-        parameters,
-        resultSetType.getOrElse(MultiResultConverter.defaultResultSetType),
-        resultSetConcurrency.getOrElse(MultiResultConverter.defaultResultSetConcurrency)
-      )
-
     val resultSetType: Option[Int] = None
 
     val resultSetConcurrency: Option[Int] = None
   }
 
   object MultiResultConverter extends LowerPriorityMultiResultConverter {
-
-    val defaultResultSetType = ResultSet.TYPE_FORWARD_ONLY
-
-    val defaultResultSetConcurrency = ResultSet.CONCUR_READ_ONLY
 
     def apply[A](implicit statementConverter: MultiResultConverter[A]): MultiResultConverter[A] =
       statementConverter
