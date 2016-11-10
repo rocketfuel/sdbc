@@ -44,11 +44,7 @@ trait MultiQuery extends MultiResultConverter {
       multiResultConverter: MultiResultConverter[A]
     ): A = {
       logRun(compiledStatement, parameters)
-
-      val bound =
-        multiResultConverter.createStatement(compiledStatement, parameters)
-
-      bound
+      multiResultConverter.createStatement(compiledStatement, parameters)
     }
 
     case class Pipe[F[_], A](
