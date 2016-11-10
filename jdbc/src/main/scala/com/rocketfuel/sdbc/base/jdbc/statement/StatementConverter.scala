@@ -36,7 +36,8 @@ trait StatementConverter {
     )(implicit converter: RowConverter[A]
     ): Vector[A] = {
       val i = connectedResults(v1)
-      i.map(converter).toVector
+      try i.map(converter).toVector
+      finally i.close()
     }
 
     def convertedRowOption[
