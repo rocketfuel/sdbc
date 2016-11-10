@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc.statement
 
 import com.rocketfuel.sdbc.base.jdbc.{Connection, DBMS}
-import java.sql.ResultSet
+import java.sql.{ResultSet, Statement}
 import shapeless._
 import shapeless.labelled._
 import shapeless.syntax.std.tuple._
@@ -73,6 +73,16 @@ trait MultiResultConverter {
     val resultSetType: Option[Int] = None
 
     val resultSetConcurrency: Option[Int] = None
+
+    val keepOpen: Boolean = false
+
+    def moreArg =
+      if (keepOpen)
+        Statement.KEEP_CURRENT_RESULT
+      else Statement.CLOSE_CURRENT_RESULT
+
+    def getMoreResults(s: Statement): Unit =
+      s.getMoreResults(moreArg)
   }
 
   object MultiResultConverter extends LowerPriorityMultiResultConverter {
@@ -94,11 +104,13 @@ trait MultiResultConverter {
       }
     }
 
-    implicit val connectedResults: MultiResultConverter[QueryResult.Iterator[ConnectedRow]] = {
-      (v1: PreparedStatement) => {
-        QueryResult.Iterator(ConnectedRow.iterator(results(v1)))
+    implicit val connectedResults: MultiResultConverter[QueryResult.Iterator[ConnectedRow]] =
+      new MultiResultConverter[QueryResult.Iterator[ConnectedRow]] {
+        override def apply(v1: PreparedStatement): QueryResult.Iterator[ConnectedRow] =
+          QueryResult.Iterator(ConnectedRow.iterator(results(v1)))
+
+        override val keepOpen: Boolean = true
       }
-    }
 
     implicit val updateableResults: MultiResultConverter[QueryResult.Iterator[UpdateableRow]] =
       new MultiResultConverter[QueryResult.Iterator[UpdateableRow]] {
@@ -110,6 +122,8 @@ trait MultiResultConverter {
 
         override val resultSetConcurrency: Option[Int] =
           Some(ResultSet.CONCUR_UPDATABLE)
+
+        override val keepOpen: Boolean = true
       }
 
     implicit val unit: MultiResultConverter[QueryResult.Unit] =
@@ -125,10 +139,13 @@ trait MultiResultConverter {
 
     implicit def convertedRowIterator[A](implicit
       converter: RowConverter[A]
-    ): MultiResultConverter[QueryResult.Iterator[A]] = {
-      (v1: PreparedStatement) =>
-        QueryResult.Iterator(StatementConverter.convertedRowIterator(v1))
-    }
+    ): MultiResultConverter[QueryResult.Iterator[A]] =
+      new MultiResultConverter[QueryResult.Iterator[A]] {
+        override def apply(v1: PreparedStatement): QueryResult.Iterator[A] =
+          QueryResult.Iterator(StatementConverter.convertedRowIterator(v1))
+
+        override val keepOpen: Boolean = true
+      }
 
     implicit def convertedRowVector[A](implicit
       converter: RowConverter[A]
@@ -164,8 +181,7 @@ trait MultiResultConverter {
       new MultiResultConverter[FieldType[K, H] :: T] {
         override def apply(v1: PreparedStatement): ::[FieldType[K, H], T] = {
           val head = H(v1)
-          //TODO: Use Statement.KEEP_CURRENT_RESULT if H is an iterator
-          v1.getMoreResults()
+          H.getMoreResults(v1)
           val tail = T(v1)
           field[K](head) :: tail
         }
@@ -193,8 +209,7 @@ trait MultiResultConverter {
       new MultiResultConverter[H :: T] {
         override def apply(v1: PreparedStatement): H :: T = {
           val h = H(v1)
-          //TODO: Use Statement.KEEP_CURRENT_RESULT if H is an iterator
-          v1.getMoreResults()
+          H.getMoreResults(v1)
           val t = T(v1)
           h :: t
         }

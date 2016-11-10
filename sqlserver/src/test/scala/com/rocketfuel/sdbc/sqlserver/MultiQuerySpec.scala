@@ -15,7 +15,6 @@ class MultiQuerySpec
   }
 
   test("update vector") {implicit connection =>
-    connection.setAutoCommit(true)
     val tbl = util.Random.nextString(10)
     Execute.execute(s"CREATE TABLE [$tbl] (i int PRIMARY KEY)")
 
@@ -23,6 +22,18 @@ class MultiQuerySpec
       MultiQuery.run[(QueryResult.Update, QueryResult.Vector[Int])](s"INSERT INTO [$tbl](i) VALUES (1); SELECT i FROM [$tbl];")
 
     assertResult(1)(results0.get)
+    assertResult(Vector(1))(results1.get)
+  }
+
+  test("iterator vector") {implicit connection =>
+    val tbl = util.Random.nextString(10)
+    Execute.execute(s"CREATE TABLE [$tbl] (i int PRIMARY KEY)")
+    Execute.execute(s"INSERT INTO [$tbl](i) VALUES (1)")
+
+    val (results0, results1) =
+      MultiQuery.run[(QueryResult.Iterator[Int], QueryResult.Vector[Int])](s"SELECT i FROM [$tbl]; SELECT i FROM [$tbl];")
+
+    assertResult(Vector(1))(results0.get.toVector)
     assertResult(Vector(1))(results1.get)
   }
 
