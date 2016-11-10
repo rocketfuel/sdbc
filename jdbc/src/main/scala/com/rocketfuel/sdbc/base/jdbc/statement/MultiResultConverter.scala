@@ -95,7 +95,8 @@ trait MultiResultConverter {
 
     implicit lazy val results: MultiResultConverter[ResultSet] =
       MultiResultConverter(
-        impl = StatementConverter.results
+        impl = StatementConverter.results,
+        keepOpen = true
       )
 
     implicit lazy val immutableResults: MultiResultConverter[QueryResult.Iterator[ImmutableRow]] =
