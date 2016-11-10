@@ -22,7 +22,9 @@ abstract class CloseableIterator[+A](
     * @param underlying
     * @tparam B
     */
-  private class Mapped[B](underlying: Iterator[B]) extends CloseableIterator(underlying) {
+  private class Mapped[B](
+    underlying: Iterator[B]
+  ) extends CloseableIterator(underlying) {
     override def close(): Unit = self.close()
   }
 

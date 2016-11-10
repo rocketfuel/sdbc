@@ -16,12 +16,9 @@ trait ResultSetImplicits {
 class ResultSetIterator(val underlying: ResultSet) extends AnyVal {
 
   /**
-    * Get an iterator over the mutable result set.
+    * Get an iterator over the result set.
     * Iterators over the same result set will not
     * share elements.
-    *
-    * If you want two iterators for the same results,
-    * execute the query and create a new iterator.
     */
   def iterator(): CloseableIterator[ResultSet] = {
     val i = new Iterator[ResultSet] {
