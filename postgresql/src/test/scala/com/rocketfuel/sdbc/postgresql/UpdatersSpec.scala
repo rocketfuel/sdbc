@@ -45,8 +45,6 @@ class UpdatersSpec
         case (expectedAfter, actualAfter) =>
           assertResult(expectedAfter)(actualAfter)
       }
-
-
     }
   }
 

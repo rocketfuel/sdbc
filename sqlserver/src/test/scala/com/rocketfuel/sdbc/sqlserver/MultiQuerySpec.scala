@@ -37,4 +37,46 @@ class MultiQuerySpec
     assertResult(Vector(1))(results1.get)
   }
 
+  test("iterator singleton") {implicit connection =>
+    val tbl = util.Random.nextString(10)
+    Execute.execute(s"CREATE TABLE [$tbl] (i int PRIMARY KEY)")
+    Execute.execute(s"INSERT INTO [$tbl](i) VALUES (1)")
+
+    val (results0, results1) =
+      MultiQuery.run[(QueryResult.Iterator[Int], QueryResult.Singleton[Int])](s"SELECT i FROM [$tbl]; SELECT i FROM [$tbl];")
+
+    assertResult(Vector(1))(results0.get.toVector)
+    assertResult(1)(results1.get)
+  }
+
+  test("iterator option") {implicit connection =>
+    val tbl = util.Random.nextString(10)
+    Execute.execute(s"CREATE TABLE [$tbl] (i int PRIMARY KEY)")
+    Execute.execute(s"INSERT INTO [$tbl](i) VALUES (1)")
+
+    val (results0, results1) =
+      MultiQuery.run[(QueryResult.Iterator[Int], QueryResult.Option[Int])](s"SELECT i FROM [$tbl]; SELECT i FROM [$tbl];")
+
+    assertResult(Vector(1))(results0.get.toVector)
+    assertResult(Some(1))(results1.get)
+  }
+
+  test("iterator Some(None)") {implicit connection =>
+    val tbl = util.Random.nextString(10)
+    Execute.execute(s"CREATE TABLE [$tbl] (i int PRIMARY KEY IDENTITY(1,1), v int NULL)")
+    Execute.execute(s"INSERT INTO [$tbl](v) VALUES (NULL)")
+
+    val (results0, results1) =
+      MultiQuery.run[(QueryResult.Iterator[Option[Int]], QueryResult.Option[Option[Int]])](s"SELECT v FROM [$tbl]; SELECT v FROM [$tbl];")
+
+    assertResult(Vector[Option[Int]](None))(results0.get.toVector)
+
+    /*
+    This deserves some explanation. The outer Option being Some means
+    that there was a row. The inner Option being None means that
+    the value in the row was NULL.
+     */
+    assertResult(Some(None))(results1.get)
+  }
+
 }

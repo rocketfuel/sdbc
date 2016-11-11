@@ -6,7 +6,7 @@ class QSeqUpdaterSpec
   extends PostgreSqlSuite {
 
   test("Updating an int[] works") {implicit connection =>
-    Update("CREATE TABLE tbl (id serial PRIMARY KEY, ints int[])").update()
+    Update.update("CREATE TABLE tbl (id serial PRIMARY KEY, ints int[])")
 
     Update("INSERT INTO tbl (ints) VALUES (@ints)").on("ints" -> QSeqUpdaterSpec.original).update()
 
