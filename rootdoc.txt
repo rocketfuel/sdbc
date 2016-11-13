@@ -1,6 +1,6 @@
-You will usually import a package object corresponding to the database you are connecting to.
+You will usually import an object corresponding to the database you are connecting to.
 
- - [[com.rocketfuel.sdbc.cassandra]]
- - [[com.rocketfuel.sdbc.h2]]
- - [[com.rocketfuel.sdbc.postgresql]]
- - [[com.rocketfuel.sdbc.sqlserver]]
+ - [[com.rocketfuel.sdbc.Cassandra]]
+ - [[com.rocketfuel.sdbc.H2]]
+ - [[com.rocketfuel.sdbc.PostgreSql]]
+ - [[com.rocketfuel.sdbc.SqlServer]]

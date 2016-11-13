@@ -13,7 +13,7 @@ class LTreeSpec extends FunSuite {
   }
 
   test("Pattern matching works.") {
-    assertCompiles("""val LTree(v: Vector[String]) = LTree("hi", "there")""")
+    assertCompiles("""val LTree(v0, v1) = LTree("hi", "there")""")
   }
 
 }

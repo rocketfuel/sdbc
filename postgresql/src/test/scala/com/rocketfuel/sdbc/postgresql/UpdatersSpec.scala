@@ -30,12 +30,14 @@ class UpdatersSpec
 
       Execute.execute(s"INSERT INTO $tableName (v) VALUES (@before)", Map("before" -> before))
 
-      for (row <- SelectForUpdate(s"SELECT * FROM $tableName").iterator()) {
+      val rows =  SelectForUpdate(s"SELECT * FROM $tableName").iterator()
+      for (row <- rows) {
         row("v") = after
         row.updateRow()
       }
+      rows.close()
 
-      val maybeValue = Select[Option[T]](s"SELECT v FROM $tableName").option().get
+      val maybeValue = Select.option[Option[T]](s"SELECT v FROM $tableName").get
 
       assert(maybeValue.nonEmpty)
 
@@ -106,10 +108,13 @@ class UpdatersSpec
 
     update"INSERT INTO tbl (v) VALUES ($before)".update()
 
-    for (row <- selectForUpdate"SELECT id, v FROM tbl".iterator()) {
-      row("v") = after
-      row.updateRow()
-    }
+    val rows = selectForUpdate"SELECT id, v FROM tbl".iterator()
+    try {
+      for (row <- rows) {
+        row("v") = after
+        row.updateRow()
+      }
+    } finally rows.close()
 
     val maybeRow = Select[Option[Int]]("SELECT v FROM tbl").option()
 

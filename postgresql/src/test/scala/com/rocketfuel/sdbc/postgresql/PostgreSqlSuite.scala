@@ -5,6 +5,7 @@ import com.rocketfuel.sdbc.config.TestingConfig
 import com.typesafe.config.{Config, ConfigFactory}
 import org.scalatest._
 import com.rocketfuel.sdbc.PostgreSql._
+import fs2.Strategy
 
 abstract class PostgreSqlSuite
   extends fixture.FunSuite
@@ -46,4 +47,8 @@ abstract class PostgreSqlSuite
   override protected def afterAll(): Unit = {
     pgAfterAll()
   }
+
+  implicit val strategy =
+    Strategy.sequential
+
 }

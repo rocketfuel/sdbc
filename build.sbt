@@ -6,6 +6,8 @@ lazy val jdbc = project.in(file("jdbc")).dependsOn(base % "test->test;compile->c
 
 lazy val h2 = project.in(file("h2")).dependsOn(jdbc % "test->test;compile->compile")
 
+lazy val h2Benchmarks = project.in(file("h2/benchmarks")).dependsOn(h2)
+
 lazy val postgresql = project.in(file("postgresql")).dependsOn(jdbc % "test->test;compile->compile")
 
 lazy val sqlserver = project.in(file("sqlserver")).dependsOn(jdbc % "test->test;compile->compile")
@@ -22,6 +24,7 @@ lazy val sdbc =
     cassandra,
     jdbc,
     h2,
+    h2Benchmarks,
     postgresql,
     sqlserver,
     examples

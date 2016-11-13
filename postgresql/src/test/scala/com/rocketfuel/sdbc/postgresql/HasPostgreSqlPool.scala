@@ -13,7 +13,7 @@ trait HasPostgreSqlPool {
   PostgreSQL doesn't allow changing the database for a connection,
   so we need a separate connection for the postgres database.
    */
-  protected val pgMasterPool = {
+  protected lazy val pgMasterPool = {
     val masterConfig = pgConfig.toHikariConfig
     masterConfig.getDataSourceProperties.setProperty("databaseName", "postgres")
     masterConfig.setMaximumPoolSize(1)
@@ -65,18 +65,16 @@ trait HasPostgreSqlPool {
     pgPool.foreach(_.close())
     pgPool = None
 
-    withPgMaster { implicit connection =>
+    withPgMaster {implicit connection =>
       connection.setAutoCommit(true)
 
       val databases =
-        selectTestCatalogs.iterator().toVector
+        selectTestCatalogs.vector()
 
       for (database <- databases) {
-        util.Try {
-          closeConnections.on("databaseName" -> database).execute()
+        closeConnections.on("databaseName" -> database).execute()
 
-          Execute(s"DROP DATABASE $database").execute()
-        }
+        Execute(s"DROP DATABASE $database").execute()
       }
     }
   }

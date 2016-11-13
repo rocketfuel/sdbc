@@ -21,17 +21,42 @@ trait Pool {
       new Connection(underlying.getConnection(username, password))
     }
 
+    /**
+      * Run some method with a connection from this pool. The connection is automatically
+      * closed.
+      *
+      * Do not return the connection, as it will have been closed.
+      */
     def withConnection[T](f: Connection => T): T = {
       Connection.using(this)(f)
     }
 
+    /**
+      * Run some method with a connection from this pool. The connection is automatically
+      * closed.
+      *
+      * Do not return the connection, as it will have been closed.
+      */
+    def withConnection[T](username: String, password: String)(f: Connection => T): T = {
+      Connection.using(this, username, password)(f)
+    }
+
+    /**
+      * Sets autoCommit to false, runs your action, and then runs commit() before closing the connection.
+      *
+      * Do not return the connection, as it will have been closed.
+      */
     def withTransaction[T](f: Connection => T): T = {
-      withConnection[T] { connection =>
-        connection.setAutoCommit(false)
-        val result = f(connection)
-        connection.commit()
-        result
-      }
+      Connection.usingTransaction(this)(f)
+    }
+
+    /**
+      * Sets autoCommit to false, runs your action, and then runs commit() before closing the connection.
+      *
+      * Do not return the connection, as it will have been closed.
+      */
+    def withTransaction[T](username: String, password: String)(f: Connection => T): T = {
+      Connection.usingTransaction(this, username, password)(f)
     }
 
   }

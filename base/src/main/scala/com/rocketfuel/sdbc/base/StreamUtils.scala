@@ -21,9 +21,20 @@ private[sdbc] object StreamUtils {
     } yield elem
   }
 
+  def fromCloseableIterator[F[_], A](i: F[CloseableIterator[A]])(implicit a: Async[F]): Stream[F, A] = {
+    Stream.bracket[F, CloseableIterator[A], A](i)(i => fromIterator[F, A](i.toIterator), i => a.delay(i.close()))
+  }
+
   def fromIteratorR[F[_], R, A](getR: F[R], getI: R => F[Iterator[A]], close: R => F[Unit])(implicit async: Async[F]): Stream[F, A] = {
     Stream.bracket[F, R, A](getR)(
       resource => fromIterator(getI(resource)),
+      resource => close(resource)
+    )
+  }
+
+  def fromCloseableIteratorR[F[_], R, A](getR: F[R], getI: R => F[CloseableIterator[A]], close: R => F[Unit])(implicit async: Async[F]): Stream[F, A] = {
+    Stream.bracket[F, R, A](getR)(
+      resource => fromCloseableIterator(getI(resource)),
       resource => close(resource)
     )
   }

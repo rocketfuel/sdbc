@@ -226,24 +226,59 @@ trait Connection {
       self.toBaseConnection(connection)
     }
 
-    protected def finallyClose[T](connection: Connection)(f: Connection => T): T = {
-      try f(connection)
+    protected def finallyClose[T](connection: Connection, commit: Boolean)(f: Connection => T): T = {
+      try {
+        val result = f(connection)
+        if (commit)
+          connection.commit()
+        result
+      }
       finally connection.close()
+    }
+
+    def get(connectionString: String): Connection = {
+      Connection(DriverManager.getConnection(connectionString))
+    }
+
+    def get[T](dataSource: DataSource): Connection = {
+      Connection(dataSource.getConnection())
+    }
+
+    def get(dataSource: DataSource, username: String, password: String): Connection = {
+      Connection(dataSource.getConnection(username, password))
     }
 
     def using[T](connectionString: String): (Connection => T) => T = {
       val connection = Connection(DriverManager.getConnection(connectionString))
-      finallyClose[T](connection)
+      finallyClose[T](connection, commit = false)
     }
 
     def using[T](dataSource: DataSource): (Connection => T) => T = {
-      val connection = Connection(dataSource.getConnection())
-      finallyClose[T](connection)
+      val connection = get(dataSource)
+      finallyClose[T](connection, commit = false)
     }
 
     def using[T](dataSource: DataSource, username: String, password: String): (Connection => T) => T = {
-      val connection = Connection(dataSource.getConnection(username, password))
-      finallyClose[T](connection)
+      val connection = get(dataSource, username, password)
+      finallyClose[T](connection, commit = false)
+    }
+
+    def usingTransaction[T](connectionString: String): (Connection => T) => T = {
+      val connection = get(connectionString)
+      connection.setAutoCommit(false)
+      finallyClose[T](connection, commit = true)
+    }
+
+    def usingTransaction[T](dataSource: DataSource): (Connection => T) => T = {
+      val connection = get(dataSource)
+      connection.setAutoCommit(false)
+      finallyClose[T](connection, commit = true)
+    }
+
+    def usingTransaction[T](dataSource: DataSource, username: String, password: String): (Connection => T) => T = {
+      val connection = get(dataSource, username, password)
+      connection.setAutoCommit(false)
+      finallyClose[T](connection, commit = true)
     }
 
   }

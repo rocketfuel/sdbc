@@ -375,6 +375,14 @@ implicit val updatable = new Updatable[T] {...}
 keyStream.through(Process.jdbc.keys.select[K, T](pool)).to(Process.jdbc.update[T](pool)).run.run
 ```
 
+## Benchmarks
+
+Starting with 2.0, there are benchmarks to ensure that some common operations don't have too much overhead over jdbc. There are two so far. The first batch inserts a collection of a case class. The second selects a colletion of a case class.
+
+![select benchmark results](https://www.jeffshaw.me/sdbc/2.0/benchmarks/select.png)
+
+![batch insert benchmark results](https://www.jeffshaw.me/sdbc/2.0/benchmarks/batch.png)
+
 ## Changelog
 
 ### 2.0

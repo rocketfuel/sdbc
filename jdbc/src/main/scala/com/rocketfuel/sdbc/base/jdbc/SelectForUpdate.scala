@@ -25,7 +25,7 @@ trait SelectForUpdate {
 
     def iterator[A](
       statement: CompiledStatement,
-      parameterValues: Parameters
+      parameterValues: Parameters = Parameters.empty
     )(implicit connection: Connection
     ): CloseableIterator[UpdateableRow] = {
       val executed = QueryMethods.executeForUpdate(statement, parameterValues)

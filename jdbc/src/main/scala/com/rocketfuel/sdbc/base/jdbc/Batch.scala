@@ -97,8 +97,9 @@ trait Batch {
 
       def setParameters(parameters: Parameters): Unit = {
         for ((name, value) <- parameters) {
-          for (index <- compiledStatement.parameterPositions(name)) {
-            value.set(prepared, index)
+          for (indexes <- compiledStatement.parameterPositions.get(name)) {
+            for (index <- indexes)
+              value.set(prepared, index)
           }
         }
       }

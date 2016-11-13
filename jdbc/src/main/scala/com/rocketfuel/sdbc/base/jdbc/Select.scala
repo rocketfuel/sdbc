@@ -31,8 +31,26 @@ trait Select {
       Select.iterator(statement, parameters)
     }
 
+    def vector()(implicit connection: Connection): Vector[A] = {
+      Select.vector(statement, parameters)
+    }
+
     def option()(implicit connection: Connection): Option[A] = {
       Select.option(statement, parameters)
+    }
+
+    def streamFromConnection[F[_]]()(implicit
+      async: Async[F],
+      connection: Connection
+    ): Stream[F, A] = {
+      Select.streamFromConnection[F, A](statement, parameters)
+    }
+
+    def streamFromPool[F[_]]()(implicit
+      async: Async[F],
+      pool: Pool
+    ): Stream[F, A] = {
+      Select.streamFromPool[F, A](statement, parameters)
     }
 
     def pipe[F[_]](implicit async: Async[F]): Select.Pipe[F, A] =
@@ -51,7 +69,6 @@ trait Select {
     ): CloseableIterator[A] = {
       logRun(statement, parameterValues)
       val executed = QueryMethods.execute(statement, parameterValues)
-
       StatementConverter.convertedRowIterator[A](executed)
     }
 
@@ -63,7 +80,8 @@ trait Select {
     ): Option[A] = {
       logRun(statement, parameterValues)
       val executed = QueryMethods.execute(statement, parameterValues)
-      StatementConverter.convertedRowOption(executed)
+      try StatementConverter.convertedRowOption(executed)
+      finally executed.close()
     }
 
     def vector[A](
@@ -75,7 +93,33 @@ trait Select {
       logRun(statement, parameterValues)
       val executed = QueryMethods.execute(statement, parameterValues)
 
-      StatementConverter.convertedRowVector[A](executed)
+      try StatementConverter.convertedRowVector[A](executed)
+      finally executed.close()
+    }
+
+    def streamFromPool[F[_], A](
+      statement: CompiledStatement,
+      parameterValues: Parameters = Parameters.empty
+    )(implicit async: Async[F],
+      pool: Pool,
+      rowConverter: RowConverter[A]
+    ): Stream[F, A] = {
+      StreamUtils.fromCloseableIteratorR[F, Connection, A](
+        async.delay(pool.getConnection()),
+        {implicit connection: Connection =>
+          async.delay(iterator(statement, parameterValues))
+        },
+        (c: Connection) => async.delay(c.close()))
+    }
+
+    def streamFromConnection[F[_], A](
+      statement: CompiledStatement,
+      parameterValues: Parameters = Parameters.empty
+    )(implicit async: Async[F],
+      connection: Connection,
+      rowConverter: RowConverter[A]
+    ): Stream[F, A] = {
+      StreamUtils.fromCloseableIterator(async.delay(iterator[A](statement, parameterValues)))
     }
 
     case class Pipe[F[_], A](
@@ -89,11 +133,7 @@ trait Select {
       def parameters(implicit pool: Pool): fs2.Pipe[F, Parameters, Stream[F, A]] = {
         parameterPipe.combine(defaultParameters).andThen(
           pipe.lift[F, Parameters, Stream[F, A]] { params =>
-            StreamUtils.fromIteratorR[F, Connection, A](
-              async.delay(pool.getConnection()),
-              {implicit connection: Connection => async.delay(iterator(statement, params).toIterator)},
-              (connection: Connection) => async.delay(connection.close())
-            )
+            streamFromPool[F, A](statement, params)
           }
         )
       }

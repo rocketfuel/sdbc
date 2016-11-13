@@ -9,13 +9,12 @@ trait StatementConverter {
   object StatementConverter {
 
     def update(v1: PreparedStatement): Long = {
-      val count = try {
-        v1.getLargeUpdateCount
-      } catch {
-        case _: UnsupportedOperationException |
-             _: SQLFeatureNotSupportedException =>
+      val count =
+        if (supportsGetLargeUpdateCount)
+          v1.getLargeUpdateCount
+        else
           v1.getUpdateCount.toLong
-      }
+
       if (count == -1L)
         throw new NoSuchElementException("query result is not an update count")
       else count

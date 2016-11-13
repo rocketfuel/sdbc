@@ -32,9 +32,7 @@ trait ParameterizedQuery {
     }
 
     def onParameters(additionalParameters: Parameters): Self = {
-      val parametersHavingPositions =
-        additionalParameters.filter(kvp => parameterPositions.contains(kvp._1))
-      subclassConstructor(parameters ++ parametersHavingPositions)
+      subclassConstructor(setParameters(additionalParameters))
     }
 
     def onProduct[
@@ -65,8 +63,8 @@ trait ParameterizedQuery {
       p.filter(kvp => parameterPositions.contains(kvp._1))
     }
 
-    protected def setParameters(parameters: Parameters): Parameters = {
-      val parametersHavingPositions = filter(parameters)
+    protected def setParameters(additionalParameters: Parameters): Parameters = {
+      val parametersHavingPositions = filter(additionalParameters)
       parameters ++ parametersHavingPositions
     }
 

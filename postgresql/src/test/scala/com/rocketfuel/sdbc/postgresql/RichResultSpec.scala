@@ -27,12 +27,12 @@ class RichResultSpec
 
   test("seq() works on an empty result") {implicit connection =>
     Execute("CREATE TABLE tbl (x serial)").execute()
-    val results = Select[Int]("SELECT * FROM tbl").iterator().toVector
+    val results = Select[Int]("SELECT * FROM tbl").vector()
     assert(results.isEmpty)
   }
 
   test("seq() works on a single result") {implicit connection =>
-    val results = Select[Int]("SELECT 1::integer").iterator().toVector
+    val results = Select[Int]("SELECT 1::integer").vector()
     assertResult(Vector(1))(results)
   }
 
@@ -49,7 +49,7 @@ class RichResultSpec
 
     assertResult(randoms.size)(insertions.sum[Long])
 
-    val results = Select[Int]("SELECT x FROM tbl").iterator().toVector
+    val results = Select[Int]("SELECT x FROM tbl").vector()
     assertResult(randoms)(results)
   }
 
@@ -67,12 +67,15 @@ class RichResultSpec
 
     batch.execute()
 
-    for(row <- selectForUpdate"SELECT * FROM tbl".iterator()) {
-      row("x") = row[Option[Int]]("x").map(_ + 1)
-      row.updateRow()
-    }
+    val rows = selectForUpdate"SELECT * FROM tbl".iterator()
+    try {
+      for (row <- rows) {
+        row("x") = row[Option[Int]]("x").map(_ + 1)
+        row.updateRow()
+      }
+    } finally rows.close()
 
-    val incrementedFromDb = Select[Int]("SELECT x FROM tbl ORDER BY x ASC").iterator().toVector
+    val incrementedFromDb = Select[Int]("SELECT x FROM tbl ORDER BY x ASC").vector()
 
     assert(incrementedFromDb.zip(incrementedRandoms).forall(xs => xs._1 == xs._2))
   }

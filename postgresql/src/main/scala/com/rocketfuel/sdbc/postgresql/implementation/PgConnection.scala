@@ -9,7 +9,7 @@ trait PgConnection
   override type BaseConnection = org.postgresql.core.BaseConnection
 
   override protected val baseConnection: Class[BaseConnection] =
-    classOf[org.postgresql.core.BaseConnection]
+    classOf[BaseConnection]
 
   /**
     * Perform any connection initialization that should be done when a connection
@@ -25,7 +25,7 @@ trait PgConnection
     connection.addDataType("cidr", classOf[Cidr])
     connection.addDataType("json", classOf[PGJson])
     connection.addDataType("jsonb", classOf[PGJson])
-    //The PG driver won't use these registered custom classes.
+    //The PG driver won't use these registered custom classes, even if we register them.
     //    pgConnection.addDataType("time", classOf[PGLocalTime])
     //    pgConnection.addDataType("timetz", classOf[PGTimeTz])
     //    pgConnection.addDataType("timestamptz", classOf[PGTimestampTz])

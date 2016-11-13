@@ -10,14 +10,17 @@ class QSeqUpdaterSpec
 
     Update("INSERT INTO tbl (ints) VALUES (@ints)").on("ints" -> QSeqUpdaterSpec.original).update()
 
-    SelectForUpdate("SELECT id, ints FROM tbl").iterator().foreach {
-      row =>
+    val rows = SelectForUpdate.iterator("SELECT id, ints FROM tbl")
+
+    try {
+      for (row <- rows) {
         row("ints") = QSeqUpdaterSpec.updated
         row.updateRow()
-    }
+      }
+    } finally rows.close()
 
     val selected: Seq[Seq[Option[Int]]] =
-      Select[Seq[Option[Int]]]("SELECT ints FROM tbl").iterator().toSeq
+      Select[Seq[Option[Int]]]("SELECT ints FROM tbl").vector()
 
     assertResult(Seq(QSeqUpdaterSpec.updated))(selected)
   }

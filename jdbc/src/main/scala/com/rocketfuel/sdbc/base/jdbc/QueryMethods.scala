@@ -29,8 +29,6 @@ private[jdbc] trait QueryMethods {
     )(implicit connection: Connection
     ): PreparedStatement = {
       val prepared = connection.prepareStatement(compiledStatement.queryText, resultSetType, resultSetConcurrency)
-      try prepared.closeOnCompletion()
-      catch {case _: AbstractMethodError => /* this is for jtds */}
       val bound = bind(prepared, compiledStatement, parameters)
 
       bound.execute()
