@@ -9,7 +9,7 @@ class RichResultSpec
   with BeforeAndAfterEach {
 
   test("option() selects nothing from an empty table") {implicit connection =>
-    Execute("CREATE TABLE tbl (x int)").execute()
+    Ignore("CREATE TABLE tbl (x int)").execute()
 
     val result = Select[Int]("SELECT * FROM tbl").option()
 
@@ -17,8 +17,8 @@ class RichResultSpec
   }
 
   test("option() selects something from a nonempty table") {implicit connection =>
-    Execute("CREATE TABLE tbl (x serial)").execute()
-    Execute("INSERT INTO tbl DEFAULT VALUES").execute()
+    Ignore("CREATE TABLE tbl (x serial)").execute()
+    Ignore("INSERT INTO tbl DEFAULT VALUES").execute()
 
     val result = Select[Int]("SELECT * FROM tbl").option()
 
@@ -26,7 +26,7 @@ class RichResultSpec
   }
 
   test("seq() works on an empty result") {implicit connection =>
-    Execute("CREATE TABLE tbl (x serial)").execute()
+    Ignore("CREATE TABLE tbl (x serial)").execute()
     val results = Select[Int]("SELECT * FROM tbl").vector()
     assert(results.isEmpty)
   }
@@ -38,7 +38,7 @@ class RichResultSpec
 
   test("seq() works on several results") {implicit connection =>
     val randoms = Seq.fill(10)(util.Random.nextInt())
-    Execute("CREATE TABLE tbl (x int)").execute()
+    Ignore("CREATE TABLE tbl (x int)").execute()
 
     val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
       case (batch, r) =>
@@ -56,7 +56,7 @@ class RichResultSpec
   test("using SelectForUpdate to update a value works") {implicit connection =>
     val randoms = Seq.fill(10)(util.Random.nextInt()).sorted
 
-    Execute("CREATE TABLE tbl (id serial PRIMARY KEY, x int)").execute()
+    Ignore("CREATE TABLE tbl (id serial PRIMARY KEY, x int)").execute()
 
     val incrementedRandoms = randoms.map(_+1)
 
@@ -82,7 +82,7 @@ class RichResultSpec
 
   override protected def afterEach(): Unit = {
     withPg { implicit connection =>
-      Execute("DROP TABLE IF EXISTS tbl;").execute()
+      Ignore("DROP TABLE IF EXISTS tbl;").execute()
     }
   }
 

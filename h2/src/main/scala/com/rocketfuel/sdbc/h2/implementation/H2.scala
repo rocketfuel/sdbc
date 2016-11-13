@@ -19,6 +19,8 @@ abstract class H2
   type Serialized = h2.Serialized
   val Serialized = h2.Serialized
 
+  override protected val supportsGetLargeUpdateCount: Boolean = false
+
   /**
     * A convenience method for performing some action with an in-memory database. If you want a connection
     * to a file, construct a query string the instructions at [[http://www.h2database.com/html/features.html#database_url]]

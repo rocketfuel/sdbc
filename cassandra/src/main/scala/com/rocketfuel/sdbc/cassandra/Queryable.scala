@@ -30,6 +30,14 @@ trait Queryable {
       queryable.query(key).option()
     }
 
+    def singleton[Key, Value](
+      key: Key
+    )(implicit queryable: Queryable[Key, Value],
+      session: Session
+    ): Value = {
+      queryable.query(key).singleton()
+    }
+
     def streams[F[_], Key, Value](
       implicit cluster: core.Cluster,
       queryable: Queryable[Key, Value],

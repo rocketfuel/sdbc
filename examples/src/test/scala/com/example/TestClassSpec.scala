@@ -43,13 +43,13 @@ class TestClassSpec
 
   override protected def beforeEach(): Unit = {
     H2.withMemConnection(name = "test") {implicit connection =>
-      H2.Execute("CREATE TABLE test_class (id int IDENTITY(1,1) PRIMARY KEY, value varchar(100) NOT NULL)").execute()
+      H2.Ignore("CREATE TABLE test_class (id int IDENTITY(1,1) PRIMARY KEY, value varchar(100) NOT NULL)").execute()
     }
   }
 
   override protected def afterEach(): Unit = {
     H2.withMemConnection(name = "test") {implicit connection =>
-      H2.Execute("DROP TABLE test_class").execute()
+      H2.Ignore("DROP TABLE test_class").execute()
     }
   }
 }

@@ -9,11 +9,11 @@ class OtherSpec
 
     val original = util.Success(BigDecimal("3.14159"))
 
-    Execute("CREATE TABLE tbl (obj other)").execute()
+    Ignore.ignore("CREATE TABLE tbl (obj other)")
 
-    Execute("INSERT INTO tbl (obj) VALUES (@obj)").on(
+    Ignore("INSERT INTO tbl (obj) VALUES (@obj)").on(
       "obj" -> Serialized(original)
-    ).execute()
+    ).ignore()
 
     val result = Select[Serialized]("SELECT obj FROM tbl").option()
 

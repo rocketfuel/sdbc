@@ -34,10 +34,10 @@ trait StringContextMethods {
       ](a: A
       )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
         toList: ToList[MappedA, ParameterValue]
-      ): Execute = {
+      ): Ignore = {
         val parameterValues = toParameterValues(a)
 
-        Execute(compiled, parameterValues)
+        Ignore(compiled, parameterValues)
       }
     }
 

@@ -6,7 +6,7 @@ class EnumerateTypesSpec extends PostgreSqlSuite {
 
   test("list type map") {implicit connection =>
 
-    Execute(
+    Ignore(
       """CREATE TABLE tbl (
         | s bigserial,
         | i int,

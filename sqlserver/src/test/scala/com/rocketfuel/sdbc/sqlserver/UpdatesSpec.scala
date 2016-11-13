@@ -20,9 +20,9 @@ class UpdatesSpec extends SqlServerSuite {
     converter: RowConverter[T]
   ): Unit = {
     test(s"Update ${ctag.runtimeClass.getName}") {implicit connection =>
-      Update(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v $typeName)").execute()
+      Ignore.ignore(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v $typeName)")
 
-      Update("INSERT INTO tbl (v) VALUES (@before)").on("before" -> before).execute()
+      Ignore("INSERT INTO tbl (v) VALUES (@before)").on("before" -> before).ignore()
 
       for (row <- selectForUpdate"SELECT * FROM tbl".iterator()) {
         row("v") = after
@@ -86,7 +86,7 @@ class UpdatesSpec extends SqlServerSuite {
     * http://sourceforge.net/p/jtds/feature-requests/73/
     */
   test("Update java.sql.Timestamp") {implicit connection =>
-    Execute(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v datetime2)").execute()
+    Ignore.ignore(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v datetime2)")
 
     update"INSERT INTO tbl (v) VALUES (${new Timestamp(0)})".update()
 
@@ -111,7 +111,7 @@ class UpdatesSpec extends SqlServerSuite {
     * http://sourceforge.net/p/jtds/feature-requests/73/
     */
   test("Update java.time.Instant") {implicit connection =>
-    Execute(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v datetime2)").execute()
+    Ignore.ignore(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v datetime2)")
 
     update"INSERT INTO tbl (v) VALUES (${Instant.ofEpochMilli(0)})".update()
 
@@ -133,7 +133,7 @@ class UpdatesSpec extends SqlServerSuite {
     val before = HierarchyId()
     val after = HierarchyId(1, 2)
 
-    Execute(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v hierarchyid)").execute()
+    Ignore.ignore(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v hierarchyid)")
 
     update"INSERT INTO tbl (v) VALUES ($before)".update()
 
@@ -153,7 +153,7 @@ class UpdatesSpec extends SqlServerSuite {
     val before = Some(1)
     val after = None
 
-    Execute(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v int)").execute()
+    Ignore.ignore(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v int)")
 
     update"INSERT INTO tbl (v) VALUES ($before)".update()
 

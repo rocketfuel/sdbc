@@ -15,7 +15,7 @@ class ParameterValueSpec
   extends PostgreSqlSuite {
 
   test("Identifier that appears as a word in the text can be assigned a value.") {implicit connection =>
-    val query = Execute("@t").on("t" -> None)
+    val query = Ignore("@t").on("t" -> None)
 
     assertResult(
       Map("t" -> ParameterValue.empty)
@@ -24,7 +24,7 @@ class ParameterValueSpec
   }
 
   test("Identifier that does not appear as a word in the text is not assigned a value.") {implicit connection =>
-    val query = Execute("@t").on("u" -> None)
+    val query = Ignore("@t").on("u" -> None)
 
     assertResult(
       Map.empty

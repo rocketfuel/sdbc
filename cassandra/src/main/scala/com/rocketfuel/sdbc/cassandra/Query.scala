@@ -46,6 +46,10 @@ trait Query {
       Query.option(statement, parameters, queryOptions)
     }
 
+    def singleton()(implicit session: Session): T = {
+      Query.singleton(statement, parameters, queryOptions)
+    }
+
     def stream[F[_]](implicit session: Session, async: Async[F]): Stream[F, T] = {
       Query.stream[F, T](statement, parameters, queryOptions)
     }
@@ -177,6 +181,17 @@ trait Query {
       session: Session
     ): Option[A] = {
       Option(execute(statement, parameters, queryOptions).one()).map(converter)
+    }
+
+    def singleton[A](
+      statement: CompiledStatement,
+      parameters: Parameters = Parameters.empty,
+      queryOptions: QueryOptions = QueryOptions.default
+    )(implicit converter: RowConverter[A],
+      session: Session
+    ): A = {
+      Option(execute(statement, parameters, queryOptions).one()).map(converter).
+        getOrElse(throw new NoSuchElementException("empty ResultSet"))
     }
 
     abstract class PipeAux[F[_], A] private[Query] (

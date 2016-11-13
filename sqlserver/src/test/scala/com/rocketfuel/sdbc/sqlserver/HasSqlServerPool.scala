@@ -31,7 +31,7 @@ trait HasSqlServerPool {
   protected def sqlCreateTestCatalog(): Unit = {
     if (sqlPool.isEmpty) {
       withSqlMaster { implicit connection =>
-        Execute(s"CREATE DATABASE [$sqlTestCatalogName];").execute()
+        Ignore(s"CREATE DATABASE [$sqlTestCatalogName];").ignore()
       }
 
       sqlPool = Some(Pool(sqlConfig))
@@ -52,13 +52,13 @@ trait HasSqlServerPool {
 
       for (database <- databases) {
         util.Try {
-          Execute(
+          Ignore.ignore(
             s"""ALTER DATABASE [$database]
                 |SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
             """.stripMargin
-          ).execute()
+          )
 
-          Execute(s"DROP DATABASE [$database]").execute()
+          Ignore.ignore(s"DROP DATABASE [$database]")
         }
       }
     }

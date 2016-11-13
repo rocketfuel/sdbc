@@ -15,7 +15,7 @@ class RichResultSetSpec
 
   test("iterator() works on several results") {implicit connection =>
     val randoms = Seq.fill(10)(util.Random.nextInt())
-    Execute("CREATE TABLE tbl (x int)").execute()
+    Ignore.ignore("CREATE TABLE tbl (x int)")
 
     val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
       case (batch, r) =>
@@ -33,7 +33,7 @@ class RichResultSetSpec
   test("using Query[CloseableIterator[UpdatableRow]] to update a value works") {implicit connection =>
     val randoms = Seq.fill(10)(util.Random.nextInt()).sorted
 
-    Execute("CREATE TABLE tbl (id int IDENTITY(1,1) PRIMARY KEY, x int)").execute()
+    Ignore.ignore("CREATE TABLE tbl (id int IDENTITY(1,1) PRIMARY KEY, x int)")
 
     val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
       case (batch, r) =>
@@ -61,7 +61,7 @@ class RichResultSetSpec
 
   override protected def afterEach(): Unit = {
     withSql { implicit connection =>
-      Execute("IF object_id('dbo.tbl') IS NOT NULL DROP TABLE tbl").execute()
+      Ignore.ignore("IF object_id('dbo.tbl') IS NOT NULL DROP TABLE tbl")
     }
   }
 }

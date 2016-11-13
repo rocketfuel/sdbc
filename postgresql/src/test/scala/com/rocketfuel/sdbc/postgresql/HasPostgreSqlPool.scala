@@ -35,7 +35,7 @@ trait HasPostgreSqlPool {
       withPgMaster { implicit connection =>
         connection.setAutoCommit(true)
 
-        Execute(s"CREATE DATABASE $pgTestCatalogName").execute()
+        Ignore(s"CREATE DATABASE $pgTestCatalogName").execute()
       }
       pgPool = Some(Pool(pgConfig))
     }
@@ -53,7 +53,7 @@ trait HasPostgreSqlPool {
       on("catalogPrefix" -> (pgTestCatalogPrefix + "%"))
 
   protected val closeConnections =
-    Execute(
+    Ignore(
       """SELECT pg_terminate_backend(pid)
         |FROM pg_stat_activity
         |WHERE pg_stat_activity.datname = @databaseName
@@ -74,7 +74,7 @@ trait HasPostgreSqlPool {
       for (database <- databases) {
         closeConnections.on("databaseName" -> database).execute()
 
-        Execute(s"DROP DATABASE $database").execute()
+        Ignore(s"DROP DATABASE $database").execute()
       }
     }
   }
@@ -90,7 +90,7 @@ trait HasPostgreSqlPool {
 
   def createLTree(): Unit = {
     withPg { implicit connection =>
-      Execute("CREATE EXTENSION ltree;").execute()
+      Ignore("CREATE EXTENSION ltree;").execute()
       connection.commit()
     }
   }

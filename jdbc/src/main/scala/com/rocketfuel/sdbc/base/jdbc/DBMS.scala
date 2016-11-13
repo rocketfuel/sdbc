@@ -11,14 +11,14 @@ abstract class DBMS
   with Pool
   with Select
   with SelectForUpdate
-  with Execute
+  with Ignore
   with Update
   with Batch
   with Selectable
   with SelectForUpdatable
   with Updatable
   with Batchable
-  with Executable
+  with Ignorable
   with StringContextMethods
   with ResultSetImplicits
   with StatementConverter

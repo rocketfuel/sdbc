@@ -39,6 +39,10 @@ trait Select {
       Select.option(statement, parameters)
     }
 
+    def singleton()(implicit connection: Connection): A = {
+      Select.singleton(statement, parameters)
+    }
+
     def streamFromConnection[F[_]]()(implicit
       async: Async[F],
       connection: Connection
@@ -81,6 +85,18 @@ trait Select {
       logRun(statement, parameterValues)
       val executed = QueryMethods.execute(statement, parameterValues)
       try StatementConverter.convertedRowOption(executed)
+      finally executed.close()
+    }
+
+    def singleton[A](
+      statement: CompiledStatement,
+      parameterValues: Parameters = Parameters.empty
+    )(implicit connection: Connection,
+      rowConverter: RowConverter[A]
+    ): A = {
+      logRun(statement, parameterValues)
+      val executed = QueryMethods.execute(statement, parameterValues)
+      try StatementConverter.convertedRowSingleton(executed)
       finally executed.close()
     }
 

@@ -26,9 +26,9 @@ class UpdatersSpec
     test(s"Update ${ctag.runtimeClass.getName}") {implicit connection =>
       val tableName = RandomStringUtils.randomAlphabetic(10)
 
-      Execute.execute(s"CREATE TABLE $tableName (id serial PRIMARY KEY, v $typeName)")
+      Ignore.ignore(s"CREATE TABLE $tableName (id serial PRIMARY KEY, v $typeName)")
 
-      Execute.execute(s"INSERT INTO $tableName (v) VALUES (@before)", Map("before" -> before))
+      Ignore.ignore(s"INSERT INTO $tableName (v) VALUES (@before)", Map("before" -> before))
 
       val rows =  SelectForUpdate(s"SELECT * FROM $tableName").iterator()
       for (row <- rows) {

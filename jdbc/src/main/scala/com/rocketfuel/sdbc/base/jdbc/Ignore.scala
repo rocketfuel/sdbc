@@ -6,41 +6,37 @@ import fs2.util.Async
 import shapeless.ops.record.{MapValues, ToMap}
 import shapeless.{HList, LabelledGeneric}
 
-trait Execute {
+trait Ignore {
   self: DBMS with Connection =>
 
   trait IgnorableQuery[Self <: IgnorableQuery[Self]]
     extends ParameterizedQuery[Self] {
 
-    def execute()(implicit connection: Connection): Unit = {
-      Execute.execute(statement, parameters)
+    def ignore()(implicit connection: Connection): Unit = {
+      Ignore.ignore(statement, parameters)
     }
 
-    def sink[F[_]](implicit async: Async[F]): Execute.Sink[F] =
-      Execute.Sink[F](statement, parameters)
+    def sink[F[_]](implicit async: Async[F]): Ignore.Sink[F] =
+      Ignore.Sink[F](statement, parameters)
 
   }
 
-  case class Execute(
+  case class Ignore(
     override val statement: CompiledStatement,
     override val parameters: Parameters = Parameters.empty
-  ) extends ParameterizedQuery[Execute]
-    with IgnorableQuery[Execute] {
+  ) extends ParameterizedQuery[Ignore]
+    with IgnorableQuery[Ignore] {
 
-    override def execute()(implicit connection: Connection): Unit = {
-      Execute.execute(statement, parameters)
-    }
-
-    override def subclassConstructor(parameters: Parameters): Execute = {
+    override def subclassConstructor(parameters: Parameters): Ignore = {
       copy(parameters = parameters)
     }
 
   }
 
-  object Execute
+  object Ignore
     extends Logging {
 
-    def execute(
+    def ignore(
       statement: CompiledStatement,
       parameters: Parameters = Parameters.empty
     )(implicit connection: Connection
@@ -69,7 +65,7 @@ trait Execute {
           pipe.lift[F, Parameters, Unit] { params =>
             Stream.bracket[F, Connection, Unit](
               r = async.delay(pool.getConnection())
-            )(use = {implicit connection: Connection => Stream.eval(async.delay(execute(statement, params)))},
+            )(use = {implicit connection: Connection => Stream.eval(async.delay(ignore(statement, params)))},
               release = connection => async.delay(connection.close())
             )
           }

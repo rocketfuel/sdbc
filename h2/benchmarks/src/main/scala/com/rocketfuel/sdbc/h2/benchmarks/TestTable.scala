@@ -39,7 +39,7 @@ object TestTable {
           |);
        """.stripMargin
 
-    Execute(queryText)
+    Ignore(queryText)
   }
 
   val insert = {
@@ -69,10 +69,10 @@ object TestTable {
     Select[TestTable]("SELECT * FROM test;")
 
   val drop =
-    Execute("DROP TABLE test;")
+    Ignore("DROP TABLE test;")
 
   val truncate =
-    Execute("TRUNCATE TABLE test;")
+    Ignore("TRUNCATE TABLE test;")
 
   object doobieMethods {
     import doobie.enum.jdbctype

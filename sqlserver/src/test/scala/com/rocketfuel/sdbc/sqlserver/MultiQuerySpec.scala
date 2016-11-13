@@ -16,7 +16,7 @@ class MultiQuerySpec
 
   test("update vector") {implicit connection =>
     val tbl = util.Random.nextString(10)
-    Execute.execute(s"CREATE TABLE [$tbl] (i int PRIMARY KEY)")
+    Ignore.ignore(s"CREATE TABLE [$tbl] (i int PRIMARY KEY)")
 
     val (results0, results1) =
       MultiQuery.run[(QueryResult.Update, QueryResult.Vector[Int])](s"INSERT INTO [$tbl](i) VALUES (1); SELECT i FROM [$tbl];")
@@ -27,8 +27,8 @@ class MultiQuerySpec
 
   test("iterator vector") {implicit connection =>
     val tbl = util.Random.nextString(10)
-    Execute.execute(s"CREATE TABLE [$tbl] (i int PRIMARY KEY)")
-    Execute.execute(s"INSERT INTO [$tbl](i) VALUES (1)")
+    Ignore.ignore(s"CREATE TABLE [$tbl] (i int PRIMARY KEY)")
+    Ignore.ignore(s"INSERT INTO [$tbl](i) VALUES (1)")
 
     val (results0, results1) =
       MultiQuery.run[(QueryResult.Iterator[Int], QueryResult.Vector[Int])](s"SELECT i FROM [$tbl]; SELECT i FROM [$tbl];")
@@ -39,8 +39,8 @@ class MultiQuerySpec
 
   test("iterator singleton") {implicit connection =>
     val tbl = util.Random.nextString(10)
-    Execute.execute(s"CREATE TABLE [$tbl] (i int PRIMARY KEY)")
-    Execute.execute(s"INSERT INTO [$tbl](i) VALUES (1)")
+    Ignore.ignore(s"CREATE TABLE [$tbl] (i int PRIMARY KEY)")
+    Ignore.ignore(s"INSERT INTO [$tbl](i) VALUES (1)")
 
     val (results0, results1) =
       MultiQuery.run[(QueryResult.Iterator[Int], QueryResult.Singleton[Int])](s"SELECT i FROM [$tbl]; SELECT i FROM [$tbl];")
@@ -51,8 +51,8 @@ class MultiQuerySpec
 
   test("iterator option") {implicit connection =>
     val tbl = util.Random.nextString(10)
-    Execute.execute(s"CREATE TABLE [$tbl] (i int PRIMARY KEY)")
-    Execute.execute(s"INSERT INTO [$tbl](i) VALUES (1)")
+    Ignore.ignore(s"CREATE TABLE [$tbl] (i int PRIMARY KEY)")
+    Ignore.ignore(s"INSERT INTO [$tbl](i) VALUES (1)")
 
     val (results0, results1) =
       MultiQuery.run[(QueryResult.Iterator[Int], QueryResult.Option[Int])](s"SELECT i FROM [$tbl]; SELECT i FROM [$tbl];")
@@ -63,8 +63,8 @@ class MultiQuerySpec
 
   test("iterator Some(None)") {implicit connection =>
     val tbl = util.Random.nextString(10)
-    Execute.execute(s"CREATE TABLE [$tbl] (i int PRIMARY KEY IDENTITY(1,1), v int NULL)")
-    Execute.execute(s"INSERT INTO [$tbl](v) VALUES (NULL)")
+    Ignore.ignore(s"CREATE TABLE [$tbl] (i int PRIMARY KEY IDENTITY(1,1), v int NULL)")
+    Ignore.ignore(s"INSERT INTO [$tbl](v) VALUES (NULL)")
 
     val (results0, results1) =
       MultiQuery.run[(QueryResult.Iterator[Option[Int]], QueryResult.Option[Option[Int]])](s"SELECT v FROM [$tbl]; SELECT v FROM [$tbl];")
