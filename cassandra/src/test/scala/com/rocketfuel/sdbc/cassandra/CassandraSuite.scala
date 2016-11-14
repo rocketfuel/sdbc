@@ -4,13 +4,21 @@ import com.rocketfuel.sdbc.Cassandra._
 import com.datastax.driver.core
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Outcome, fixture}
+import scala.collection.mutable
 
 abstract class CassandraSuite
   extends fixture.FunSuite
   with BeforeAndAfterAll
   with BeforeAndAfterEach {
 
-  protected var keyspace: String = null
+  private val _keyspaces: mutable.Buffer[String] =
+    mutable.Buffer.empty[String]
+
+  def keyspaces: Vector[String] =
+    _keyspaces.toVector
+
+  def keyspace: String =
+    _keyspaces.head
 
   override protected def beforeAll(): Unit = {
     EmbeddedCassandraServerHelper.startEmbeddedCassandra("another-cassandra.yaml")
@@ -18,9 +26,7 @@ abstract class CassandraSuite
 
   override protected def beforeEach(): Unit = {
     EmbeddedCassandraServerHelper.cleanEmbeddedCassandra()
-    implicit val session = client.connect()
-    keyspace = randomKeyspace()
-    session.close()
+    randomKeyspace()
   }
 
   override type FixtureParam = Session
@@ -36,14 +42,18 @@ abstract class CassandraSuite
     }
   }
 
-  def randomKeyspace()(implicit session: Session): String = {
-    val space = new String(util.Random.alphanumeric.filter(_.isLetter).take(10).toArray)
-    Query(s"CREATE KEYSPACE $space WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}").execute()
-    space
+  def randomKeyspace(): String = {
+    val keyspace = new String(util.Random.alphanumeric.filter(_.isLetter).take(10).toArray)
+    implicit val session = client.connect()
+    Query.execute(s"CREATE KEYSPACE $keyspace WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}")
+    session.close()
+    _keyspaces += keyspace
+    keyspace
   }
 
   def truncate()(implicit session: Session): Unit = {
-    Query(s"TRUNCATE $keyspace.tbl").execute()
+    for (keyspace <- _keyspaces)
+      Query(s"TRUNCATE $keyspace.tbl").execute()
   }
 
 }

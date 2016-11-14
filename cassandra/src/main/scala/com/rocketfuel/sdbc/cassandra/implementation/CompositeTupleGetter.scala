@@ -1,4 +1,4 @@
-package com.rocketfuel.sdbc.cassandra
+package com.rocketfuel.sdbc.cassandra.implementation
 
 import shapeless._
 import shapeless.labelled._

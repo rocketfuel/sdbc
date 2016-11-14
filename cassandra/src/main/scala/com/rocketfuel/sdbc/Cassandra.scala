@@ -11,6 +11,6 @@ package com.rocketfuel.sdbc
   * session.iterator[Int]("SELECT 1")
   * }}}
   */
-object Cassandra extends cassandra.Cassandra {
+object Cassandra extends com.rocketfuel.sdbc.cassandra.implementation.Cassandra {
 
 }

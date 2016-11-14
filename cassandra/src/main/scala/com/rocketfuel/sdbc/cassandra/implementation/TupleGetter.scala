@@ -1,4 +1,4 @@
-package com.rocketfuel.sdbc.cassandra
+package com.rocketfuel.sdbc.cassandra.implementation
 
 import com.datastax.driver.core.LocalDate
 import com.google.common.reflect.TypeToken

@@ -1,4 +1,4 @@
-package com.rocketfuel.sdbc.cassandra
+package com.rocketfuel.sdbc.cassandra.implementation
 
 import com.rocketfuel.sdbc.base.CompiledStatement
 import shapeless.ops.hlist._

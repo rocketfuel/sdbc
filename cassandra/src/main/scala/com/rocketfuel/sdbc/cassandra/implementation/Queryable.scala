@@ -1,4 +1,4 @@
-package com.rocketfuel.sdbc.cassandra
+package com.rocketfuel.sdbc.cassandra.implementation
 
 import com.datastax.driver.core
 import com.google.common.util.concurrent.{FutureCallback, Futures}
@@ -18,6 +18,11 @@ trait Queryable {
 
   object Queryable
     extends Logger {
+    def apply[Key, Value](f: Key => Query[Value]): Queryable[Key, Value] =
+      new Queryable[Key, Value] {
+        override def query(key: Key): Query[Value] =
+          f(key)
+      }
 
     def iterator[Key, Value](
       key: Key

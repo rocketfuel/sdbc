@@ -1,6 +1,5 @@
 package com.rocketfuel.sdbc.cassandra
 
-import com.rocketfuel.sdbc.Cassandra
 import com.rocketfuel.sdbc.Cassandra._
 import org.scalacheck.Gen
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
@@ -61,7 +60,7 @@ class RichResultSetSpec
         insert.on("id" -> ix, "x" -> tuple).execute()
       }
 
-      val results = Query[Cassandra.TupleValue](s"SELECT x FROM $keyspace.tbl").iterator().map(_[(Int, Int)]).toSeq
+      val results = Query[TupleValue](s"SELECT x FROM $keyspace.tbl").iterator().map(_[(Int, Int)]).toSeq
 
       assertResult(tuples.toSet)(results.toSet)
 
@@ -78,11 +77,11 @@ class RichResultSetSpec
       val insert = Query(s"INSERT INTO $keyspace.tbl (id, x) VALUES (@id, @x)")
 
       for ((tuple, ix) <- tuples.zipWithIndex) {
-        val tupleParam: Cassandra.ParameterValue = productParameterValue(tuple)
+        val tupleParam: ParameterValue = productParameterValue(tuple)
         insert.on("id" -> ix, "x" -> tupleParam).execute()
       }
 
-      val results = Query[Cassandra.TupleValue](s"SELECT x FROM $keyspace.tbl").iterator().map(_[(Option[Int], Option[Int])]).toSeq
+      val results = Query[TupleValue](s"SELECT x FROM $keyspace.tbl").iterator().map(_[(Option[Int], Option[Int])]).toSeq
 
       assertResult(tuples.toSet)(results.toSet)
 
