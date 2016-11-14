@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.{Logging, StreamUtils}
+import com.rocketfuel.sdbc.base.{Logger, StreamUtils}
 import fs2.{Stream, pipe}
 import fs2.util.Async
 import shapeless.ops.record.{MapValues, ToMap}
@@ -63,7 +63,7 @@ trait Select {
   }
 
   object Select
-    extends Logging {
+    extends Logger {
 
     def iterator[A](
       statement: CompiledStatement,
@@ -184,7 +184,7 @@ trait Select {
       compiledStatement: CompiledStatement,
       parameters: Parameters
     ): Unit = {
-      logger.debug(s"""Selecting "${compiledStatement.originalQueryText}" with parameters $parameters.""")
+      log.debug(s"""Selecting "${compiledStatement.originalQueryText}" with parameters $parameters.""")
     }
 
   }

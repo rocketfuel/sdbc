@@ -6,7 +6,7 @@ import shapeless.ops.record._
 trait ParameterizedQuery {
   self: ParameterValue =>
 
-  trait ParameterizedQuery[Self <: ParameterizedQuery[Self]] extends Logging {
+  trait ParameterizedQuery[Self <: ParameterizedQuery[Self]] extends Logger {
 
     def statement: CompiledStatement
 

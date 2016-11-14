@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.Logging
+import com.rocketfuel.sdbc.base.Logger
 import com.rocketfuel.sdbc.base.jdbc.statement.MultiResultConverter
 import fs2.Stream
 import fs2.util.Async
@@ -36,7 +36,7 @@ trait MultiQuery extends MultiResultConverter {
   }
 
   object MultiQuery
-    extends Logging {
+    extends Logger {
 
     val defaultResultSetType = ResultSet.TYPE_FORWARD_ONLY
 
@@ -110,7 +110,7 @@ trait MultiQuery extends MultiResultConverter {
       compiledStatement: CompiledStatement,
       parameters: Parameters
     ): Unit = {
-      logger.debug(s"""Executing "${compiledStatement.originalQueryText}" with parameters $parameters.""")
+      log.debug(s"""Executing "${compiledStatement.originalQueryText}" with parameters $parameters.""")
     }
 
   }

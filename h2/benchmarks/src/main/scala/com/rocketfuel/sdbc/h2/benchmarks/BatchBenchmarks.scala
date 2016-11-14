@@ -46,12 +46,12 @@ class BatchBenchmarks {
     values = createValues()
     valuesDoobie = values.map(_.drop(1))
     batch = BatchBenchmarks.createBatch(values)
-    TestTable.create.execute()
+    TestTable.create.ignore()
   }
 
   @TearDown(Level.Iteration)
   def teardown(): Unit = {
-    TestTable.drop.execute()
+    TestTable.drop.ignore()
   }
 
   @Benchmark

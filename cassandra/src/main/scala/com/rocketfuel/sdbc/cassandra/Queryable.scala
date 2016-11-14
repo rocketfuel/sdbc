@@ -2,7 +2,7 @@ package com.rocketfuel.sdbc.cassandra
 
 import com.datastax.driver.core
 import com.google.common.util.concurrent.{FutureCallback, Futures}
-import com.rocketfuel.sdbc.base.{Logging, StreamUtils}
+import com.rocketfuel.sdbc.base.{Logger, StreamUtils}
 import fs2.util.Async
 import fs2.util.syntax._
 import fs2.{Pipe, Stream}
@@ -17,7 +17,7 @@ trait Queryable {
   }
 
   object Queryable
-    extends Logging {
+    extends Logger {
 
     def iterator[Key, Value](
       key: Key
@@ -83,7 +83,7 @@ trait Queryable {
                     u: Session
                   ): Session = {
                     if (u == null) {
-                      logger.info("creating session for keyspace {}", t: Any)
+                      log.info("creating session for keyspace {}", t: Any)
                       val f = cluster.connectAsync(t)
                       val callback = new FutureCallback[Session] {
                         override def onFailure(t: Throwable): Unit = register(Left(t))
@@ -92,7 +92,7 @@ trait Queryable {
                       Futures.addCallback(f, callback)
                       f.get()
                     } else {
-                      logger.info("found open session for keyspace {}", t: Any)
+                      log.info("found open session for keyspace {}", t: Any)
                       register(Right(u))
                       u
                     }
@@ -106,7 +106,7 @@ trait Queryable {
       },
         release = { sessionsPar =>
           import scala.collection.convert.wrapAsScala._
-          logger.debug("closing sessions")
+          log.debug("closing sessions")
           val sessions = sessionsPar.values().toVector
           val closers =
             for {

@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.Logging
+import com.rocketfuel.sdbc.base.Logger
 import fs2.util.Async
 import fs2.Stream
 import shapeless.ops.record.{MapValues, ToMap}
@@ -28,7 +28,7 @@ trait Update {
   }
 
   object Update
-    extends Logging {
+    extends Logger {
 
     def update(
       compiledStatement: CompiledStatement,
@@ -93,7 +93,7 @@ trait Update {
       compiledStatement: CompiledStatement,
       parameters: Parameters
     ): Unit = {
-      logger.debug(s"""Updating "${compiledStatement.originalQueryText}" with parameters $parameters.""")
+      log.debug(s"""Updating "${compiledStatement.originalQueryText}" with parameters $parameters.""")
     }
 
   }

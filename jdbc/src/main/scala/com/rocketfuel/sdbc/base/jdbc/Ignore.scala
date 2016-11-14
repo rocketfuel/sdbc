@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.Logging
+import com.rocketfuel.sdbc.base.Logger
 import fs2.{Stream, pipe}
 import fs2.util.Async
 import shapeless.ops.record.{MapValues, ToMap}
@@ -34,7 +34,7 @@ trait Ignore {
   }
 
   object Ignore
-    extends Logging {
+    extends Logger {
 
     def ignore(
       statement: CompiledStatement,
@@ -101,7 +101,7 @@ trait Ignore {
       compiledStatement: CompiledStatement,
       parameters: Parameters
     ): Unit = {
-      logger.debug(s"""Executing "${compiledStatement.originalQueryText}" with parameters $parameters.""")
+      log.debug(s"""Executing "${compiledStatement.originalQueryText}" with parameters $parameters.""")
     }
 
   }

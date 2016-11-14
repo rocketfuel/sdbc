@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.Logging
+import com.rocketfuel.sdbc.base.Logger
 
 trait SelectForUpdate {
   self: DBMS with Connection =>
@@ -21,7 +21,7 @@ trait SelectForUpdate {
   }
 
   object SelectForUpdate
-    extends Logging {
+    extends Logger {
 
     def iterator[A](
       statement: CompiledStatement,
@@ -36,7 +36,7 @@ trait SelectForUpdate {
       compiledStatement: CompiledStatement,
       parameters: Parameters
     ): Unit = {
-      logger.debug(s"""Selecting for update "${compiledStatement.originalQueryText}" with parameters $parameters.""")
+      log.debug(s"""Selecting for update "${compiledStatement.originalQueryText}" with parameters $parameters.""")
     }
 
   }

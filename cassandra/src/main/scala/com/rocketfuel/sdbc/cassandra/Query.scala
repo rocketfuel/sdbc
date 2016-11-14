@@ -112,7 +112,7 @@ trait Query {
 
   object Query
     extends QueryCompanionOps
-      with Logging {
+      with Logger {
 
     def execute(
       statement: CompiledStatement,
@@ -274,7 +274,7 @@ trait Query {
   //when a class and its companion object have objects with the same
   //name.
   trait QueryCompanionOps {
-    self: Logging =>
+    self: Logger =>
 
     protected def prepare(
       statement: CompiledStatement,
@@ -299,7 +299,7 @@ trait Query {
     }
 
     protected def logExecution(statement: CompiledStatement, parameters: Parameters): Unit =
-      logger.debug(s"""Executing "${statement.originalQueryText}" with parameters $parameters.""")
+      log.debug(s"""Executing "${statement.originalQueryText}" with parameters $parameters.""")
 
     class AsyncMethods[F[_]] private[Query] (implicit async: Async[F]) {
 

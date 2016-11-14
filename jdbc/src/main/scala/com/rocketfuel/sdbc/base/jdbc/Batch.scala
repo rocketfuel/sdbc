@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 import java.sql.SQLFeatureNotSupportedException
-import com.rocketfuel.sdbc.base.Logging
+import com.rocketfuel.sdbc.base.Logger
 import fs2._
 import fs2.util.Async
 import shapeless.ops.record.{MapValues, ToMap}
@@ -85,7 +85,7 @@ trait Batch {
   }
 
   object Batch
-    extends Logging {
+    extends Logger {
 
     protected def prepare(
       compiledStatement: CompiledStatement,
@@ -221,9 +221,9 @@ trait Batch {
       compiledStatement: CompiledStatement,
       batches: Seq[Parameters]
     ): Unit = {
-      logger.debug(s"""Executing batch of "${compiledStatement.originalQueryText}".""")
+      log.debug(s"""Executing batch of "${compiledStatement.originalQueryText}".""")
 
-      if (batches.isEmpty) logger.warn("Executing a batch query without any batches.")
+      if (batches.isEmpty) log.warn("Executing a batch query without any batches.")
     }
 
   }

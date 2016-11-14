@@ -38,13 +38,13 @@ class SelectBenchmarks {
   @Setup(Level.Iteration)
   def setup(): Unit = {
     values = createValues()
-    TestTable.create.execute()
+    TestTable.create.ignore()
     BatchBenchmarks.createBatch(values).batch()
   }
 
   @TearDown(Level.Iteration)
   def teardown(): Unit = {
-    TestTable.drop.execute()
+    TestTable.drop.ignore()
   }
 
   @Benchmark
