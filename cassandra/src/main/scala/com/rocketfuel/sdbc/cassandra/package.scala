@@ -27,7 +27,7 @@ package object cassandra {
 
   private[sdbc] def toAsync[F[_], T](f: ListenableFuture[T])(implicit async: Async[F]): F[T] = {
     async.async { register =>
-      async.delay {
+      async.pure {
         val callback = new FutureCallback[T] {
           override def onFailure(t: Throwable): Unit = register(Left(t))
 
