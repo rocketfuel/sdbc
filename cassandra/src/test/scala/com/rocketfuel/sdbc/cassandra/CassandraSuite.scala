@@ -26,7 +26,7 @@ abstract class CassandraSuite
 
   override protected def beforeEach(): Unit = {
     EmbeddedCassandraServerHelper.cleanEmbeddedCassandra()
-    randomKeyspace()
+    createRandomKeyspace()
   }
 
   override type FixtureParam = Session
@@ -42,7 +42,7 @@ abstract class CassandraSuite
     }
   }
 
-  def randomKeyspace(): String = {
+  def createRandomKeyspace(): String = {
     val keyspace = new String(util.Random.alphanumeric.filter(_.isLetter).take(10).toArray)
     implicit val session = client.connect()
     Query.execute(s"CREATE KEYSPACE $keyspace WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}")

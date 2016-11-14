@@ -9,7 +9,7 @@ class RichResultSpec
   with BeforeAndAfterEach {
 
   test("option() selects nothing from an empty table") {implicit connection =>
-    Ignore("CREATE TABLE tbl (x int)").execute()
+    Ignore("CREATE TABLE tbl (x int)").ignore()
 
     val result = Select[Int]("SELECT * FROM tbl").option()
 
@@ -17,8 +17,8 @@ class RichResultSpec
   }
 
   test("option() selects something from a nonempty table") {implicit connection =>
-    Ignore("CREATE TABLE tbl (x serial)").execute()
-    Ignore("INSERT INTO tbl DEFAULT VALUES").execute()
+    Ignore("CREATE TABLE tbl (x serial)").ignore()
+    Ignore("INSERT INTO tbl DEFAULT VALUES").ignore()
 
     val result = Select[Int]("SELECT * FROM tbl").option()
 
@@ -26,7 +26,7 @@ class RichResultSpec
   }
 
   test("seq() works on an empty result") {implicit connection =>
-    Ignore("CREATE TABLE tbl (x serial)").execute()
+    Ignore("CREATE TABLE tbl (x serial)").ignore()
     val results = Select[Int]("SELECT * FROM tbl").vector()
     assert(results.isEmpty)
   }
@@ -38,7 +38,7 @@ class RichResultSpec
 
   test("seq() works on several results") {implicit connection =>
     val randoms = Seq.fill(10)(util.Random.nextInt())
-    Ignore("CREATE TABLE tbl (x int)").execute()
+    Ignore("CREATE TABLE tbl (x int)").ignore()
 
     val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
       case (batch, r) =>
@@ -56,7 +56,7 @@ class RichResultSpec
   test("using SelectForUpdate to update a value works") {implicit connection =>
     val randoms = Seq.fill(10)(util.Random.nextInt()).sorted
 
-    Ignore("CREATE TABLE tbl (id serial PRIMARY KEY, x int)").execute()
+    Ignore("CREATE TABLE tbl (id serial PRIMARY KEY, x int)").ignore()
 
     val incrementedRandoms = randoms.map(_+1)
 
@@ -65,7 +65,7 @@ class RichResultSpec
         batch.add("x" -> r)
     }
 
-    batch.execute()
+    batch.batch()
 
     val rows = selectForUpdate"SELECT * FROM tbl".iterator()
     try {
@@ -82,7 +82,7 @@ class RichResultSpec
 
   override protected def afterEach(): Unit = {
     withPg { implicit connection =>
-      Ignore("DROP TABLE IF EXISTS tbl;").execute()
+      Ignore("DROP TABLE IF EXISTS tbl;").ignore()
     }
   }
 

@@ -394,6 +394,7 @@ Starting with 2.0, there are benchmarks to ensure that some common operations do
 * A datetime without an offset from a DBMS is interpreted as being in UTC rather than the system default time zone.
 * No longer supports Scala 2.10.
 * Moved database objects to com.rocketfuel.sdbc.{Cassandra, H2, PostgreSql, SqlServer}.
+* Renamed Execute to Ignore
 
 ### 1.0
 

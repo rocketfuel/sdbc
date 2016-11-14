@@ -35,7 +35,7 @@ trait HasPostgreSqlPool {
       withPgMaster { implicit connection =>
         connection.setAutoCommit(true)
 
-        Ignore(s"CREATE DATABASE $pgTestCatalogName").execute()
+        Ignore(s"CREATE DATABASE $pgTestCatalogName").ignore()
       }
       pgPool = Some(Pool(pgConfig))
     }
@@ -43,7 +43,7 @@ trait HasPostgreSqlPool {
 
   protected def createHstore(): Unit = {
     withPg {implicit connection =>
-      execute"CREATE EXTENSION hstore".execute()
+      ignore"CREATE EXTENSION hstore".ignore()
       connection.commit()
     }
   }
@@ -72,9 +72,9 @@ trait HasPostgreSqlPool {
         selectTestCatalogs.vector()
 
       for (database <- databases) {
-        closeConnections.on("databaseName" -> database).execute()
+        closeConnections.on("databaseName" -> database).ignore()
 
-        Ignore(s"DROP DATABASE $database").execute()
+        Ignore(s"DROP DATABASE $database").ignore()
       }
     }
   }
@@ -90,7 +90,7 @@ trait HasPostgreSqlPool {
 
   def createLTree(): Unit = {
     withPg { implicit connection =>
-      Ignore("CREATE EXTENSION ltree;").execute()
+      Ignore("CREATE EXTENSION ltree;").ignore()
       connection.commit()
     }
   }

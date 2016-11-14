@@ -27,7 +27,7 @@ trait StringContextMethods {
         }.toMap
     }
 
-    object execute extends ProductArgs {
+    object ignore extends ProductArgs {
       def applyProduct[
         A <: HList,
         MappedA <: HList

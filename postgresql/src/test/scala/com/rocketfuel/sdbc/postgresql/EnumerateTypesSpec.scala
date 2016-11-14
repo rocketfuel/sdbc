@@ -37,7 +37,7 @@ class EnumerateTypesSpec extends PostgreSqlSuite {
         | l ltree
         |)
       """.stripMargin
-    ).execute()
+    ).ignore()
 
     val rs = connection.prepareStatement("SELECT * FROM tbl").executeQuery()
 

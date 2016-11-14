@@ -3,6 +3,8 @@ package com.rocketfuel.sdbc.cassandra
 import com.rocketfuel.sdbc.Cassandra._
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import fs2.{Stream, Task}
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 class CassandraStreamSpec
   extends CassandraSuite
@@ -42,7 +44,7 @@ class CassandraStreamSpec
 
   test("can stream from multiple keyspaces") {_ =>
 
-    randomKeyspace()
+    createRandomKeyspace()
 
     val values = 0 until 100 map(TestTable.Value(_))
 
@@ -60,14 +62,12 @@ class CassandraStreamSpec
       } yield (keyspace, TestTable.All)
 
     val results =
-      Stream(keys: _*).through(Queryable.streamsWithKeyspace[Task, TestTable.All.type, TestTable]).flatMap(identity).runLog.unsafeValue().get
+      Stream(keys: _*).through(Queryable.streamsWithKeyspace[Task, TestTable.All.type, TestTable]).flatMap(identity).runLog.unsafeRunAsyncFuture()
 
-    assertResult(300)(results.size)
+    assertResult(300)(Await.result(results, Duration.Inf).size)
   }
 
-  case class TestTable(id: Int, value: Int) {
-
-  }
+  case class TestTable(id: Int, value: Int)
 
   object TestTable {
 

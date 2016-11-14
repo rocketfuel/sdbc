@@ -69,7 +69,7 @@ class StringContextSpec
 
   test("Execute interpolation works") {
     val i = 3
-    val s = execute"$i"
+    val s = ignore"$i"
 
     assertResult(Map("0" -> ParameterValue.of(i)))(s.parameters)
   }
