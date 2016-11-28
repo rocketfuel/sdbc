@@ -98,7 +98,7 @@ object Example0 {
     case class Name(name: String)
   }
   
-  val result = Connection.withUrl("jdbc:h2:mem:example") {implicit connection =>
+  val result = Connection.using("jdbc:h2:mem:example") {implicit connection =>
     try {
       Ignore.ignore("CREATE TABLE people (id int auto_increment PRIMARY KEY, name varchar(255))")
       
@@ -173,7 +173,7 @@ object Example1 {
   
 
   val result =
-    Connection.withUrl("jdbc:h2:mem:example;DB_CLOSE_DELAY=0") {implicit connection =>
+    Connection.using("jdbc:h2:mem:example;DB_CLOSE_DELAY=0") {implicit connection =>
       Log.create.ignore()
     
       Log.insert.onProduct(Log.Message("hi")).update()
@@ -254,7 +254,7 @@ object Example5 {
   )
   
   val results =
-    Connection.withUrl("jdbc:h2:mem:example;DB_CLOSE_DELAY=0") {implicit connection =>
+    Connection.using("jdbc:h2:mem:example;DB_CLOSE_DELAY=0") {implicit connection =>
       Ignore.ignore("CREATE TABLE tbl (id int auto_increment primary key, message varchar(255), created_time timestamp)")
       val results =
         minTimes.map(minTime =>
@@ -281,7 +281,7 @@ object Example6 {
       "uuid" -> java.util.UUID.randomUUID()
     )
   
-  val updatedRowCount = Connection.withUrl("jdbc:h2:mem:example;DB_CLOSE_DELAY=0") {implicit connection =>
+  val updatedRowCount = Connection.using("jdbc:h2:mem:example;DB_CLOSE_DELAY=0") {implicit connection =>
     Ignore.ignore("CREATE TABLE tbl (id int auto_increment primary key, unique_id uuid default(random_uuid()))")
     for (_ <- 0 until 3)
       Update.update("INSERT INTO tbl default values")
@@ -305,7 +305,7 @@ val batchUpdate =
 	    add("x" -> 3, "id" -> 10).
         add("x" -> 4, "id" -> 11)
 
-val updatedRowCount = Connection.withUrl("...") {implicit connection =>
+val updatedRowCount = Connection.using("...") {implicit connection =>
   batchUpdate.batch().sum
 }
 ```

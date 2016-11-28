@@ -81,7 +81,7 @@ class RichResultSetSpec
   }
 
   override protected def afterEach(): Unit = {
-    withMemConnection() { implicit connection =>
+    Connection.using("jdbc:h2:mem:") { implicit connection =>
       Ignore.ignore("DROP TABLE IF EXISTS tbl")
     }
   }

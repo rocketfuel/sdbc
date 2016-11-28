@@ -9,7 +9,7 @@ abstract class H2Suite
   type FixtureParam = Connection
 
   override protected def withFixture(test: OneArgTest): Outcome = {
-    withMemConnection[Outcome](name = "test", dbCloseDelay = Some(0)) { connection: Connection =>
+    Connection.using("jdbc:h2:mem:test;DB_CLOSE_DELAY=0") { connection: Connection =>
       withFixture(test.toNoArgTest(connection))
     }
   }

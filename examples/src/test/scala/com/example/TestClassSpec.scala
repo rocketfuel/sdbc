@@ -9,8 +9,10 @@ class TestClassSpec
 
   type FixtureParam = H2.Connection
 
+  private val connectionString = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"
+
   override protected def withFixture(test: OneArgTest): Outcome = {
-    H2.withMemConnection[Outcome](name = "test") { connection: H2.Connection =>
+    H2.Connection.using(connectionString) { connection: H2.Connection =>
       withFixture(test.toNoArgTest(connection))
     }
   }
@@ -42,13 +44,13 @@ class TestClassSpec
   }
 
   override protected def beforeEach(): Unit = {
-    H2.withMemConnection(name = "test") {implicit connection =>
+    H2.Connection.using(connectionString) {implicit connection =>
       H2.Ignore.ignore("CREATE TABLE test_class (id int IDENTITY(1,1) PRIMARY KEY, value varchar(100) NOT NULL)")
     }
   }
 
   override protected def afterEach(): Unit = {
-    H2.withMemConnection(name = "test") {implicit connection =>
+    H2.Connection.using(connectionString) {implicit connection =>
       H2.Ignore.ignore("DROP TABLE test_class")
     }
   }
