@@ -83,95 +83,107 @@ Packages exist on Maven Central for Scala 2.10 and 2.11. Cassandra packages only
 
 ## Examples
 
+These can be pasted into a Scala REPL that has the H2, SDBC base, SDBC JDBC, and SDBC H2 jars in its class path.
+
 ### Simple Query
 
 ```scala
-import java.sql.DriverManager
-import com.rocketfuel.sdbc.H2._
-
-case class Person(id: Int, name: String)
-
-object Person {
-  case class Name(name: String)
+object Example0 {
+  import java.sql.DriverManager
+  import com.rocketfuel.sdbc.H2._
+  
+  case class Person(id: Int, name: String)
+  
+  object Person {
+    case class Name(name: String)
+  }
+  
+  val result = Connection.withUrl("jdbc:h2:mem:example") {implicit connection =>
+    try {
+      Ignore.ignore("CREATE TABLE people (id int auto_increment PRIMARY KEY, name varchar(255))")
+      
+      //Use named parameters and a case class to insert a row.
+      Ignore.ignore("INSERT INTO people (name) VALUES (@name)", Parameters.product(Person.Name("jeff")))
+      
+      //prints "Person(1, jeff)"
+      for (x <- Select.iterator[Person]("SELECT * FROM people"))
+        println(x)
+      
+      /*
+      You can select directly to tuples if you name your columns appropriately.
+      If you select Tuple2s, you can create a map from the results.
+      */
+       
+      //yields Map(1 -> "jeff")
+      Select.iterator[(Int, String)]("SELECT id AS _1, name AS _2 FROM people").toMap
+    } finally connection.close()
+  }
 }
 
-implicit val connection = DriverManager.getConnection("jdbc:h2:mem:example")
-
-Execute("CREATE TABLE xs (id int auto_increment PRIMARY KEY, name varchar(255))").execute()
-
-//Use named parameters and a case class to insert a row.
-Execute("INSERT INTO xs (name) VALUES (@name)").onProduct(Person.Name("jeff")).execute()
-
-//prints "Person(1, jeff)"
-for (x <- Select[Person]("SELECT * FROM xs").iterator())
-  println(x)
-
-/*
-You can select directly to tuples if you name your columns appropriately.
-If you select Tuple2s, you can create a map from the results.
-*/
- 
-//yields Map(1 -> "jeff")
-Select[(Int, String)]("SELECT id AS _1, name AS _2 FROM xs").iterator().toMap
+Example0.result
 ```
 
 ### Use implicit conversion to map rows to other data types
 
 ```scala
-import java.sql.DriverManager
-import java.time.Instant
-import com.rocketfuel.sdbc.H2._
-
-case class Log(
-	id: Int,
-	createdTime: Instant,
-	message: Option[String]
-)
-
-object Log {
+object Example1 {
+  import java.time.Instant
+  import com.rocketfuel.sdbc.H2._
+  
+  case class Log(
+    id: Int,
+    createdTime: Instant,
+    message: Option[String]
+  )
+  
+  object Log {
     implicit def valueOf(row: ConnectedRow): Log = {
-        val id = row[Int]("id")
-        val createdTime = row[Instant]("createdTime")
-        val message = row[Option[String]]("message")
-    
-        Log(
-            id = id,
-            createdTime = createdTime,
-            message = message
-        )
+      val id = row[Int]("id")
+      val createdTime = row[Instant]("createdTime")
+      val message = row[Option[String]]("message")
+      
+      Log(
+        id = id,
+        createdTime = createdTime,
+        message = message
+      )
     }
     
     val create =
-      Execute(
-          """CREATE TABLE log (
-            |  id int auto_increment,
-            |  createdTime timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            |  message varchar(max)
-            |)""".stripMargin
+      Ignore(
+        """CREATE TABLE log (
+        |  id int auto_increment,
+        |  createdTime timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        |  message varchar(max)
+        |)""".stripMargin
       )
-      
-    val drop = Execute("DROP TABLE log")
+    
+    val drop = Ignore("DROP TABLE log")
     
     case class Message(
-        message: String
+      message: String
     )
     
     val insert =
-        Execute("INSERT INTO log (message) VALUES (@message)")
+      Update("INSERT INTO log (message) VALUES (@message)")
     
     val selectByMessage =
-        Select[Log]("SELECT * FROM log WHERE message = @message")
+      Select[Log]("SELECT * FROM log WHERE message = @message")
+  }
+  
+
+  val result =
+    Connection.withUrl("jdbc:h2:mem:example;DB_CLOSE_DELAY=0") {implicit connection =>
+      Log.create.ignore()
+    
+      Log.insert.onProduct(Log.Message("hi")).update()
+    
+      //yields Some(Log(1,2016-10-17T19:41:43.164Z,Some(hi)))
+      Log.selectByMessage.onProduct(Log.Message("hi")).option()
+    }
 }
 
-implicit val connection = DriverManager.getConnection("jdbc:h2:mem:example")
-
-Log.create.execute()
-
-Log.insert.onProduct(Log.Message("hi")).execute()
-
-//yields Some(Log(1,2016-10-17T19:41:43.164Z,Some(hi)))
-Log.selectByMessage.onProduct(Log.Message("hi")).option()
-
+Example1.result
 ```
 
 ### Set parameter values using string interpolation
@@ -181,26 +193,40 @@ gotten (i.e. "$id" in the example below), such parameters are given consecutive 
 starting at 0.
 
 ```scala
-implicit val connection: Connection = ???
-
-val id = 1
-
-val query = select"SELECT * FROM table WHERE id = $id"
-
-//yields Map(0 -> ParameterValue(Some(1)))
-q.parameters
+val example2 = {
+  import com.rocketfuel.sdbc.H2._
+  
+  val id = 1
+  
+  val query = select"SELECT * FROM table WHERE id = $id"
+  
+  //yields Map(0 -> ParameterValue(Some(1)))
+  query.parameters
+}
 ```
 
 If you want to set the `id` value in the above query to a different value, you use the parameter "0".
 
 ```scala
-query.on("0" -> 3)
+val example3 = {
+  import com.rocketfuel.sdbc.H2._
+  
+  val id = 1
+  
+  val query = select"SELECT * FROM table WHERE id = $id"
+  
+  //yields Map(0 -> ParameterValue(Some(1)))
+  query.on("0" -> 3).parameters
+}
 ```
 
 You can use interpolated parameters and named parameters in the same query.
 
 ```scala
-select"SELECT * FROM table WHERE id = $id AND something = @something".on("something" -> "hello")
+val example4 = {
+  import com.rocketfuel.sdbc.H2._
+  select"SELECT * FROM table WHERE id = $id AND something = @something".on("something" -> "hello")
+}
 ```
 
 ### Reuse a query with different parameter values
@@ -208,72 +234,79 @@ select"SELECT * FROM table WHERE id = $id AND something = @something".on("someth
 The query classes Select, SelectForUpdate, Update, and Batch are immutable. Adding a parameter value returns a new object with that parameter set, leaving the old object untouched.
 
 ```scala
-import java.sql.DriverManager
-import java.time.Instant
-import java.time.temporal.ChronoUnit
-import com.rocketfuel.sdbc.PostgreSql._
-
-val query =
-    Select[Int]("SELECT id FROM tbl WHERE message = @message AND created_time >= @time").
-        on("message" -> "hello there!")
-
-val minTimes = Seq(
-    //today
-    Instant.now().truncatedTo(ChronoUnit.DAYS),
+object Example5 {
+  import java.sql.DriverManager
+  import java.time.LocalDateTime
+  import java.time.temporal.TemporalAdjusters
+  import java.time.temporal.ChronoUnit
+  import com.rocketfuel.sdbc.H2._
+  
+  val query =
+    Select[Int]("SELECT id FROM tbl WHERE message = @message AND created_time >= @created_time").
+      on("message" -> "hello there!")
+  
+  val today = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS)
+  
+  val minTimes = Seq(
+    today,
     //this week
-    Instant.now().truncatedTo(ChronoUnit.WEEKS)
-)
-
-val results = {
-	implicit val connection: Connection = DriverManager.getConnection("...")
-	val results =
-        try {
-            minTimes.map(minTime =>
-                minTime -> query.on("created_time" -> minTime).iterator().toSeq
-            )
-        } finally {
-            connection.close()
-        }
-    results.toMap
+    today.minus(today.getDayOfWeek().getValue, ChronoUnit.DAYS)
+  )
+  
+  val results =
+    Connection.withUrl("jdbc:h2:mem:example;DB_CLOSE_DELAY=0") {implicit connection =>
+      Ignore.ignore("CREATE TABLE tbl (id int auto_increment primary key, message varchar(255), created_time timestamp)")
+      val results =
+        minTimes.map(minTime =>
+          minTime -> query.on("created_time" -> minTime).vector()
+        )
+      results.toMap
+    }
 }
+
+Example5.results
 ```
 
 ### Update
 ```scala
-import java.sql.DriverManager
-import com.rocketfuel.sdbc.PostgreSql._
-
-val query = Update("UPDATE tbl SET unique_id = @uuid WHERE id = @id")
-
-val parameters: Parameters =
+object Example6 {
+  import java.sql.DriverManager
+  import com.rocketfuel.sdbc.H2._
+  
+  val query = Update("UPDATE tbl SET unique_id = @uuid WHERE id = @id")
+  
+  val parameters: Parameters =
     Map(
-        "id" -> 3,
-        "uuid" -> java.util.UUID.randomUUID()
+      "id" -> 3,
+      "uuid" -> java.util.UUID.randomUUID()
     )
-
-val updatedRowCount = {
-    implicit val connection: Connection = DriverManager.getConnection("...")
-    try {
-	  query.onParameters(parameters: _*).update()
-    } finally connection.close()
+  
+  val updatedRowCount = Connection.withUrl("jdbc:h2:mem:example;DB_CLOSE_DELAY=0") {implicit connection =>
+    Ignore.ignore("CREATE TABLE tbl (id int auto_increment primary key, unique_id uuid default(random_uuid()))")
+    for (_ <- 0 until 3)
+      Update.update("INSERT INTO tbl default values")
+  
+  	query.onParameters(parameters).update()
+  }
 }
+
+Example6.updatedRowCount
 ```
+
+The remaining examples do not work in the Scala REPL.
 
 ### Batch Update
 ```scala
 import java.sql.DriverManager
-import com.rocketfuel.sdbc.PostgreSql._
+import com.rocketfuel.sdbc.H2._
 
 val batchUpdate =
 	Batch("UPDATE tbl SET x = @x WHERE id = @id").
 	    add("x" -> 3, "id" -> 10).
         add("x" -> 4, "id" -> 11)
 
-val updatedRowCount = {
-    implicit val connection: Connection = DriverManager.getConnection("...")
-    try {
-    	batchUpdate.batch().sum
-    } finally connection.close()
+val updatedRowCount = Connection.withUrl("...") {implicit connection =>
+  batchUpdate.batch().sum
 }
 ```
 
@@ -286,10 +319,11 @@ val accountUpdateQuery = SelectForUpdate("SELECT * FROM accounts WHERE id = @id"
 case class Action(accountId: Int, action: String)
 
 def addGold(accountId: Int, quantity: Int)(implicit connection: Connection): Unit = {
-    for (row <- accountUpdateQuery.on("id" -> accountId).iterator()) {
-        row("gold_nuggets") = row[Int]("gold_nuggets") + 159
-        actionLogger.onProduct(Action(accountId, s"added $quantity gold nuggets")).execute()
-    }
+  val iterator = accountUpdateQuery.on("id" -> accountId).iterator()
+  try for (row <- iterator) {
+    row("gold_nuggets") = row[Int]("gold_nuggets") + 159
+    actionLogger.onProduct(Action(accountId, s"added $quantity gold nuggets")).update()
+  } finally iterator.close()
 }
 ```
 
@@ -318,7 +352,7 @@ val update = Update("...")
 
 implicit val pool = Pool(...)
 
-parameterListStream.through(update.pipe[Task].parameters)
+parameterListStream.through(update.pipe[Task].parameters).run.unsafeRun()
 ```
 
 ### Streaming Products
@@ -332,7 +366,7 @@ val parameters: Stream[Task, Id] = ???
 
 val select = Select[Row]("SELECT id, value FROM table WHERE id = @id")
 
-parameters.through(select.pipe[Task].products)
+parameters.through(select.pipe[Task].products).runFree.run.unsafeRun()
 ```
 
 ### Streaming with type class support.
@@ -344,35 +378,34 @@ For JDBC the type classes are Batchable, Executable, Selectable, SelectForUpdata
 ```scala
 import com.rocketfuel.sdbc.h2._
 import fs2._
+import fs2.concurrent.join
 
-val pool = Pool(...)
+implicit val pool = Pool(...)
 
-implicit val SelectableIntKey = new Selectable[Int, String] {
+case class Id(id: Int)
+
+implicit val SelectableIntKey: Selectable[Id, String] = {
   val query = Select[String]("SELECT value FROM table WHERE id = @id")
-
-  override def select(id: Int): Select[String] = {
-    query.on("id" -> id)
-  }
+  Selectable[Id, String](id => query.on("id" -> id))
 }
 
 val idStream: Stream[Task, Int] = ???
 
 //print the strings retreived from H2 using the stream of ids.
-merge.mergeN(idStream.through(Process.jdbc.keys.select[Int, String](pool))).to(io.stdOutLines)
+join(10)(idStream.through(Selectable.pipe[Task, Id, String].products)).to(io.stdOutLines).run.unsafeRun()
 ```
 
 Suppose you use K keys to get values of some type T, and then use T to update rows.
 
 ```scala
+val keyStream: Stream[Task, K] = ???
 
-val keyStream: Stream[Task, K]
+implicit val keySelectable = Selectable[K, T]((key: K) => ???)
 
-implicit val keySelectable = new Selectable[K, T] {...}
+implicit val updatable = Updatable[T]((key: T) => ???)
 
-implicit val updatable = new Updatable[T] {...}
-
-//Use the keys to select rows, and use the results to run an update.
-keyStream.through(Process.jdbc.keys.select[K, T](pool)).to(Process.jdbc.update[T](pool)).run.run
+//Use the keys to select rows, and use the each result to run an update.
+keyStream.through(Selectable.pipe[Task, K, T].products).to(Updatable.update).run.unsafeRun()
 ```
 
 ## Benchmarks
@@ -389,22 +422,23 @@ Starting with 2.0, there are benchmarks to ensure that some common operations do
 
 * JDBC Connection types are now per-DBMS (i.e. they are path dependent).
 * Update scalaz streams to [FS2](https://github.com/functional-streams-for-scala/fs2).
-* Stream support is built-in.
-* Support for multiple results per query from SQL Server.
+* Stream support is built-in. Try using methods such as stream, pipe, and sink.
+* Support for multiple result sets per query from SQL Server using MultiQuery.
 * A datetime without an offset from a DBMS is interpreted as being in UTC rather than the system default time zone.
 * No longer supports Scala 2.10.
-* Moved database objects to com.rocketfuel.sdbc.{Cassandra, H2, PostgreSql, SqlServer}.
-* Renamed Execute to Ignore
+* Moved database objects to `com.rocketfuel.sdbc.{Cassandra, H2, PostgreSql, SqlServer}`.
+* Renamed Execute to Ignore.
+* Typeclass methods are now in their respective companion objects. For example, `Selectable.select`.
 
 ### 1.0
 
-* The sigil for a parameter is @ (was $).
+* The sigil for a parameter is `'@'` (was `'$'`).
 * Added support for string interpolation for parameters.
 * Cassandra support.
 * Scalaz streaming helpers in com.rocketfuel.sdbc.scalaz.
 * Connections and other types are no longer path dependent.
-* Package paths are implementation dependent. (E.G. "import ...postgresql.jdbc" to use the JDBC driver to access PostgreSQL.)
-* You can use [scodec](https://github.com/scodec/scodec)'s ByteVector instead of Array[Byte].
+* Package paths are implementation dependent. (E.G. `import ...postgresql.jdbc` to use the JDBC driver to access PostgreSQL.)
+* You can use [scodec](https://github.com/scodec/scodec)'s `ByteVector` instead of `Array[Byte]`.
 * Remove Byte getters, setters, and updaters from PostgreSQL (the JDBC driver uses Short under the hood).
 
 ### 0.10
@@ -430,4 +464,4 @@ Starting with 2.0, there are benchmarks to ensure that some common operations do
 
 * Add support for H2.
 * Test packages have better support for building and destroying test catalogs.
-* Some method names were shortened: executeBatch() to batch(), executeUpdate() to update().
+* Some method names were shortened: `executeBatch()` to `batch()`, `executeUpdate()` to `update()`.

@@ -226,6 +226,48 @@ trait Connection {
       self.toBaseConnection(connection)
     }
 
+    def ofUrl(url: String): Connection = {
+      Connection(DriverManager.getConnection(url))
+    }
+
+    def ofUrl(url: String, user: String, password: String): Connection = {
+      Connection(DriverManager.getConnection(url, user, password))
+    }
+
+    def ofUrl(url: String, info: Properties): Connection = {
+      Connection(DriverManager.getConnection(url, info))
+    }
+
+    /**
+      * To connect to a remote database, it's best to use a [[Pool]].
+      * Be sure to not return the connection, because it will be closed.
+      */
+    def withUrl[A](url: String)(f: Connection => A): A = {
+      val connection = Connection(DriverManager.getConnection(url))
+      try f(connection)
+      finally connection.close()
+    }
+
+    /**
+      * To connect to a remote database, it's best to use a [[Pool]].
+      * Be sure to not return the connection, because it will be closed.
+      */
+    def withUrl[A](url: String, user: String, password: String)(f: Connection => A): A = {
+      val connection = Connection(DriverManager.getConnection(url, user, password))
+      try f(connection)
+      finally connection.close()
+    }
+
+    /**
+      * To connect to a remote database, it's best to use a [[Pool]].
+      * Be sure to not return the connection, because it will be closed.
+      */
+    def withUrl[A](url: String, info: Properties)(f: Connection => A): A = {
+      val connection = Connection(DriverManager.getConnection(url, info))
+      try f(connection)
+      finally connection.close()
+    }
+
     protected def finallyClose[T](connection: Connection, commit: Boolean)(f: Connection => T): T = {
       try {
         val result = f(connection)

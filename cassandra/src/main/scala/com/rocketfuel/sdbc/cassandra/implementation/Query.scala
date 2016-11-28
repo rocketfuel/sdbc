@@ -4,7 +4,6 @@ import com.datastax.driver.core
 import com.rocketfuel.sdbc.base._
 import fs2._
 import fs2.util.Async
-import fs2.util.syntax._
 import scala.collection.convert.wrapAsScala._
 import scala.concurrent.{ExecutionContext, Future}
 import shapeless.ops.record.{MapValues, ToMap}
@@ -34,7 +33,7 @@ trait Query {
       copy(parameters = parameters)
     }
 
-    def execute()(implicit session: Session): core.ResultSet = {
+    def execute()(implicit session: Session): ResultSet = {
       Query.execute(statement, parameters, queryOptions)
     }
 
@@ -72,7 +71,7 @@ trait Query {
 
     object async {
 
-      def execute[F[_]]()(implicit session: Session, async: Async[F]): F[core.ResultSet] = {
+      def execute[F[_]]()(implicit session: Session, async: Async[F]): F[ResultSet] = {
         Query.async.execute(statement, queryOptions, parameters)
       }
 
@@ -88,7 +87,7 @@ trait Query {
 
     object task {
 
-      def execute()(implicit session: Session, strategy: Strategy): Task[core.ResultSet] = {
+      def execute()(implicit session: Session, strategy: Strategy): Task[ResultSet] = {
         async.execute[Task]()
       }
 
@@ -119,11 +118,12 @@ trait Query {
       parameters: Parameters = Parameters.empty,
       queryOptions: QueryOptions = QueryOptions.default
     )(implicit session: Session
-    ): core.ResultSet = {
+    ): ResultSet = {
       logExecution(statement, parameters)
 
-      val prepared = prepare(statement, parameters, queryOptions)
-      session.execute(prepared)
+      val prepared = session.prepare(statement.queryText)
+      val bound = bind(statement, prepared, parameters, queryOptions)
+      session.execute(bound)
     }
 
     def iterator[A](
@@ -214,9 +214,7 @@ trait Query {
         Key <: Symbol,
         AsParameters <: HList
       ](implicit session: Session,
-        genericA: LabelledGeneric.Aux[B, Repr],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+        p: Parameters.Products[B, Repr, Key, AsParameters]
       ): fs2.Pipe[F, B, A] = {
         fs2.pipe.lift[F, B, A] { parameters =>
           aux(Parameters.product(parameters))
@@ -228,8 +226,7 @@ trait Query {
         Key <: Symbol,
         AsParameters <: HList
       ](implicit session: Session,
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+        r: Parameters.Records[Repr, Key, AsParameters]
       ): fs2.Pipe[F, Repr, A] = {
         fs2.pipe.lift[F, Repr, A] { parameters =>
           aux(Parameters.record(parameters))
@@ -276,16 +273,14 @@ trait Query {
   trait QueryCompanionOps {
     self: Logger =>
 
-    protected def prepare(
+    protected def bind(
       statement: CompiledStatement,
+      prepared: core.PreparedStatement,
       parameters: Parameters,
       queryOptions: QueryOptions
     )(implicit session: Session
-    ): core.BoundStatement = {
-      val prepared = session.prepare(statement.queryText)
-
+    ): PreparedStatement = {
       val forBinding = prepared.bind()
-
       for ((parameterName, parameterIndices) <- statement.parameterPositions) {
         val parameterValue = parameters(parameterName)
         for (parameterIndex <- parameterIndices) {
@@ -303,16 +298,28 @@ trait Query {
 
     class AsyncMethods[F[_]] private[Query] (implicit async: Async[F]) {
 
+      import fs2.util.syntax._
+
+      private def prepare(
+        statement: CompiledStatement
+      )(implicit session: Session
+      ): F[core.PreparedStatement] = {
+        toAsync[F, core.PreparedStatement](session.prepareAsync(statement.queryText))
+      }
+
       def execute(
         statement: CompiledStatement,
         queryOptions: QueryOptions,
         parameters: Parameters
       )(implicit session: Session
-      ): F[core.ResultSet] = {
+      ): F[ResultSet] = {
         logExecution(statement, parameters)
 
-        val prepared = prepare(statement, parameters, queryOptions)
-        toAsync[F, core.ResultSet](session.executeAsync(prepared))
+        for {
+          prepared <- prepare(statement)
+          bound = bind(statement, prepared, parameters, queryOptions)
+          executed <- toAsync(session.executeAsync(bound))
+        } yield executed
       }
 
       def iterator[A](
@@ -322,9 +329,9 @@ trait Query {
       )(implicit converter: RowConverter[A],
         session: Session
       ): F[Iterator[A]] = {
-        for {
-          results <- execute(statement, queryOptions, parameters)
-        } yield results.iterator().map(converter)
+        for (results <- execute(statement, queryOptions, parameters)) yield
+          for (result <- results.iterator()) yield
+            result
       }
 
       def option[A](
@@ -334,9 +341,9 @@ trait Query {
       )(implicit converter: RowConverter[A],
         session: Session
       ): F[Option[A]] = {
-        for {
-          results <- execute(statement, queryOptions, parameters)
-        } yield Option(results.one()).map(converter)
+        for (results <- execute(statement, queryOptions, parameters)) yield
+          for (result <- Option(results.one())) yield
+            result
       }
 
     }
@@ -349,17 +356,28 @@ trait Query {
 
     object future {
 
+      private def prepare(
+        statement: CompiledStatement
+      )(implicit session: Session,
+        ec: ExecutionContext
+      ): Future[core.PreparedStatement] = {
+        toScalaFuture(session.prepareAsync(statement.queryText))
+      }
+
       def execute(
         statement: CompiledStatement,
         queryOptions: QueryOptions,
         parameters: Parameters
       )(implicit session: Session,
         ec: ExecutionContext
-      ): Future[core.ResultSet] = {
+      ): Future[ResultSet] = {
         logExecution(statement, parameters)
 
-        val prepared = prepare(statement, parameters, queryOptions)
-        toScalaFuture(session.executeAsync(prepared))
+        for {
+          prepared <- prepare(statement)
+          bound = bind(statement, prepared, parameters, queryOptions)
+          results <- toScalaFuture(session.executeAsync(bound))
+        } yield results
       }
 
       def iterator[A](
@@ -370,7 +388,9 @@ trait Query {
         session: Session,
         ec: ExecutionContext
       ): Future[Iterator[A]] = {
-        execute(statement, queryOptions, parameters).map(_.iterator().map(converter))
+        for (results <- execute(statement, queryOptions, parameters)) yield
+          for (result <- results.iterator()) yield
+            result
       }
 
       def option[A](
@@ -381,9 +401,9 @@ trait Query {
         session: Session,
         ec: ExecutionContext
       ): Future[Option[A]] = {
-        for {
-          results <- execute(statement, queryOptions, parameters)
-        } yield Option(results.one()).map(converter)
+        for (results <- execute(statement, queryOptions, parameters)) yield
+          for (result <- Option(results.one())) yield
+            result
       }
 
     }

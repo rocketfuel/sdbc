@@ -24,8 +24,7 @@ trait Ignore {
   case class Ignore(
     override val statement: CompiledStatement,
     override val parameters: Parameters = Parameters.empty
-  ) extends ParameterizedQuery[Ignore]
-    with IgnorableQuery[Ignore] {
+  ) extends IgnorableQuery[Ignore] {
 
     override def subclassConstructor(parameters: Parameters): Ignore = {
       copy(parameters = parameters)
@@ -78,9 +77,7 @@ trait Ignore {
         Key <: Symbol,
         AsParameters <: HList
       ](implicit pool: Pool,
-        genericA: LabelledGeneric.Aux[A, Repr],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+        p: Parameters.Products[A, Repr, Key, AsParameters]
       ): fs2.Sink[F, A] = {
         parameterPipe.products.andThen(parameters)
       }
@@ -90,8 +87,7 @@ trait Ignore {
         Key <: Symbol,
         AsParameters <: HList
       ](implicit pool: Pool,
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+        r: Parameters.Records[Repr, Key, AsParameters]
       ): fs2.Sink[F, Repr] = {
         parameterPipe.records.andThen(parameters)
       }

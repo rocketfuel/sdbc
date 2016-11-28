@@ -16,6 +16,8 @@ private[sdbc] abstract class Cassandra
   with TupleGetter
   with CompositeTupleGetter {
 
+  type ResultSet = core.ResultSet
+
   type Session = core.Session
 
   type Cluster = core.Cluster

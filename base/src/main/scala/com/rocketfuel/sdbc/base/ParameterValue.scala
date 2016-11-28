@@ -2,6 +2,7 @@ package com.rocketfuel.sdbc.base
 
 import fs2.pipe
 import fs2.util.Async
+import scala.collection.GenMap
 import shapeless._
 import shapeless.record._
 import shapeless.ops.record._
@@ -117,11 +118,111 @@ trait ParameterValue {
     lazy val empty = ParameterValue(None, setNone)
   }
 
-  type Parameters = Map[String, ParameterValue]
+  type ParameterPositions = Map[String, Set[Int]]
+
+  type Parameters = GenMap[String, ParameterValue]
 
   object Parameters {
 
     val empty: Parameters = Map.empty
+
+    def isComplete(parameterValues: Parameters, parameterPositions: ParameterPositions): Boolean = {
+      parameterValues.keySet == parameterPositions.keySet
+    }
+
+    class Products[
+      A,
+      Repr <: HList,
+      Key <: Symbol,
+      AsParameters <: HList
+    ](val genericA: LabelledGeneric.Aux[A, Repr],
+      val valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+      val toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+    )
+
+    object Products {
+      implicit def apply[
+        A,
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit genericA: LabelledGeneric.Aux[A, Repr],
+        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+      ): Products[A, Repr, Key, AsParameters] =
+        new Products(genericA, valuesMapper, toMap)
+
+      implicit def toGenericA[
+        A,
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit p: Products[A, Repr, Key, AsParameters]
+      ): LabelledGeneric.Aux[A, Repr] =
+        p.genericA
+
+      implicit def toValuesMapper[
+        A,
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit p: Products[A, Repr, Key, AsParameters]
+      ): MapValues.Aux[ToParameterValue.type, Repr, AsParameters] =
+        p.valuesMapper
+
+      implicit def toToMap[
+        A,
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit p: Products[A, Repr, Key, AsParameters]
+      ): ToMap.Aux[AsParameters, Key, ParameterValue] =
+        p.toMap
+    }
+
+    class Records[
+      Repr <: HList,
+      Key <: Symbol,
+      AsParameters <: HList
+    ](val valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+      val toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+    )
+
+    object Records {
+      implicit def apply[
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
+        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+      ): Records[Repr, Key, AsParameters] =
+        new Records(valuesMapper, toMap)
+
+      implicit def toValuesMapper[
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit r: Records[Repr, Key, AsParameters]
+      ): MapValues.Aux[ToParameterValue.type, Repr, AsParameters] =
+        r.valuesMapper
+
+      implicit def toToMap[
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit r: Records[Repr, Key, AsParameters]
+      ): ToMap.Aux[AsParameters, Key, ParameterValue] =
+        r.toMap
+
+      implicit def ofProduct[
+        A,
+        Repr <: HList,
+        Key <: Symbol,
+        AsParameters <: HList
+      ](implicit p: Products[A, Repr, Key, AsParameters]
+      ): Records[Repr, Key, AsParameters] =
+        Records[Repr, Key, AsParameters](p.valuesMapper, p.toMap)
+    }
 
     def product[
       A,
@@ -129,11 +230,9 @@ trait ParameterValue {
       Key <: Symbol,
       AsParameters <: HList
     ](t: A
-    )(implicit genericA: LabelledGeneric.Aux[A, Repr],
-      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-      toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+    )(implicit p: Products[A, Repr, Key, AsParameters]
     ): Parameters = {
-      val asGeneric = genericA.to(t)
+      val asGeneric = p.genericA.to(t)
       record(asGeneric)
     }
 
@@ -142,10 +241,9 @@ trait ParameterValue {
       Key <: Symbol,
       AsParameters <: HList
     ](t: Repr
-    )(implicit valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-      toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+    )(implicit r: Records[Repr, Key, AsParameters]
     ): Parameters = {
-      t.mapValues(ToParameterValue).toMap[Key, ParameterValue].map {
+      t.mapValues(ToParameterValue)(r.valuesMapper).toMap[Key, ParameterValue](r.toMap).map {
         case (symbol, value) => symbol.name -> value
       }
     }
@@ -160,21 +258,18 @@ trait ParameterValue {
         Repr <: HList,
         Key <: Symbol,
         AsParameters <: HList
-      ](implicit genericA: LabelledGeneric.Aux[A, Repr],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+      ](implicit p: Products[A, Repr, Key, AsParameters]
       ): fs2.Pipe[F, A, Parameters] = {
-        pipe.lift(Parameters.product[A, Repr, Key, AsParameters])
+        pipe.lift(product[A, Repr, Key, AsParameters])
       }
 
       def records[
         Repr <: HList,
         Key <: Symbol,
         AsParameters <: HList
-      ](implicit valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+      ](implicit r: Records[Repr, Key, AsParameters]
       ): fs2.Pipe[F, Repr, Parameters] = {
-        pipe.lift(Parameters.record[Repr, Key, AsParameters])
+        pipe.lift(record[Repr, Key, AsParameters])
       }
     }
 
@@ -211,4 +306,5 @@ trait ParameterValue {
   }
 
   type ParameterBatches = Seq[Parameters]
+
 }

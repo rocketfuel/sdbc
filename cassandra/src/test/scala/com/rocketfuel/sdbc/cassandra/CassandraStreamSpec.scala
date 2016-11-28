@@ -17,7 +17,7 @@ class CassandraStreamSpec
     PropertyCheckConfiguration(sizeRange = 10)
 
   test("values are inserted and selected") {implicit connection =>
-    Query(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x int)").execute()
+    Query.execute(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x int)")
 
     case class IdAndX(id: Int, x: Int)
 
@@ -38,59 +38,85 @@ class CassandraStreamSpec
 
       assertResult(randomValues.sorted)(results.sorted)
 
-      truncate()
+      truncate(tableName = "tbl")
     }
   }
 
   test("can stream from multiple keyspaces") {_ =>
 
-    createRandomKeyspace()
+    val keyspaceCount = util.Random.nextInt(5) + 3
 
-    val values = 0 until 100 map(TestTable.Value(_))
+    val rowCount = util.Random.nextInt(50) + 50
 
-    //insert
+    //There's the default test keyspace, so create keyspaceCount - 1 more.
+    for (_ <- 0 until keyspaceCount - 1)
+      createRandomKeyspace()
+
+    val expectedRows = 0 until rowCount map(id => TestTable(id, id + 1))
+
     for (keyspace <- keyspaces) {
       implicit val session = client.connect(keyspace)
       TestTable.create.execute()
-      Stream(values: _*).covary[Task].through(Queryable.streams[Task, TestTable.Value, Unit]).flatMap(identity).run.unsafeValue()
       session.close()
     }
 
-    val keys =
+    val rowsWithKeyspace =
       for {
-        keyspace <- keyspaces
-      } yield (keyspace, TestTable.All)
+        keyspace <- Stream(keyspaces: _*)
+        keyspaceRow <- Stream(expectedRows: _*).map(row => (keyspace, row.toInsert))
+      } yield keyspaceRow
 
-    val results =
-      Stream(keys: _*).through(Queryable.streamsWithKeyspace[Task, TestTable.All.type, TestTable]).flatMap(identity).runLog.unsafeRunAsyncFuture()
+    rowsWithKeyspace.
+      through(Queryable.pipeWithKeyspace[Task, TestTable.Insert, Unit]).
+      flatMap(identity).run.unsafeRun()
 
-    assertResult(300)(Await.result(results, Duration.Inf).size)
+    val resultsFuture =
+      Stream(keyspaces: _*).zip(Stream.constant(TestTable.All)).
+        through(Queryable.pipeWithKeyspace[Task, TestTable.All.type, TestTable]).
+        flatMap(identity).
+        runLog.unsafeRunAsyncFuture()
+
+    val actualResults =
+      Await.result(resultsFuture, Duration.Inf)
+
+    assertResult(keyspaceCount * rowCount)(actualResults.size)
+
+    assertResult(expectedRows.toSet)(actualResults.toSet)
   }
 
-  case class TestTable(id: Int, value: Int)
+  case class TestTable(id: Int, value: Int) {
+    def toInsert: TestTable.Insert =
+      TestTable.Insert(id, value)
+  }
 
   object TestTable {
 
     val create =
-      Query[Unit]("CREATE TABLE TestTable (id int PRIMARY KEY, value int)")
+      Query[Unit]("CREATE TABLE tbl (id int PRIMARY KEY, value int)")
 
     case object All
 
-    implicit val queryable: Queryable[All.type, TestTable] =
-      Queryable[All.type, TestTable](_ => Query[TestTable]("SELECT id, value FROM TestTable"))
+    implicit val queryable: Queryable[All.type, TestTable] = {
+      val query = Query[TestTable]("SELECT id, value FROM tbl")
+      Queryable[All.type, TestTable](Function.const(query))
+    }
 
-    case class Value(value: Int)
+    case class Insert(id: Int, value: Int)
 
-    object Value {
-      implicit val queryable: Queryable[Value, Unit] =
-        Queryable[Value, Unit](v => Query[Unit]("INSERT INTO TestTable (value) VALUES (@value)").on("value" -> v.value))
+    object Insert {
+      implicit val queryable: Queryable[Insert, Unit] = {
+        val query = Query[Unit]("INSERT INTO tbl (id, value) VALUES (@id, @value)")
+        Queryable[Insert, Unit](query.onProduct(_))
+      }
     }
 
     case class Id(id: Int)
 
     object Id {
-      implicit val queryable: Queryable[Id, TestTable] =
-        Queryable[Id, TestTable](id => Query[TestTable]("SELECT id, value FROM TestTable WHERE id = @id").on("id" -> id.id))
+      implicit val queryable: Queryable[Id, TestTable] = {
+        val query = Query[TestTable]("SELECT id, value FROM tbl WHERE id = @id")
+        Queryable[Id, TestTable](id => query.on("id" -> id.id))
+      }
     }
 
   }

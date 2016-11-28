@@ -20,36 +20,36 @@ class TestClassSpec
   val after = "bye"
 
   test("insert and select works") {implicit connection =>
-    assertResult(1)(H2.update(TestClass.Value(before)))
-    val rows = H2.iterator(TestClass.All).toSeq
+    assertResult(1)(H2.Updatable.update(TestClass.Value(before)))
+    val rows = H2.Selectable.vector(TestClass.All)
     assert(rows.exists(_.value == before), "The row wasn't inserted.")
   }
 
   test("select for update works") {implicit connection =>
     //insert a row
-    assertResult(1)(H2.update(TestClass.Value(before)))
+    assertResult(1)(H2.Updatable.update(TestClass.Value(before)))
 
     //update all the values to "bye"
-    val rows = H2.iteratorForUpdate(TestClass.All)
+    val rows = H2.SelectForUpdatable.iterator(TestClass.All)
     for (row <- rows) {
       row("value") = after
       row.updateRow()
     }
 
     //Make sure "hi" disappeared and "bye" exists.
-    val resultRows = H2.iterator(TestClass.All).toSeq
+    val resultRows = H2.Selectable.iterator(TestClass.All).toSeq
     assert(resultRows.forall(_.value == after), "The value wasn't updated.")
   }
 
   override protected def beforeEach(): Unit = {
     H2.withMemConnection(name = "test") {implicit connection =>
-      H2.Ignore("CREATE TABLE test_class (id int IDENTITY(1,1) PRIMARY KEY, value varchar(100) NOT NULL)").execute()
+      H2.Ignore.ignore("CREATE TABLE test_class (id int IDENTITY(1,1) PRIMARY KEY, value varchar(100) NOT NULL)")
     }
   }
 
   override protected def afterEach(): Unit = {
     H2.withMemConnection(name = "test") {implicit connection =>
-      H2.Ignore("DROP TABLE test_class").execute()
+      H2.Ignore.ignore("DROP TABLE test_class")
     }
   }
 }

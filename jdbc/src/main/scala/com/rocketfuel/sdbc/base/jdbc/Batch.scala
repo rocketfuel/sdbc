@@ -44,9 +44,7 @@ trait Batch {
       Key <: Symbol,
       AsParameters <: HList
     ](t: A
-    )(implicit genericA: LabelledGeneric.Aux[A, Repr],
-      valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-      toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+    )(implicit p: Parameters.Products[A, Repr, Key, AsParameters]
     ): Batch = {
       addParameters(Parameters.product(t))
     }
@@ -56,18 +54,13 @@ trait Batch {
       Key <: Symbol,
       AsParameters <: HList
     ](t: Repr
-    )(implicit valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-      toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+    )(implicit r: Parameters.Records[Repr, Key, AsParameters]
     ): Batch = {
       addParameters(Parameters.record(t))
     }
 
     def batch()(implicit connection: Connection): IndexedSeq[Long] = {
-      Batch.run(statement, defaultParameters, batches)
-    }
-
-    def execute()(implicit connection: Connection): Unit = {
-      batch()
+      Batch.batch(statement, defaultParameters, batches)
     }
 
     def pipe[F[_]](implicit async: Async[F]): Batch.Pipe[F] =
@@ -96,7 +89,8 @@ trait Batch {
       val prepared = connection.prepareStatement(compiledStatement.queryText)
 
       def setParameters(parameters: Parameters): Unit = {
-        for ((name, value) <- parameters) {
+        for (nameValue <- parameters) {
+          val (name, value) = nameValue
           for (indexes <- compiledStatement.parameterPositions.get(name)) {
             for (index <- indexes)
               value.set(prepared, index)
@@ -112,7 +106,7 @@ trait Batch {
       prepared
     }
 
-    def run(
+    def batch(
       compiledStatement: CompiledStatement,
       defaultParameters: Parameters = Parameters.empty,
       batches: ParameterBatches
@@ -145,7 +139,7 @@ trait Batch {
             params <- paramStream
             result <- Stream.bracket[F, Connection, IndexedSeq[Long]](
               r = async.delay(pool.getConnection())
-            )(use = {implicit connection: Connection => Stream.eval(async.delay(Batch.run(statement, defaultParameters, params)))},
+            )(use = {implicit connection: Connection => Stream.eval(async.delay(Batch.batch(statement, defaultParameters, params)))},
               release = connection => async.delay(connection.close())
             )
           } yield ()
@@ -157,9 +151,7 @@ trait Batch {
         Key <: Symbol,
         AsParameters <: HList
       ](implicit pool: Pool,
-        genericA: LabelledGeneric.Aux[A, Repr],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+        p: Parameters.Products[A, Repr, Key, AsParameters]
       ): fs2.Pipe[F, Seq[A], Unit] = {
         _.map(_.map(Parameters.product[A, Repr, Key, AsParameters])).to(parameters)
       }
@@ -169,8 +161,7 @@ trait Batch {
         Key <: Symbol,
         AsParameters <: HList
       ](implicit pool: Pool,
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+        r: Parameters.Records[Repr, Key, AsParameters]
       ): fs2.Pipe[F, Seq[Repr], Unit] = {
         _.map(_.map(Parameters.record[Repr, Key, AsParameters])).to(parameters)
       }
@@ -187,7 +178,7 @@ trait Batch {
             params.map(defaultParameters ++ _)
 
           pool.withConnection { implicit connection =>
-            Batch.run(statement, defaultParameters, withParams)
+            Batch.batch(statement, defaultParameters, withParams)
           }
         }
       }
@@ -198,9 +189,7 @@ trait Batch {
         Key <: Symbol,
         AsParameters <: HList
       ](implicit pool: Pool,
-        genericA: LabelledGeneric.Aux[A, Repr],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+        p: Parameters.Products[A, Repr, Key, AsParameters]
       ): fs2.Pipe[F, Seq[A], IndexedSeq[Long]] = {
         _.map(_.map(Parameters.product[A, Repr, Key, AsParameters])).through(parameters)
       }
@@ -210,8 +199,7 @@ trait Batch {
         Key <: Symbol,
         AsParameters <: HList
       ](implicit pool: Pool,
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+        r: Parameters.Records[Repr, Key, AsParameters]
       ): fs2.Pipe[F, Seq[Repr], IndexedSeq[Long]] = {
         _.map(_.map(Parameters.record[Repr, Key, AsParameters])).through(parameters)
       }

@@ -64,19 +64,19 @@ trait TupleValue {
 
     override def getSet[T](i: Int, elementsType: TypeToken[T]): util.Set[T] = underlying.getSet[T](i: Int, elementsType: TypeToken[T])
 
-    override def getTimestamp(i: Int): Date = ???
+    override def getTimestamp(i: Int): Date = underlying.getTimestamp(i)
 
-    override def get[T](i: Int, targetClass: Class[T]): T = ???
+    override def get[T](i: Int, targetClass: Class[T]): T = underlying.get(i, targetClass)
 
-    override def get[T](i: Int, targetType: TypeToken[T]): T = ???
+    override def get[T](i: Int, targetType: TypeToken[T]): T = underlying.get(i, targetType)
 
-    override def get[T](i: Int, codec: TypeCodec[T]): T = ???
+    override def get[T](i: Int, codec: TypeCodec[T]): T = underlying.get(i, codec)
 
-    override def getTime(i: Int): Long = ???
+    override def getTime(i: Int): Long = underlying.getTime(i)
 
-    override def getByte(i: Int): Byte = ???
+    override def getByte(i: Int): Byte = underlying.getByte(i)
 
-    override def getShort(i: Int): Short = ???
+    override def getShort(i: Int): Short = underlying.getShort(i)
   }
 
   object TupleValue {

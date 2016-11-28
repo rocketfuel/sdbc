@@ -25,7 +25,7 @@ class RichResultSetSpec
 
       assertResult(randoms.sorted)(results.sorted)
 
-      truncate()
+      truncate(tableName = "tbl")
     }
   }
 
@@ -43,12 +43,12 @@ class RichResultSetSpec
 
       assertResult(randoms.sorted)(results.sorted)
 
-      truncate()
+      truncate(tableName = "tbl")
     }
   }
 
   test("Insert and select works for tuples.") { implicit connection =>
-    Query(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x tuple<int, int>)").execute()
+    Query.execute(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x tuple<int, int>)")
 
     forAll { (tuples: Seq[(Int, Int)]) =>
       //Note: Peng verified that values in tuples are nullable, so we need
@@ -60,13 +60,17 @@ class RichResultSetSpec
         insert.on("id" -> ix, "x" -> tuple).execute()
       }
 
-      val results = Query[TupleValue](s"SELECT x FROM $keyspace.tbl").iterator().map(_[(Int, Int)]).toSeq
+      val results = {
+        for {
+          tupleValue <- Query[TupleValue](s"SELECT x FROM $keyspace.tbl").iterator()
+        } yield tupleValue.apply[(Int, Int)]
+      }.toSeq
 
       assertResult(tuples.toSet)(results.toSet)
 
       assertResult(tuples.size)(results.size)
 
-      truncate()
+      truncate(tableName = "tbl")
     }
   }
 
@@ -87,7 +91,7 @@ class RichResultSetSpec
 
       assertResult(tuples.size)(results.size)
 
-      truncate()
+      truncate(tableName = "tbl")
     }
   }
 
@@ -107,7 +111,7 @@ class RichResultSetSpec
 
       assertResult(sets.size)(results.size)
 
-      truncate()
+      truncate(tableName = "tbl")
     }
   }
 
@@ -132,7 +136,7 @@ class RichResultSetSpec
 
       assertResult(maps.size)(results.size)
 
-      truncate()
+      truncate(tableName = "tbl")
     }
   }
 

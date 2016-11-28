@@ -9,12 +9,20 @@ import shapeless.{HList, LabelledGeneric}
 trait Update {
   self: DBMS with Connection =>
 
+  /*
+  Override this if the DBMS supports getLargeUpdateCount.
+  So far, none do.
+   */
+  protected def getUpdateCount(statement: PreparedStatement): Long = {
+    statement.getUpdateCount.toLong
+  }
+
   case class Update(
     override val statement: CompiledStatement,
     override val parameters: Parameters = Parameters.empty
   ) extends IgnorableQuery[Update] {
 
-    override def subclassConstructor(parameters: Parameters): Update = {
+    override protected def subclassConstructor(parameters: Parameters): Update = {
       copy(parameters = parameters)
     }
 
@@ -69,9 +77,7 @@ trait Update {
         Key <: Symbol,
         AsParameters <: HList
       ](implicit pool: Pool,
-        genericA: LabelledGeneric.Aux[B, Repr],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+        p: Parameters.Products[B, Repr, Key, AsParameters]
       ): fs2.Pipe[F, B, Long] = {
         parameterPipe.products.andThen(parameters)
       }
@@ -81,8 +87,7 @@ trait Update {
         Key <: Symbol,
         AsParameters <: HList
       ](implicit pool: Pool,
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+        r: Parameters.Records[Repr, Key, AsParameters]
       ): fs2.Pipe[F, Repr, Long] = {
         parameterPipe.records.andThen(parameters)
       }

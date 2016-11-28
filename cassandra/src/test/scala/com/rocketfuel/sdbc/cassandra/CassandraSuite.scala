@@ -10,6 +10,7 @@ abstract class CassandraSuite
   extends fixture.FunSuite
   with BeforeAndAfterAll
   with BeforeAndAfterEach {
+  self =>
 
   private val _keyspaces: mutable.Buffer[String] =
     mutable.Buffer.empty[String]
@@ -22,11 +23,18 @@ abstract class CassandraSuite
 
   override protected def beforeAll(): Unit = {
     EmbeddedCassandraServerHelper.startEmbeddedCassandra("another-cassandra.yaml")
+    createRandomKeyspace()
   }
 
-  override protected def beforeEach(): Unit = {
+  override protected def afterAll(): Unit = {
     EmbeddedCassandraServerHelper.cleanEmbeddedCassandra()
-    createRandomKeyspace()
+  }
+
+  override protected def afterEach(): Unit = {
+    implicit val session = client.connect()
+    try for (keyspace <- keyspaces)
+      util.Try(drop(tableName = "tbl"))
+    finally session.close()
   }
 
   override type FixtureParam = Session
@@ -35,11 +43,9 @@ abstract class CassandraSuite
 
   override protected def withFixture(test: OneArgTest): Outcome = {
     val session = client.connect()
-    try {
-      test.toNoArgTest(session)()
-    } finally {
-      session.close()
-    }
+
+    try test.toNoArgTest(session)()
+    finally session.close()
   }
 
   def createRandomKeyspace(): String = {
@@ -51,9 +57,20 @@ abstract class CassandraSuite
     keyspace
   }
 
-  def truncate()(implicit session: Session): Unit = {
-    for (keyspace <- _keyspaces)
-      Query(s"TRUNCATE $keyspace.tbl").execute()
+  def truncate(
+    keyspace: String = self.keyspace,
+    tableName: String
+  )(implicit session: Session
+  ): Unit = {
+    Query.execute(s"TRUNCATE $keyspace.$tableName")
+  }
+
+  def drop(
+    keyspace: String = self.keyspace,
+    tableName: String
+  )(implicit session: Session
+  ): Unit = {
+    Query.execute(s"DROP TABLE $keyspace.$tableName")
   }
 
 }

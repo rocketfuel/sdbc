@@ -26,7 +26,7 @@ trait MultiQuery extends MultiResultConverter {
       copy(parameters = parameters)
     }
 
-    def run()(implicit connection: Connection): A = {
+    def result()(implicit connection: Connection): A = {
       MultiQuery.run(statement, parameters)
     }
 
@@ -86,9 +86,7 @@ trait MultiQuery extends MultiResultConverter {
         Key <: Symbol,
         AsParameters <: HList
       ](implicit pool: Pool,
-        genericA: LabelledGeneric.Aux[B, Repr],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+        products: Parameters.Products[B, Repr, Key, AsParameters]
       ): fs2.Pipe[F, B, A] = {
         _.map(p => Parameters.product(p)).through(parameters)
       }
@@ -98,8 +96,7 @@ trait MultiQuery extends MultiResultConverter {
         Key <: Symbol,
         AsParameters <: HList
       ](implicit pool: Pool,
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+        r: Parameters.Records[Repr, Key, AsParameters]
       ): fs2.Pipe[F, Repr, A] = {
         _.map(p => Parameters.record(p)).through(parameters)
       }

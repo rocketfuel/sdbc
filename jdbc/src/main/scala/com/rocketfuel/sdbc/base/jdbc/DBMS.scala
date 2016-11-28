@@ -44,8 +44,6 @@ abstract class DBMS
    */
   def connectionTestQuery: Option[String] = None
 
-  protected val supportsGetLargeUpdateCount: Boolean = true
-
   type Statement = sql.Statement
 
   type CallableStatement = sql.CallableStatement

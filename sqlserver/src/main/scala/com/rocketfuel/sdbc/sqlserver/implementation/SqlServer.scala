@@ -43,6 +43,4 @@ private[sdbc] abstract class SqlServer
 
   override val connectionTestQuery: Option[String] = Some("SELECT 1")
 
-  override protected val supportsGetLargeUpdateCount: Boolean = false
-
 }

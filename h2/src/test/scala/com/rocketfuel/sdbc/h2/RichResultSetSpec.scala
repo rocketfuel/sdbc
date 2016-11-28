@@ -55,7 +55,7 @@ class RichResultSetSpec
     }
   }
 
-  test("to[Vector] works") {implicit connection =>
+  test("vector works") {implicit connection =>
     val randoms = Seq.fill(10)(util.Random.nextInt()).sorted
 
     Ignore.ignore("CREATE TABLE tbl (id identity PRIMARY KEY, x int)")
@@ -67,9 +67,17 @@ class RichResultSetSpec
 
     batch.batch()
 
-    val result = Select[Int]("SELECT x FROM tbl ORDER BY id ASC").iterator().toVector
+    val result = Select.vector[Int]("SELECT x FROM tbl ORDER BY id ASC")
 
     assertResult(randoms)(result)
+  }
+
+  test("update works") {implicit connection =>
+    Ignore.ignore("CREATE TABLE tbl (id identity PRIMARY KEY, x int)")
+
+    val updateCount = Update.update("INSERT INTO tbl (id, x) VALUES (1, 1)")
+
+    assertResult(1)(updateCount)
   }
 
   override protected def afterEach(): Unit = {

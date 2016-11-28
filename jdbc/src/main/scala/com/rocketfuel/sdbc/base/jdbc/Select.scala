@@ -160,9 +160,7 @@ trait Select {
         Key <: Symbol,
         AsParameters <: HList
       ](implicit pool: Pool,
-        genericA: LabelledGeneric.Aux[B, Repr],
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+        p: Parameters.Products[B, Repr, Key, AsParameters]
       ): fs2.Pipe[F, B, Stream[F, A]] = {
         parameterPipe.products.andThen(parameters)
       }
@@ -172,8 +170,7 @@ trait Select {
         Key <: Symbol,
         AsParameters <: HList
       ](implicit pool: Pool,
-        valuesMapper: MapValues.Aux[ToParameterValue.type, Repr, AsParameters],
-        toMap: ToMap.Aux[AsParameters, Key, ParameterValue]
+        r: Parameters.Records[Repr, Key, AsParameters]
       ): fs2.Pipe[F, Repr, Stream[F, A]] = {
         parameterPipe.records.andThen(parameters)
       }

@@ -9,5 +9,6 @@
         <Root level="error">
             <AppenderRef ref="Console"/>
         </Root>
+        <Logger name="com.rocketfuel.sdbc" level="TRACE"/>
     </Loggers>
 </Configuration>
