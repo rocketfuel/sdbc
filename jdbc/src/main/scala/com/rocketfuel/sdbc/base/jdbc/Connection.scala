@@ -268,6 +268,26 @@ trait Connection {
       finally connection.close()
     }
 
+    def ofDataSource(ds: DataSource): Connection = {
+      Connection(ds.getConnection())
+    }
+
+    def ofDataSource(ds: DataSource, name: String, password: String): Connection = {
+      Connection(ds.getConnection(name, password))
+    }
+
+    def withDataSource[A](ds: DataSource)(f: Connection => A): A = {
+      val connection = Connection(ds.getConnection())
+      try f(connection)
+      finally connection.close()
+    }
+
+    def withDataSource[A](ds: DataSource, name: String, password: String)(f: Connection => A): A = {
+      val connection = Connection(ds.getConnection(name, password))
+      try f(connection)
+      finally connection.close()
+    }
+
     protected def finallyClose[T](connection: Connection, commit: Boolean)(f: Connection => T): T = {
       try {
         val result = f(connection)
