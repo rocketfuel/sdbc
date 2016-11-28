@@ -376,7 +376,7 @@ You can use one of the type classes for generating queries to create query strea
 For JDBC the type classes are Batchable, Executable, Selectable, SelectForUpdatable, and Updatable. For Cassandra there is Queryable.
 
 ```scala
-import com.rocketfuel.sdbc.h2._
+import com.rocketfuel.sdbc.H2._
 import fs2._
 import fs2.concurrent.join
 
