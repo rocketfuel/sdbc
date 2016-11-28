@@ -405,7 +405,7 @@ implicit val keySelectable = Selectable[K, T]((key: K) => ???)
 implicit val updatable = Updatable[T]((key: T) => ???)
 
 //Use the keys to select rows, and use the each result to run an update.
-keyStream.through(Selectable.pipe[Task, K, T].products).to(Updatable.update).run.unsafeRun()
+keyStream.through(Selectable.pipe[Task, K, T].products).map(Updatable.update).run.unsafeRun()
 ```
 
 ## Benchmarks
