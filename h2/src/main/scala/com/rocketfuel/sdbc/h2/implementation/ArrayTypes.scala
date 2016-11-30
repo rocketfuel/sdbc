@@ -11,7 +11,7 @@ import com.rocketfuel.sdbc.h2.Serialized
 import org.h2.value.DataType
 import scodec.bits.ByteVector
 
-trait ArrayTypes {
+private[sdbc] trait ArrayTypes {
   self: jdbc.DBMS with SeqParameter =>
 
   private def nameOfJdbcType(jdbcType: Int): String = {

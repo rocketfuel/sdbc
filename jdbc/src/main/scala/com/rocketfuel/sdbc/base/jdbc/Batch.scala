@@ -13,9 +13,17 @@ trait Batch {
   /**
     * Create and run a batch using a statement and a sequence of parameters.
     *
-    * Batch contains two collections of parameters. One is a list of parameters for building a batch,
-    * and a list of batches. Batches can be built using {@link #on} and finalized with {@link #addBatch},
-    * or by passing parameters to {@link #addBatch}.
+    * Batch contains two collections of parameters. One is the current batch,
+    * and the other is a list of batches. Methods from [[ParameterizedQuery]]
+    * act on the current batch. The current batch is added to the list of batches
+    * using {@link #add}, {@link #addParameters}, {@link #addProduct}, or
+    * {@link #addRecord}. The `add` methods perform a union with the current parameter
+    * list and append the result to the list of batches. The current parameter list
+    * is not altered.
+    *
+    * If you don't want to use the concept of default parameters for the batches,
+    * simply disregard the `on` methods from [[ParameterizedQuery]], and use only the
+    * `add` methods.
     *
     * @param statement
     * @param defaultParameters are parameters included in each batch.

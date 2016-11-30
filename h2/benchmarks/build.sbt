@@ -9,3 +9,5 @@ libraryDependencies ++= Seq(
   "org.tpolecat" %% "doobie-h2" % doobieVersion,
   "org.slf4j" % "slf4j-simple" % "1.7.21"
 )
+
+publishArtifact := false

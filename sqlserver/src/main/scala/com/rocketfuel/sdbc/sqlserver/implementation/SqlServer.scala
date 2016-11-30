@@ -25,22 +25,30 @@ private[sdbc] abstract class SqlServer
   with MultiQuery
   with JdbcConnection {
 
-  val offsetDateTimeFormatter =
+  val offsetDateTimeFormatter: DateTimeFormatter =
     new DateTimeFormatterBuilder().
-    parseCaseInsensitive().
-    append(DateTimeFormatter.ISO_LOCAL_DATE).
-    appendLiteral(' ').
-    append(DateTimeFormatter.ISO_LOCAL_TIME).
-    optionalStart().
-    appendLiteral(' ').
-    appendOffset("+HH:MM", "+00:00").
-    optionalEnd().
-    toFormatter()
+      parseCaseInsensitive().
+      append(DateTimeFormatter.ISO_LOCAL_DATE).
+      appendLiteral(' ').
+      append(DateTimeFormatter.ISO_LOCAL_TIME).
+      optionalStart().
+      appendLiteral(' ').
+      appendOffset("+HH:MM", "+00:00").
+      optionalEnd().
+      toFormatter()
 
-  val instantFormatter =
+  val instantFormatter: DateTimeFormatter =
     offsetDateTimeFormatter.
-    withZone(ZoneOffset.UTC)
+      withZone(ZoneOffset.UTC)
 
   override val connectionTestQuery: Option[String] = Some("SELECT 1")
+
+  type HierarchyId = com.rocketfuel.sdbc.sqlserver.HierarchyId
+
+  val HierarchyId = com.rocketfuel.sdbc.sqlserver.HierarchyId
+
+  type HierarchyNode = com.rocketfuel.sdbc.sqlserver.HierarchyNode
+
+  val HierarchyNode = com.rocketfuel.sdbc.sqlserver.HierarchyNode
 
 }

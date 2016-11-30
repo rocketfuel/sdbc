@@ -3,7 +3,7 @@ package com.rocketfuel.sdbc.postgresql.implementation
 import com.rocketfuel.sdbc.base.jdbc.Connection
 import com.rocketfuel.sdbc.postgresql.{Cidr, LTree}
 
-trait PgConnection
+private[sdbc] trait PgConnection
   extends Connection {
 
   override type BaseConnection = org.postgresql.core.BaseConnection

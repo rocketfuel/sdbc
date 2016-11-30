@@ -9,7 +9,7 @@ import java.nio.ByteBuffer
 import java.util
 import java.util.{Date, UUID}
 
-trait TupleValue {
+private[sdbc] trait TupleValue {
   self: Cassandra =>
 
   case class TupleValue(underlying: core.TupleValue) extends core.GettableByIndexData {

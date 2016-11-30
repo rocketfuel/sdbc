@@ -10,7 +10,7 @@ import scodec.bits.ByteVector
 import shapeless._
 import shapeless.labelled._
 
-trait CompositeGetter {
+private[sdbc] trait CompositeGetter {
   self: Cassandra =>
 
   /**

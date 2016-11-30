@@ -12,7 +12,7 @@ trait Select {
   /**
     * Represents a query that is ready to be run against a [[Connection]].
     * @param statement is the text of the query. You can supply a String, and it will be converted to a
-    *                  [[CompiledStatement]] by [[CompiledStatement!.apply(String)]].
+    *                  [[CompiledStatement]] by [[com.rocketfuel.sdbc.base.CompiledStatement.apply(String)]].
     * @param parameters
     * @param rowConverter
     * @tparam A

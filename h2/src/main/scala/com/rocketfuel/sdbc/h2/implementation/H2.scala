@@ -5,7 +5,7 @@ import com.rocketfuel.sdbc.base.jdbc.statement.{DefaultParameters, SeqParameter}
 import com.rocketfuel.sdbc.base.jdbc
 import com.rocketfuel.sdbc.h2
 
-abstract class H2
+private[sdbc] abstract class H2
   extends jdbc.DBMS
   with DefaultGetters
   with DefaultParameters

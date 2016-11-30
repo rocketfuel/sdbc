@@ -9,7 +9,7 @@ import fs2.{Pipe, Stream}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.BiFunction
 
-trait Queryable {
+private[sdbc] trait Queryable {
   self: Cassandra =>
 
   trait Queryable[Key, Value] {

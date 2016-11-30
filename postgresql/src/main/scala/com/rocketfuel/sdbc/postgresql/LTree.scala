@@ -14,7 +14,7 @@ class LTree private (
   with PartialFunction[Int, String] {
 
   /**
-    * Use [[LTree.apply]] or [[LTree.valueOf]] instead. This constructor is for use by the PostgreSql driver.
+    * Use [[LTree.apply(String*)]], [[LTree.apply(Seq[String])]] or [[LTree.valueOf]] instead. This constructor is for use by the PostgreSql driver.
     */
   def this() {
     this(None)

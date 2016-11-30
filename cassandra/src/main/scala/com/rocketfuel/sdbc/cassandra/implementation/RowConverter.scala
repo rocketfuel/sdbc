@@ -3,7 +3,7 @@ package com.rocketfuel.sdbc.cassandra.implementation
 import com.datastax.driver.core.Row
 import scala.annotation.implicitNotFound
 
-trait RowConverter {
+private[sdbc] trait RowConverter {
   self: Cassandra =>
 
   @implicitNotFound("Define an implicit function from Row to A, or make A a Product (i.e., a tuple or case class).")

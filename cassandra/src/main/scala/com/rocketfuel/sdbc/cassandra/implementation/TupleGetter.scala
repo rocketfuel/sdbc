@@ -10,7 +10,7 @@ import java.util.{Date, UUID}
 import scala.collection.convert.wrapAsScala._
 import scodec.bits.ByteVector
 
-trait TupleGetter {
+private[sdbc] trait TupleGetter {
   self: Cassandra =>
 
   private[sdbc] trait TupleGetter[+T] extends base.Getter[TupleValue, Int, T]

@@ -9,7 +9,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import shapeless.ops.record.{MapValues, ToMap}
 import shapeless.{HList, LabelledGeneric}
 
-trait Query {
+private[sdbc] trait Query {
   self: Cassandra =>
 
   /**

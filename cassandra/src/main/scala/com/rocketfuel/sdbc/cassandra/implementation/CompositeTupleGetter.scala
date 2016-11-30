@@ -3,7 +3,7 @@ package com.rocketfuel.sdbc.cassandra.implementation
 import shapeless._
 import shapeless.labelled._
 
-trait CompositeTupleGetter {
+private[sdbc] trait CompositeTupleGetter {
   self: Cassandra =>
 
   /**
