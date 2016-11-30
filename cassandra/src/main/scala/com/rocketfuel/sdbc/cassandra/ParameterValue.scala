@@ -1,4 +1,4 @@
-package com.rocketfuel.sdbc.cassandra.implementation
+package com.rocketfuel.sdbc.cassandra
 
 import com.datastax.driver.core
 import com.datastax.driver.core.{BoundStatement, LocalDate}
@@ -11,11 +11,13 @@ import java.time.Instant
 import java.util.{Date, UUID}
 import scala.collection.JavaConverters._
 import scodec.bits.ByteVector
+import shapeless.HList
+import shapeless.ops.hlist.{Mapper, ToTraversable}
+import shapeless.ops.product.ToHList
 
-private[sdbc] trait ParameterValue
+trait ParameterValue
   extends base.ParameterValue
   with base.ParameterizedQuery {
-  self: Cassandra =>
 
   type PreparedStatement = core.BoundStatement
 
@@ -31,7 +33,7 @@ private[sdbc] trait ParameterValue
       statement.setBool(ix, value)
   }
 
-  implicit val BoxedBooleanParameter = DerivedParameter[lang.Boolean, Boolean]
+  implicit val BoxedBooleanParameter: Parameter[lang.Boolean] = DerivedParameter[lang.Boolean, Boolean]
 
   //We're using ByteVectors, since they're much more easily testable than Array[Byte].
   //IE equality actually works. Also, they're immutable.
@@ -42,11 +44,11 @@ private[sdbc] trait ParameterValue
         statement.setBytes(parameterIndex, bufferValue)
   }
 
-  implicit val ByteBufferParameter = DerivedParameter[ByteBuffer, ByteVector](ByteVector.apply, ByteVectorParameter)
+  implicit val ByteBufferParameter: Parameter[ByteBuffer] = DerivedParameter[ByteBuffer, ByteVector](ByteVector.apply, ByteVectorParameter)
 
-  implicit val ArrayByteParameter = DerivedParameter[Array[Byte], ByteVector](ByteVector.apply, ByteVectorParameter)
+  implicit val ArrayByteParameter: Parameter[Array[Byte]] = DerivedParameter[Array[Byte], ByteVector](ByteVector.apply, ByteVectorParameter)
 
-  implicit val SeqByteParameter = DerivedParameter[Seq[Byte], ByteVector](ByteVector.apply, ByteVectorParameter)
+  implicit val SeqByteParameter: Parameter[Seq[Byte]] = DerivedParameter[Seq[Byte], ByteVector](ByteVector.apply, ByteVectorParameter)
 
   implicit val LocalDateParameter: Parameter[LocalDate] = {
     (value: LocalDate) => (statement: PreparedStatement, parameterIndex: Int) =>
@@ -59,7 +61,7 @@ private[sdbc] trait ParameterValue
     DerivedParameter[Date, LocalDate]
   }
 
-  implicit val InstantParameter = {
+  implicit val InstantParameter: Parameter[Instant] = {
     implicit def instantToLocalDate(i: Instant): LocalDate =
       LocalDate.fromMillisSinceEpoch(i.toEpochMilli)
     DerivedParameter[Instant, LocalDate]
@@ -70,21 +72,21 @@ private[sdbc] trait ParameterValue
       statement.setDecimal(parameterIndex, value)
   }
 
-  implicit val DecimalToParameter = DerivedParameter[BigDecimal, java.math.BigDecimal](_.underlying(), JavaBigDecimalParameter)
+  implicit val BigDecimalParameter: Parameter[BigDecimal] = DerivedParameter[BigDecimal, java.math.BigDecimal](_.underlying(), JavaBigDecimalParameter)
 
   implicit val DoubleParameter: Parameter[Double] = {
     (value: Double) => (statement: PreparedStatement, ix: Int) =>
       statement.setDouble(ix, value)
   }
 
-  implicit val BoxedDoubleParameter = DerivedParameter[lang.Double, Double]
+  implicit val BoxedDoubleParameter: Parameter[lang.Double] = DerivedParameter[lang.Double, Double]
 
   implicit val FloatParameter: Parameter[Float] = {
     (value: Float) => (statement: PreparedStatement, ix: Int) =>
       statement.setFloat(ix, value)
   }
 
-  implicit val BoxedFloatParameter = DerivedParameter[lang.Float, Float]
+  implicit val BoxedFloatParameter: Parameter[lang.Float] = DerivedParameter[lang.Float, Float]
 
   implicit val InetAddressParameter: Parameter[InetAddress] = {
     (value: InetAddress) => (statement: PreparedStatement, ix: Int) =>
@@ -96,7 +98,7 @@ private[sdbc] trait ParameterValue
       statement.setInt(ix, value)
   }
 
-  implicit val BoxedIntParameter = DerivedParameter[Integer, Int]
+  implicit val BoxedIntParameter: Parameter[Integer] = DerivedParameter[Integer, Int]
 
   implicit def JavaSeqParameter[T]: Parameter[java.util.List[T]] = {
     (value: java.util.List[T]) => (statement: PreparedStatement, ix: Int) =>
@@ -115,7 +117,7 @@ private[sdbc] trait ParameterValue
       statement.setLong(ix, value)
   }
 
-  implicit val BoxedLongParameter = DerivedParameter[lang.Long, Long]
+  implicit val BoxedLongParameter: Parameter[lang.Long] = DerivedParameter[lang.Long, Long]
 
   implicit def JavaMapParameter[Key, Value]: Parameter[java.util.Map[Key, Value]] = {
     (value: java.util.Map[Key, Value]) => (statement: PreparedStatement, ix: Int) =>
@@ -169,6 +171,38 @@ private[sdbc] trait ParameterValue
   implicit val BigIntegerParameter: Parameter[BigInteger] = {
     (value: BigInteger) => (statement: PreparedStatement, ix: Int) =>
       statement.setVarint(ix, value)
+  }
+
+  implicit def hlistParameterValue[
+    H <: HList,
+    ListH <: HList,
+    MappedTypesH <: HList,
+    MappedValuesH <: HList
+  ](h: H
+  )(implicit dataTypeMapper: Mapper.Aux[TupleDataType.ToDataType.type, H, MappedTypesH],
+    dataTypeList: ToTraversable.Aux[MappedTypesH, Seq, core.DataType],
+    dataValueMapper: Mapper.Aux[TupleDataType.ToDataValue.type, H, MappedValuesH],
+    dataValueList: ToTraversable.Aux[MappedValuesH, Seq, AnyRef]
+  ): ParameterValue = {
+    TupleValue.hlistTupleValue(h)
+  }
+
+  implicit def productParameterValue[
+    P <: Product,
+    H <: HList,
+    ListH <: HList,
+    MappedTypesH <: HList,
+    MappedValuesH <: HList
+  ](p: P
+  )(implicit toHList: ToHList.Aux[P, H],
+    dataTypeMapper: Mapper.Aux[TupleDataType.ToDataType.type, H, MappedTypesH],
+    dataTypeList: ToTraversable.Aux[MappedTypesH, Seq, core.DataType],
+    dataValueMapper: Mapper.Aux[TupleDataType.ToDataValue.type, H, MappedValuesH],
+    dataValueList: ToTraversable.Aux[MappedValuesH, Seq, AnyRef],
+    toParameterValue: TupleValue => ParameterValue
+  ): ParameterValue = {
+    val asTupleValue = TupleValue.productTupleValue(p)
+    toParameterValue(asTupleValue)
   }
 
 }

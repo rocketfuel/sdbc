@@ -1,12 +1,12 @@
-package com.rocketfuel.sdbc.cassandra
+package com.rocketfuel.sdbc
 
-import com.google.common.util.concurrent._
+import com.google.common.util.concurrent.{FutureCallback, Futures, ListenableFuture}
 import fs2.util.Async
-import scala.concurrent._
+import scala.concurrent.{ExecutionContext, Future, Promise}
 
-package object implementation {
+package object cassandra {
 
-  private[sdbc] def toScalaFuture[T](f: ListenableFuture[T])(implicit ec: ExecutionContext): Future[T] = {
+  def toScalaFuture[T](f: ListenableFuture[T])(implicit ec: ExecutionContext): Future[T] = {
     //Thanks http://stackoverflow.com/questions/18026601/listenablefuture-to-scala-future
     val p = Promise[T]()
 
@@ -25,7 +25,7 @@ package object implementation {
     p.future
   }
 
-  private[sdbc] def toAsync[F[_], T](f: ListenableFuture[T])(implicit async: Async[F]): F[T] = {
+  def toAsync[F[_], T](f: ListenableFuture[T])(implicit async: Async[F]): F[T] = {
     async.async { register =>
       async.pure {
         val callback = new FutureCallback[T] {

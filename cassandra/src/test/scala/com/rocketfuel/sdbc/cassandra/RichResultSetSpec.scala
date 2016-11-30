@@ -1,5 +1,6 @@
 package com.rocketfuel.sdbc.cassandra
 
+import com.rocketfuel.sdbc.Cassandra
 import com.rocketfuel.sdbc.Cassandra._
 import org.scalacheck.Gen
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
@@ -81,7 +82,7 @@ class RichResultSetSpec
       val insert = Query(s"INSERT INTO $keyspace.tbl (id, x) VALUES (@id, @x)")
 
       for ((tuple, ix) <- tuples.zipWithIndex) {
-        val tupleParam: ParameterValue = productParameterValue(tuple)
+        val tupleParam: Cassandra.ParameterValue = productParameterValue(tuple)
         insert.on("id" -> ix, "x" -> tupleParam).execute()
       }
 
