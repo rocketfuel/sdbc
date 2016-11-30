@@ -35,7 +35,7 @@ trait Getter {
       Getter[T](getter)
     }
 
-    implicit def ofParser[Row, T](parser: String => T)(implicit stringGetter: Getter[String]): Getter[T] = {
+    implicit def ofParser[T](parser: String => T)(implicit stringGetter: Getter[String]): Getter[T] = {
       Getter((row: ConnectedRow, index: Index) => stringGetter.getter(row, index).map(parser))
     }
 

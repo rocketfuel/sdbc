@@ -8,5 +8,3 @@ libraryDependencies ++= Seq(
   "org.scodec" %% "scodec-bits" % "1.1.2",
   "org.scala-lang" % "scala-reflect" % scalaVersion.value
 )
-
-crossScalaVersions := Seq("2.10.6")

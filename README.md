@@ -10,14 +10,15 @@ There are additional packages that add support for [scalaz-stream](https://githu
 
 ## Requirements
 
-* Scala 2.11. Scala 2.10 might be supported again in the future
-* Cassandra (2.11 only), H2, PostgreSQL, or Microsoft SQL Server
+* Java 8
+* Scala 2.11 or 2.12.
+* Cassandra, H2, Microsoft SQL Server, or PostgreSQL 
 
 Include an implementation of the [SLF4J](http://slf4j.org/) logging interface, turn on debug logging, and all your query executions will be logged with the query text and the parameter name-value map.
 
 ## SBT Library Dependency
 
-Packages exist on Maven Central for Scala 2.10 and 2.11. Cassandra packages only exist for Scala 2.11. The Scala 2.10 builds for PostgreSQL do not include support for arrays.
+Packages exist on Maven Central for Scala 2.11 and 2.12.
 
 #### Cassandra
 
@@ -53,11 +54,10 @@ Packages exist on Maven Central for Scala 2.10 and 2.11. Cassandra packages only
 * Use named parameters with queries.
 * Get tuples or case classes from rows without any extra work. (thanks to [shapeless](https://github.com/milessabin/shapeless))
 * Use tuples or case classes to set query parameters. (thanks to [shapeless](https://github.com/milessabin/shapeless))
-* Use generics to update column values.
 * Use Scala collection combinators to manipulate result sets.
 * Query execution logging.
 * Supports Java 8's java.time package.
-* [FS2 Streams](https://github.com/functional-streams-for-scala/fs2) for query results
+* [FS2 Streams](https://github.com/functional-streams-for-scala/fs2) for streaming to or from a DBMS.
 * Easily add column types.
 
 ## Feature restrictions
@@ -293,6 +293,59 @@ object Example6 {
 Example6.updatedRowCount
 ```
 
+### Add a column type
+
+The following will not work, because the requested type is not supported natively by SDBC.
+```scala
+object Example7Failure {
+  import java.sql.DriverManager
+  import com.rocketfuel.sdbc.H2._
+  import scala.concurrent.duration._
+  
+  Select[Duration]("")
+}
+```
+
+gives
+
+```
+error: Define an implicit function from ConnectedRow to A, or create the missing Getters for parts of your product or record.
+Error occurred in an application involving default arguments.
+         Select[Duration]("SELECT duration from table")
+```
+
+To resolve this, provide a Getter for Duration. SDBC will then be able to create a converter from a row to a Duration.
+
+```scala
+object Example7Success {
+  import java.sql.DriverManager
+  import com.rocketfuel.sdbc.H2._
+  import scala.concurrent.duration._
+
+  implicit val DurationGetter: Getter[Duration] =
+    Getter.ofParser[Duration](Duration(_))
+
+  Select[Duration]("")
+}
+```
+
+Providing a Getter also allows Duration to be selected as part of a product (case class or tuple) or shapeless record.
+
+```scala
+object Example7Product {
+  import java.sql.DriverManager
+  import com.rocketfuel.sdbc.H2._
+  import scala.concurrent.duration._
+  
+  implicit val DurationGetter: Getter[Duration] =
+    Getter.ofParser[Duration](Duration(_))
+
+  case class UserDuration(user: String, duration: Duration)
+
+  Select[UserDuration]("")
+}
+```
+
 The remaining examples do not work in the Scala REPL.
 
 ### Batch Update
@@ -301,9 +354,9 @@ import java.sql.DriverManager
 import com.rocketfuel.sdbc.H2._
 
 val batchUpdate =
-	Batch("UPDATE tbl SET x = @x WHERE id = @id").
-	    add("x" -> 3, "id" -> 10).
-        add("x" -> 4, "id" -> 11)
+  Batch("UPDATE tbl SET x = @x WHERE id = @id").
+    add("x" -> 3, "id" -> 10).
+    add("x" -> 4, "id" -> 11)
 
 val updatedRowCount = Connection.using("...") {implicit connection =>
   batchUpdate.batch().sum
@@ -336,7 +389,7 @@ import com.rocketfuel.sdbc.PostgreSql._
 val pool = Pool(ConfigFactory.load())
 
 val result = pool.withConnection { implicit connection =>
-	f()
+  f()
 }
 ```
 
@@ -391,7 +444,7 @@ implicit val SelectableIntKey: Selectable[Id, String] = {
 
 val idStream: Stream[Task, Int] = ???
 
-//print the strings retreived from H2 using the stream of ids.
+//print the strings retrieved from H2 using the stream of ids.
 join(10)(idStream.through(Selectable.pipe[Task, Id, String].products)).to(io.stdOutLines).run.unsafeRun()
 ```
 

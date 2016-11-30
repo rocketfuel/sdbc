@@ -386,17 +386,17 @@ trait ConnectedRow {
 
     def updateObject(columnIndex: Int, x: AnyRef, scaleOrLength: Int): Unit = underlying.updateObject(columnIndex + 1, x, scaleOrLength)
 
-    def updateObject(columnIndex: Int, x: AnyRef, targetSqlType: SQLType): Unit = underlying.updateObject(columnIndex + 1, x, targetSqlType)
+    override def updateObject(columnIndex: Int, x: AnyRef, targetSqlType: SQLType): Unit = underlying.updateObject(columnIndex + 1, x, targetSqlType)
 
-    def updateObject(columnIndex: Int, x: AnyRef, targetSqlType: SQLType, scaleOrLength: Int): Unit = underlying.updateObject(columnIndex + 1, targetSqlType, scaleOrLength)
+    override def updateObject(columnIndex: Int, x: AnyRef, targetSqlType: SQLType, scaleOrLength: Int): Unit = underlying.updateObject(columnIndex + 1, targetSqlType, scaleOrLength)
 
-    def updateObject(columnLabel: String, x: AnyRef): Unit = underlying.updateObject(columnLabel, x)
+    override def updateObject(columnLabel: String, x: AnyRef): Unit = underlying.updateObject(columnLabel, x)
 
-    def updateObject(columnIndex: String, x: AnyRef, scaleOrLength: Int): Unit = underlying.updateObject(columnIndex + 1, x, scaleOrLength)
+    override def updateObject(columnIndex: String, x: AnyRef, scaleOrLength: Int): Unit = underlying.updateObject(columnIndex + 1, x, scaleOrLength)
 
-    def updateObject(columnIndex: String, x: AnyRef, targetSqlType: SQLType): Unit = underlying.updateObject(columnIndex + 1, x, targetSqlType)
+    override def updateObject(columnIndex: String, x: AnyRef, targetSqlType: SQLType): Unit = underlying.updateObject(columnIndex + 1, x, targetSqlType)
 
-    def updateObject(columnIndex: String, x: AnyRef, targetSqlType: SQLType, scaleOrLength: Int): Unit = underlying.updateObject(columnIndex + 1, targetSqlType, scaleOrLength)
+    override def updateObject(columnIndex: String, x: AnyRef, targetSqlType: SQLType, scaleOrLength: Int): Unit = underlying.updateObject(columnIndex + 1, targetSqlType, scaleOrLength)
 
     def updateNull(columnIndex: Int): Unit = underlying.updateNull(columnIndex + 1)
 

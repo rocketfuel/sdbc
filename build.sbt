@@ -30,7 +30,9 @@ lazy val sdbc =
     examples
   )
 
-scalaVersion in ThisBuild := "2.11.8"
+scalaVersion in ThisBuild := "2.12.0"
+
+crossScalaVersions in ThisBuild := Seq("2.11.8")
 
 version in ThisBuild := "2.0-SNAPSHOT"
 

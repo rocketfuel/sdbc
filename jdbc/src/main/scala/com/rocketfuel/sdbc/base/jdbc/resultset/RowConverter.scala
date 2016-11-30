@@ -6,7 +6,7 @@ import scala.annotation.implicitNotFound
 trait RowConverter {
   self: DBMS =>
 
-  @implicitNotFound("Import a DBMS or define an implicit function from ConnectedRow to A.")
+  @implicitNotFound("Define an implicit function from ConnectedRow to A, or create the missing Getters for parts of your product or record.")
   trait RowConverter[A] extends (ConnectedRow => A)
 
   object RowConverter extends LowerPriorityRowConverterImplicits {
