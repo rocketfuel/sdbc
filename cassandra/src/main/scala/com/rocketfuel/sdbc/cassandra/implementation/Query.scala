@@ -4,10 +4,9 @@ import com.datastax.driver.core
 import com.rocketfuel.sdbc.base._
 import fs2._
 import fs2.util.Async
-import scala.collection.convert.wrapAsScala._
+import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
-import shapeless.ops.record.{MapValues, ToMap}
-import shapeless.{HList, LabelledGeneric}
+import shapeless.HList
 
 private[sdbc] trait Query {
   self: Cassandra =>
@@ -133,7 +132,7 @@ private[sdbc] trait Query {
     )(implicit converter: RowConverter[A],
       session: Session
     ): Iterator[A] = {
-      execute(statement, parameters, queryOptions).iterator().map(converter)
+      execute(statement, parameters, queryOptions).iterator().asScala.map(converter)
     }
 
     def stream[F[_], A](
@@ -330,7 +329,7 @@ private[sdbc] trait Query {
         session: Session
       ): F[Iterator[A]] = {
         for (results <- execute(statement, queryOptions, parameters)) yield
-          for (result <- results.iterator()) yield
+          for (result <- results.iterator().asScala) yield
             result
       }
 
@@ -389,7 +388,7 @@ private[sdbc] trait Query {
         ec: ExecutionContext
       ): Future[Iterator[A]] = {
         for (results <- execute(statement, queryOptions, parameters)) yield
-          for (result <- results.iterator()) yield
+          for (result <- results.iterator().asScala) yield
             result
       }
 

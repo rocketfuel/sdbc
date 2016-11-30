@@ -135,9 +135,9 @@ private[sdbc] trait Queryable {
         Stream(lookup _).repeat
       },
         release = { sessionsPar =>
-          import scala.collection.convert.wrapAsScala._
+          import scala.collection.JavaConverters._
           log.debug("closing sessions")
-          val sessions = sessionsPar.values().toVector
+          val sessions = sessionsPar.values().asScala.toVector
           val closers =
             for {
               session <- sessions

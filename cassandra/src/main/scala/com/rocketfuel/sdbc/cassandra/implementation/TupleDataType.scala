@@ -6,7 +6,7 @@ import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.UUID
-import scala.collection.convert.decorateAll._
+import scala.collection.JavaConverters._
 import scodec.bits.ByteVector
 
 private[sdbc] trait TupleDataType {

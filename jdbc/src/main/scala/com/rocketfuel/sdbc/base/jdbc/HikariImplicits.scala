@@ -7,7 +7,7 @@ import com.typesafe.config.{Config, ConfigException, ConfigValueType}
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.pool.HikariPool
 
-import scala.collection.convert.wrapAsScala._
+import scala.collection.JavaConverters._
 
 trait HikariImplicits {
   self: Pool =>
@@ -17,7 +17,7 @@ trait HikariImplicits {
     private def toHikariProperties: Properties = {
       val properties = new java.util.Properties()
 
-      for (entry <- config.entrySet) {
+      for (entry <- config.entrySet.asScala) {
         val key = entry.getKey
         val value = entry.getValue
 
@@ -66,7 +66,7 @@ trait HikariImplicits {
 
     def toProperties: Properties = {
       val properties = new java.util.Properties()
-      for (entry <- config.entrySet) {
+      for (entry <- config.entrySet.asScala) {
         val key = entry.getKey
         properties.setProperty(key, config.getString(key))
       }

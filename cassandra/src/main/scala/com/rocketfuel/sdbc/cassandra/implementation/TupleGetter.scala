@@ -7,7 +7,7 @@ import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.{Date, UUID}
-import scala.collection.convert.wrapAsScala._
+import scala.collection.JavaConverters._
 import scodec.bits.ByteVector
 
 private[sdbc] trait TupleGetter {
@@ -71,15 +71,15 @@ private[sdbc] trait TupleGetter {
 
     implicit val UDTValueTupleGetter: TupleGetter[UDTValue] = of[UDTValue](tuple => ix => tuple.getUDTValue(ix))
 
-    implicit def SeqTupleGetter[A]: TupleGetter[Seq[A]] = of[Seq[A]](tuple => ix => tuple.getList[A](ix, new TypeToken[A]() {}))
+    implicit def SeqTupleGetter[A]: TupleGetter[Seq[A]] = of[Seq[A]](tuple => ix => tuple.getList[A](ix, new TypeToken[A]() {}).asScala)
 
     implicit def JavaListTupleGetter[A]: TupleGetter[java.util.List[A]] = of[java.util.List[A]](tuple => ix => tuple.getList[A](ix, new TypeToken[A]() {}))
 
-    implicit def SetTupleGetter[A]: TupleGetter[Set[A]] = of[Set[A]](tuple => ix => tuple.getSet[A](ix, new TypeToken[A]() {}).toSet)
+    implicit def SetTupleGetter[A]: TupleGetter[Set[A]] = of[Set[A]](tuple => ix => tuple.getSet[A](ix, new TypeToken[A]() {}).asScala.toSet)
 
     implicit def JavaSetTupleGetter[A]: TupleGetter[java.util.Set[A]] = of[java.util.Set[A]](tuple => ix => tuple.getSet[A](ix, new TypeToken[A]() {}))
 
-    implicit def MapTupleGetter[K, V]: TupleGetter[Map[K, V]] = of[Map[K, V]](tuple => ix => tuple.getMap[K, V](ix, new TypeToken[K] {}, new TypeToken[V] {}).toMap)
+    implicit def MapTupleGetter[K, V]: TupleGetter[Map[K, V]] = of[Map[K, V]](tuple => ix => tuple.getMap[K, V](ix, new TypeToken[K] {}, new TypeToken[V] {}).asScala.toMap)
 
     implicit def JavaMapTupleGetter[K, V]: TupleGetter[java.util.Map[K, V]] = of[java.util.Map[K, V]](tuple => ix => tuple.getMap[K, V](ix, new TypeToken[K] {}, new TypeToken[V] {}))
 

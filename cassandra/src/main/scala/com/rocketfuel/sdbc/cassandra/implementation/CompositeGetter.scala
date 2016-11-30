@@ -4,7 +4,7 @@ import com.datastax.driver.core.{LocalDate, Row}
 import com.google.common.reflect.TypeToken
 import java.net.InetAddress
 import java.util.{Date, UUID}
-import scala.collection.convert.decorateAsScala._
+import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 import scodec.bits.ByteVector
 import shapeless._
