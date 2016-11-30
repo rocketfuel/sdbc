@@ -12,7 +12,7 @@ There are additional packages that add support for [scalaz-stream](https://githu
 
 * Java 8
 * Scala 2.11 or 2.12.
-* Cassandra, H2, Microsoft SQL Server, or PostgreSQL 
+* Cassandra, H2, Microsoft SQL Server, or PostgreSQL
 
 Include an implementation of the [SLF4J](http://slf4j.org/) logging interface, turn on debug logging, and all your query executions will be logged with the query text and the parameter name-value map.
 
@@ -50,15 +50,16 @@ Packages exist on Maven Central for Scala 2.11 and 2.12.
 
 ## Features
 
-* Use generics to retrieve column values.
-* Use named parameters with queries.
+* Use generics and implicit conversions to retrieve column or row values.
 * Get tuples or case classes from rows without any extra work. (thanks to [shapeless](https://github.com/milessabin/shapeless))
 * Use tuples or case classes to set query parameters. (thanks to [shapeless](https://github.com/milessabin/shapeless))
+* Use named parameters with queries.
 * Use Scala collection combinators to manipulate result sets.
 * Query execution logging.
 * Supports Java 8's java.time package.
 * [FS2 Streams](https://github.com/functional-streams-for-scala/fs2) for streaming to or from a DBMS.
-* Easily add column types.
+* Easily add column or row types.
+* Type classes for each query type.
 
 ## Feature restrictions
 
@@ -91,29 +92,29 @@ These can be pasted into a Scala REPL that has the H2, SDBC base, SDBC JDBC, and
 object Example0 {
   import java.sql.DriverManager
   import com.rocketfuel.sdbc.H2._
-  
+
   case class Person(id: Int, name: String)
-  
+
   object Person {
     case class Name(name: String)
   }
-  
+
   val result = Connection.using("jdbc:h2:mem:example") {implicit connection =>
     try {
       Ignore.ignore("CREATE TABLE people (id int auto_increment PRIMARY KEY, name varchar(255))")
-      
+
       //Use named parameters and a case class to insert a row.
       Ignore.ignore("INSERT INTO people (name) VALUES (@name)", Parameters.product(Person.Name("jeff")))
-      
+
       //prints "Person(1, jeff)"
       for (x <- Select.iterator[Person]("SELECT * FROM people"))
         println(x)
-      
+
       /*
       You can select directly to tuples if you name your columns appropriately.
       If you select Tuple2s, you can create a map from the results.
       */
-       
+
       //yields Map(1 -> "jeff")
       Select.iterator[(Int, String)]("SELECT id AS _1, name AS _2 FROM people").toMap
     } finally connection.close()
@@ -129,26 +130,26 @@ Example0.result
 object Example1 {
   import java.time.Instant
   import com.rocketfuel.sdbc.H2._
-  
+
   case class Log(
     id: Int,
     createdTime: Instant,
     message: Option[String]
   )
-  
+
   object Log {
     implicit def valueOf(row: ConnectedRow): Log = {
       val id = row[Int]("id")
       val createdTime = row[Instant]("createdTime")
       val message = row[Option[String]]("message")
-      
+
       Log(
         id = id,
         createdTime = createdTime,
         message = message
       )
     }
-    
+
     val create =
       Ignore(
         """CREATE TABLE log (
@@ -157,27 +158,27 @@ object Example1 {
         |  message varchar(max)
         |)""".stripMargin
       )
-    
+
     val drop = Ignore("DROP TABLE log")
-    
+
     case class Message(
       message: String
     )
-    
+
     val insert =
       Update("INSERT INTO log (message) VALUES (@message)")
-    
+
     val selectByMessage =
       Select[Log]("SELECT * FROM log WHERE message = @message")
   }
-  
+
 
   val result =
     Connection.using("jdbc:h2:mem:example;DB_CLOSE_DELAY=0") {implicit connection =>
       Log.create.ignore()
-    
+
       Log.insert.onProduct(Log.Message("hi")).update()
-    
+
       //yields Some(Log(1,2016-10-17T19:41:43.164Z,Some(hi)))
       Log.selectByMessage.onProduct(Log.Message("hi")).option()
     }
@@ -195,11 +196,11 @@ starting at 0.
 ```scala
 val example2 = {
   import com.rocketfuel.sdbc.H2._
-  
+
   val id = 1
-  
+
   val query = select"SELECT * FROM table WHERE id = $id"
-  
+
   //yields Map(0 -> ParameterValue(Some(1)))
   query.parameters
 }
@@ -210,11 +211,11 @@ If you want to set the `id` value in the above query to a different value, you u
 ```scala
 val example3 = {
   import com.rocketfuel.sdbc.H2._
-  
+
   val id = 1
-  
+
   val query = select"SELECT * FROM table WHERE id = $id"
-  
+
   //yields Map(0 -> ParameterValue(Some(1)))
   query.on("0" -> 3).parameters
 }
@@ -240,19 +241,19 @@ object Example5 {
   import java.time.temporal.TemporalAdjusters
   import java.time.temporal.ChronoUnit
   import com.rocketfuel.sdbc.H2._
-  
+
   val query =
     Select[Int]("SELECT id FROM tbl WHERE message = @message AND created_time >= @created_time").
       on("message" -> "hello there!")
-  
+
   val today = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS)
-  
+
   val minTimes = Seq(
     today,
     //this week
     today.minus(today.getDayOfWeek().getValue, ChronoUnit.DAYS)
   )
-  
+
   val results =
     Connection.using("jdbc:h2:mem:example;DB_CLOSE_DELAY=0") {implicit connection =>
       Ignore.ignore("CREATE TABLE tbl (id int auto_increment primary key, message varchar(255), created_time timestamp)")
@@ -272,20 +273,20 @@ Example5.results
 object Example6 {
   import java.sql.DriverManager
   import com.rocketfuel.sdbc.H2._
-  
+
   val query = Update("UPDATE tbl SET unique_id = @uuid WHERE id = @id")
-  
+
   val parameters: Parameters =
     Map(
       "id" -> 3,
       "uuid" -> java.util.UUID.randomUUID()
     )
-  
+
   val updatedRowCount = Connection.using("jdbc:h2:mem:example;DB_CLOSE_DELAY=0") {implicit connection =>
     Ignore.ignore("CREATE TABLE tbl (id int auto_increment primary key, unique_id uuid default(random_uuid()))")
     for (_ <- 0 until 3)
       Update.update("INSERT INTO tbl default values")
-  
+
   	query.onParameters(parameters).update()
   }
 }
@@ -301,7 +302,7 @@ object Example7Failure {
   import java.sql.DriverManager
   import com.rocketfuel.sdbc.H2._
   import scala.concurrent.duration._
-  
+
   Select[Duration]("")
 }
 ```
@@ -336,7 +337,7 @@ object Example7Product {
   import java.sql.DriverManager
   import com.rocketfuel.sdbc.H2._
   import scala.concurrent.duration._
-  
+
   implicit val DurationGetter: Getter[Duration] =
     Getter.ofParser[Duration](Duration(_))
 
