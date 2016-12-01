@@ -1,20 +1,19 @@
-package com.rocketfuel.sdbc.postgresql.implementation
+package com.rocketfuel.sdbc.postgresql
 
+import com.rocketfuel.sdbc.base.jdbc._
 import com.rocketfuel.sdbc.base.jdbc.resultset._
 import java.net.InetAddress
-import java.sql.{SQLException, SQLDataException}
+import java.sql.{SQLDataException, SQLException}
 import java.time.{Duration => JavaDuration, _}
 import java.util.UUID
-import com.rocketfuel.sdbc.base.jdbc._
-import com.rocketfuel.sdbc.postgresql.{LTree, Cidr}
 import org.json4s.JValue
 import org.postgresql.util.{PGInterval, PGobject}
+import scala.concurrent.duration.{Duration => ScalaDuration}
 import scala.reflect.ClassTag
 import scala.xml.{Elem, XML}
-import scala.concurrent.duration.{Duration => ScalaDuration}
 
 //PostgreSQL doesn't support Byte, so we don't use the default getters.
-private[sdbc] trait Getters
+trait Getters
   extends BooleanGetter
   with BytesGetter
   with DateGetter
@@ -52,7 +51,7 @@ private[sdbc] trait Getters
       }
     }
 
-  private def IsPGobjectGetter[A <: PGobject, B](converter: A => B)(implicit ctag: ClassTag[A]): Getter[B] =
+  def IsPGobjectGetter[A <: PGobject, B](converter: A => B)(implicit ctag: ClassTag[A]): Getter[B] =
     (row: Row, ix: Index) => {
       val shouldBePgValue = Option(row.getObject(ix(row)))
       shouldBePgValue.map {
@@ -65,15 +64,15 @@ private[sdbc] trait Getters
       }
     }
 
-  implicit val PGIntervalGetter = IsPGobjectGetter[PGInterval, PGInterval](identity)
+  implicit val PGIntervalGetter: Getter[PGInterval] = IsPGobjectGetter[PGInterval, PGInterval](identity)
 
-  implicit val ScalaDurationGetter = IsPGobjectGetter[PGInterval, ScalaDuration](PGIntervalToDuration)
+  implicit val ScalaDurationGetter: Getter[ScalaDuration] = IsPGobjectGetter[PGInterval, ScalaDuration](PGIntervalToScalaDuration)
 
-  implicit val JavaDurationGetter = IsPGobjectGetter[PGInterval, JavaDuration](PGIntervalToJavaDuration)
+  implicit val JavaDurationGetter: Getter[JavaDuration] = IsPGobjectGetter[PGInterval, JavaDuration](PGIntervalToJavaDuration)
 
-  implicit val JValueGetter = IsPGobjectGetter[PGJson, JValue](_.jValue.get)
+  implicit val JValueGetter: Getter[JValue] = IsPGobjectGetter[PGJson, JValue](_.jValue.get)
 
-  implicit val InetAddressGetter = IsPGobjectGetter[PGInetAddress, InetAddress](_.inetAddress.get)
+  implicit val InetAddressGetter: Getter[InetAddress] = IsPGobjectGetter[PGInetAddress, InetAddress](_.inetAddress.get)
 
   /*
   The PG driver uses Time and Timestamp for the following, even if we register custom types.
@@ -109,7 +108,7 @@ private[sdbc] trait Getters
     (row: Row, ix: Index) => {
       Option(row.getObject(ix(row))).map {
         case m: java.util.Map[_, _] =>
-          import scala.collection.convert.decorateAsScala._
+          import scala.collection.JavaConverters._
           val values =
             for (entry <- m.entrySet().asScala) yield {
               entry.getKey.asInstanceOf[String] -> entry.getValue.asInstanceOf[String]

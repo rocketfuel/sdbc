@@ -5,7 +5,7 @@ import com.rocketfuel.sdbc.base.jdbc.resultset._
 import com.rocketfuel.sdbc.base.jdbc.statement.{ParameterValue, StatementConverter}
 import java.sql
 
-abstract class DBMS
+trait DBMS
   extends ParameterValue
   with HikariImplicits
   with Pool

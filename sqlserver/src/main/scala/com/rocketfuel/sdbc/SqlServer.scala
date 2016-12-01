@@ -1,5 +1,3 @@
 package com.rocketfuel.sdbc
 
-object SqlServer extends sqlserver.implementation.SqlServer {
-
-}
+object SqlServer extends com.rocketfuel.sdbc.sqlserver.SqlServer

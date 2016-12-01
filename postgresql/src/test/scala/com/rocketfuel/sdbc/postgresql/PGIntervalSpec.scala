@@ -1,8 +1,7 @@
-package com.rocketfuel.sdbc.postgresql.implementation
+package com.rocketfuel.sdbc.postgresql
 
+import com.rocketfuel.sdbc.postgresql.IntervalConstants._
 import java.time.Duration
-
-import com.rocketfuel.sdbc.postgresql.implementation.IntervalConstants._
 import org.postgresql.util.PGInterval
 import org.scalatest.FunSuite
 

@@ -1,7 +1,6 @@
-package com.rocketfuel.sdbc.postgresql.implementation
+package com.rocketfuel.sdbc.postgresql
 
 import java.time.{OffsetDateTime, ZoneOffset}
-
 import org.scalatest.FunSuite
 
 class OffsetDateTimeFormatterSpec extends FunSuite {

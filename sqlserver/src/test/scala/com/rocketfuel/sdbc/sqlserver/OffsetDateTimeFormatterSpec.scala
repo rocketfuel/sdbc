@@ -1,7 +1,7 @@
-package com.rocketfuel.sdbc.sqlserver.implementation
+package com.rocketfuel.sdbc.sqlserver
 
-import java.time.{OffsetDateTime, ZoneOffset}
 import com.rocketfuel.sdbc.SqlServer._
+import java.time.{OffsetDateTime, ZoneOffset}
 import org.scalatest.FunSuite
 
 class OffsetDateTimeFormatterSpec extends FunSuite {

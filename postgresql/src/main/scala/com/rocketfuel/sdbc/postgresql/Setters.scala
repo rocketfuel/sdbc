@@ -1,12 +1,12 @@
-package com.rocketfuel.sdbc.postgresql.implementation
+package com.rocketfuel.sdbc.postgresql
 
-import com.rocketfuel.sdbc.base.jdbc.statement._
 import com.rocketfuel.sdbc.base.jdbc._
+import com.rocketfuel.sdbc.base.jdbc.statement._
 import org.postgresql.util.PGobject
-import scala.collection.convert.decorateAsJava._
+import scala.collection.JavaConverters._
 
 //PostgreSQL doesn't support Byte, so we don't use the default setters.
-private[sdbc] trait Setters
+trait Setters
   extends BooleanParameter
   with BytesParameter
   with DateParameter
@@ -25,7 +25,7 @@ private[sdbc] trait Setters
   with OffsetDateTimeParameter
   with OffsetTimeParameter
   with InetAddressParameter
-  with PGJsonParameter
+  with JValueParameter
   with LocalTimeParameter
   with PGobjectParameter
   with MapParameter
@@ -34,7 +34,7 @@ private[sdbc] trait Setters
 
 }
 
-private[sdbc] trait PGobjectParameter {
+trait PGobjectParameter {
   self: ParameterValue =>
 
   implicit object PGobjectParameter extends Parameter[PGobject] {
@@ -57,7 +57,7 @@ private[sdbc] trait PGobjectParameter {
 
 }
 
-private[sdbc] trait MapParameter {
+trait MapParameter {
   self: ParameterValue =>
 
   implicit object MapParameter extends Parameter[Map[String, String]] {

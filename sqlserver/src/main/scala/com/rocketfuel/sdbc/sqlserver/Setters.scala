@@ -1,13 +1,12 @@
-package com.rocketfuel.sdbc.sqlserver.implementation
+package com.rocketfuel.sdbc.sqlserver
 
 import com.rocketfuel.sdbc.base.jdbc.statement._
+import java.time._
 import java.util.UUID
-import com.rocketfuel.sdbc.sqlserver.HierarchyId
-import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import scala.xml.Node
 
 //We have to use a special UUID getter, so we can't use the default setters.
-private[sdbc] trait Setters
+trait Setters
   extends BooleanParameter
   with ByteParameter
   with BytesParameter

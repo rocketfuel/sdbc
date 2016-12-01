@@ -1,12 +1,11 @@
-package com.rocketfuel.sdbc.sqlserver.implementation
+package com.rocketfuel.sdbc.sqlserver
 
-import java.time.{Instant, LocalTime, OffsetDateTime}
-import java.util.UUID
 import com.rocketfuel.sdbc.base.jdbc._
-import com.rocketfuel.sdbc.sqlserver.HierarchyId
+import java.time._
+import java.util.UUID
 import scala.xml.Node
 
-private[sdbc] trait Updaters
+trait Updaters
   extends LongUpdater
   with IntUpdater
   with ShortUpdater
@@ -26,7 +25,7 @@ private[sdbc] trait Updaters
   with LocalDateUpdater {
   self: SqlServer =>
 
-  implicit val LocalTimeUpdater = new Updater[LocalTime] {
+  implicit val LocalTimeUpdater: Updater[LocalTime] = new Updater[LocalTime] {
     override def update(row: UpdateableRow, columnIndex: Int, x: LocalTime): Unit = {
       row.updateString(columnIndex, x.toString)
     }

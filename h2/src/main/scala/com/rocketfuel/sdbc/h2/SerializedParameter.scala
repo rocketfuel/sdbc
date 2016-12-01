@@ -1,8 +1,8 @@
-package com.rocketfuel.sdbc.h2.implementation
+package com.rocketfuel.sdbc.h2
 
 import java.sql.Types
 
-private[sdbc] trait SerializedParameter {
+trait SerializedParameter {
   self: H2 =>
 
   implicit object SerializedParameter

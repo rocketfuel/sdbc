@@ -1,10 +1,10 @@
-package com.rocketfuel.sdbc.postgresql.implementation
+package com.rocketfuel.sdbc.postgresql
 
 import com.rocketfuel.sdbc.base.jdbc.statement.ParameterValue
 import java.time.OffsetDateTime
 import org.postgresql.util.PGobject
 
-private[sdbc] class PGTimestampTz(
+private class PGTimestampTz(
   var offsetDateTime: Option[OffsetDateTime]
 ) extends PGobject() {
 
@@ -29,7 +29,7 @@ private[sdbc] class PGTimestampTz(
 
 }
 
-private[sdbc] object PGTimestampTz {
+private object PGTimestampTz {
   def apply(value: String): PGTimestampTz = {
     val tz = new PGTimestampTz()
     tz.setValue(value)
@@ -41,7 +41,7 @@ private[sdbc] object PGTimestampTz {
   }
 }
 
-private[sdbc] trait OffsetDateTimeParameter {
+trait OffsetDateTimeParameter {
   self: ParameterValue =>
 
   implicit object OffsetDateTimeParameter extends Parameter[OffsetDateTime] {

@@ -85,7 +85,7 @@ object Queryable
   }
 
   /**
-    * Use a map to store sessions. Create Sessions to keyspaces on demand, and keep them open for
+    * Use a map to store sessions. Create one Session for each keyspace on demand, and keep Sessions open for
     * further queries.
     */
   private def sessionProviders[F[_]](implicit async: Async[F], cluster: Cluster): Stream[F, String => F[Session]] = {
@@ -113,7 +113,7 @@ object Queryable
                       register(
                         Right {
                           val session = u.get()
-                          log.debug("found open session for keyspace {}", t: Any)
+                          log.debug("found open session for keyspace {}", t)
                           session
                         }
                       )

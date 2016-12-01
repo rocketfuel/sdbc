@@ -1,5 +1,5 @@
 package com.rocketfuel.sdbc
 
-object PostgreSql extends postgresql.implementation.PostgreSql {
+import com.rocketfuel.sdbc.postgresql.PostgreSql
 
-}
+object PostgreSql extends PostgreSql

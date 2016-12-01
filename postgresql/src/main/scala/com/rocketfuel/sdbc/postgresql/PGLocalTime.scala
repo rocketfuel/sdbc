@@ -1,7 +1,7 @@
-package com.rocketfuel.sdbc.postgresql.implementation
+package com.rocketfuel.sdbc.postgresql
 
 import com.rocketfuel.sdbc.base.jdbc.statement.ParameterValue
-import java.sql.{PreparedStatement, Time}
+import java.sql.Time
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import org.postgresql.util.PGobject
@@ -11,7 +11,7 @@ import org.postgresql.util.PGobject
  *
   * @param localTime
   */
-private[sdbc] class PGLocalTime(
+private class PGLocalTime(
   var localTime: Option[LocalTime]
 ) extends PGobject() {
 
@@ -34,7 +34,7 @@ private[sdbc] class PGLocalTime(
   }
 }
 
-private[sdbc] object PGLocalTime {
+private object PGLocalTime {
   def apply(value: String): PGLocalTime = {
     val t = new PGLocalTime()
     t.setValue(value)
@@ -51,7 +51,7 @@ private[sdbc] object PGLocalTime {
   }
 }
 
-private[sdbc] trait LocalTimeParameter {
+trait LocalTimeParameter {
   self: ParameterValue =>
 
   implicit object LocalTimeParameter extends Parameter[LocalTime] {

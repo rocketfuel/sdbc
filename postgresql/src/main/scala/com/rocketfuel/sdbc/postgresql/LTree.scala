@@ -1,7 +1,6 @@
 package com.rocketfuel.sdbc.postgresql
 
 import org.postgresql.util.PGobject
-
 import scala.collection.immutable.Seq
 
 /**

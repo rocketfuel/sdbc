@@ -1,4 +1,4 @@
-package com.rocketfuel.sdbc.postgresql.implementation
+package com.rocketfuel.sdbc.postgresql
 
 private object IntervalConstants {
   val nanosecondsPerSecond = 1000000000L

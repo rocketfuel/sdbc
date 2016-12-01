@@ -1,8 +1,8 @@
-package com.rocketfuel.sdbc.postgresql.implementation
+package com.rocketfuel.sdbc.postgresql
 
 import com.rocketfuel.sdbc.base.jdbc._
 
-private[sdbc] abstract class PostgreSql
+trait PostgreSql
   extends DBMS
   with Setters
   with IntervalImplicits

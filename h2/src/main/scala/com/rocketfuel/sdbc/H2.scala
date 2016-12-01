@@ -1,5 +1,5 @@
 package com.rocketfuel.sdbc
 
-object H2 extends com.rocketfuel.sdbc.h2.implementation.H2 {
+import com.rocketfuel.sdbc.h2.H2
 
-}
+object H2 extends H2

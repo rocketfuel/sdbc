@@ -1,10 +1,10 @@
-package com.rocketfuel.sdbc.postgresql.implementation
+package com.rocketfuel.sdbc.postgresql
 
 import com.rocketfuel.sdbc.base.jdbc.statement.ParameterValue
 import java.net.InetAddress
 import org.postgresql.util.PGobject
 
-private[sdbc] class PGInetAddress(
+private class PGInetAddress(
   var inetAddress: Option[InetAddress]
 ) extends PGobject() {
 
@@ -36,13 +36,13 @@ private[sdbc] class PGInetAddress(
   }
 }
 
-private[sdbc] object PGInetAddress {
+private object PGInetAddress {
   implicit def apply(address: InetAddress): PGInetAddress = {
     new PGInetAddress(inetAddress = Some(address))
   }
 }
 
-private[sdbc] trait InetAddressParameter {
+trait InetAddressParameter {
   self: ParameterValue =>
 
   implicit object InetAddressParameter extends Parameter[InetAddress] {

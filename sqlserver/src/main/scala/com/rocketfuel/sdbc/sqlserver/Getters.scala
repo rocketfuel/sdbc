@@ -1,14 +1,12 @@
-package com.rocketfuel.sdbc.sqlserver.implementation
+package com.rocketfuel.sdbc.sqlserver
 
 import com.rocketfuel.sdbc.base.jdbc.resultset.DefaultGetters
 import java.time._
+import java.time.temporal.{ChronoField, TemporalAccessor}
 import java.util.UUID
-import com.rocketfuel.sdbc.sqlserver.HierarchyId
-import java.time.temporal.ChronoField
-import java.time.temporal.TemporalAccessor
 import scala.xml.{Node, XML}
 
-private[sdbc] trait Getters
+trait Getters
   extends DefaultGetters {
   self: SqlServer =>
 
@@ -28,9 +26,8 @@ private[sdbc] trait Getters
     (row: Row, ix: Index) =>
       Option(row.getString(ix(row))).map(XML.loadString)
 
-
   /**
-   * The JTDS driver sometimes fails to parse timestamps, so we use our own parser.
+   * JTDS sometimes fails to parse timestamps, so we use our own parser.
    */
   override implicit val InstantGetter: Getter[Instant] = { (asString: String) =>
     val parse: TemporalAccessor = instantFormatter.parse(asString)

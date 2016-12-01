@@ -5,7 +5,6 @@ import org.postgresql.util.PGobject
 
 /**
   * Corresponds to PostgreSql's [[https://www.postgresql.org/docs/current/static/datatype-net-types.html cidr]] type.
-  * @param memo
   */
 class Cidr private (
   private var memo: Option[Cidr.Memo]

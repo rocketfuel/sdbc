@@ -1,9 +1,9 @@
-package com.rocketfuel.sdbc.postgresql
+package com.rocketfuel.sdbc
 
-import java.time.format.{DateTimeFormatterBuilder, DateTimeFormatter}
+import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
 
-package object implementation {
-  private[implementation] val offsetTimeFormatter: DateTimeFormatter = {
+package object postgresql {
+  val offsetTimeFormatter: DateTimeFormatter = {
     new DateTimeFormatterBuilder().
       parseCaseInsensitive().
       append(DateTimeFormatter.ISO_LOCAL_TIME).
@@ -13,7 +13,7 @@ package object implementation {
       toFormatter
   }
 
-  private[implementation] val offsetDateTimeFormatter: DateTimeFormatter = {
+  val offsetDateTimeFormatter: DateTimeFormatter = {
     new DateTimeFormatterBuilder().
       parseCaseInsensitive().
       append(DateTimeFormatter.ISO_LOCAL_DATE).

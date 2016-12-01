@@ -1,11 +1,11 @@
-package com.rocketfuel.sdbc.postgresql.implementation
+package com.rocketfuel.sdbc.postgresql
 
 import com.rocketfuel.sdbc.base.jdbc.statement.ParameterValue
-import org.json4s.jackson.JsonMethods
 import org.json4s.JValue
+import org.json4s.jackson.JsonMethods
 import org.postgresql.util.PGobject
 
-private[sdbc] class PGJson(
+private class PGJson(
   var jValue: Option[JValue]
 ) extends PGobject() {
 
@@ -32,14 +32,14 @@ private[sdbc] class PGJson(
 
 }
 
-private[sdbc] object PGJson {
+private object PGJson {
   implicit def apply(j: JValue): PGJson = {
     val p = new PGJson(jValue = Some(j))
     p
   }
 }
 
-private[sdbc] trait PGJsonParameter {
+trait JValueParameter {
   self: ParameterValue =>
 
   implicit object JValueParameter extends Parameter[JValue] {

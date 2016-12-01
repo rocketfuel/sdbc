@@ -1,11 +1,10 @@
-package com.rocketfuel.sdbc.h2.implementation
+package com.rocketfuel.sdbc.h2
 
+import com.rocketfuel.sdbc.base.jdbc
 import com.rocketfuel.sdbc.base.jdbc.resultset.{DefaultGetters, SeqGetter}
 import com.rocketfuel.sdbc.base.jdbc.statement.{DefaultParameters, SeqParameter}
-import com.rocketfuel.sdbc.base.jdbc
-import com.rocketfuel.sdbc.h2
 
-private[sdbc] abstract class H2
+trait H2
   extends jdbc.DBMS
   with DefaultGetters
   with DefaultParameters
@@ -16,7 +15,7 @@ private[sdbc] abstract class H2
   with SerializedParameter
   with jdbc.JdbcConnection {
 
-  type Serialized = h2.Serialized
-  val Serialized = h2.Serialized
+  type Serialized = com.rocketfuel.sdbc.h2.Serialized
+  val Serialized = com.rocketfuel.sdbc.h2.Serialized
 
 }
