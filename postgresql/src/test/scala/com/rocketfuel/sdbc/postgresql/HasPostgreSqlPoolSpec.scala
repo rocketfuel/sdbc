@@ -1,41 +1,26 @@
 package com.rocketfuel.sdbc.postgresql
 
 import com.rocketfuel.sdbc.PostgreSql._
-import com.rocketfuel.sdbc.config.TestingConfig
-import com.typesafe.config.{Config, ConfigFactory}
-import org.scalatest.{BeforeAndAfterAll, FunSuite}
+import org.scalatest._
 
 class HasPostgreSqlPoolSpec
   extends FunSuite
-  with HasPostgreSqlPool
-  with TestingConfig
-  with PgTestingConfig
-  with BeforeAndAfterAll {
-
-  override def config: Config = ConfigFactory.load("sql-testing.conf")
-
-  override def pgConfigKey: String = "pg"
+    with HasPostgreSqlPool
+    with BeforeAndAfterAll {
 
   def testDatabaseExists(): Boolean = {
-    withPgMaster[Boolean] { implicit connection =>
+    withPg[Boolean] { implicit connection =>
       Select[Boolean]("SELECT EXISTS(SELECT * FROM pg_database WHERE datname = @databaseName)").
-        on("databaseName" -> pgTestCatalogName).option().get
+        on("databaseName" -> dbName).option().get
     }
   }
 
   test("creates and destroys test database") {
-
-    pgBeforeAll()
+    pgStart()
 
     assert(testDatabaseExists())
-
-    pgDropTestCatalogs()
-
-    assert(! testDatabaseExists())
-
   }
 
-  override protected def afterAll(): Unit = {
-    pgMasterPool.close()
-  }
+  override protected def afterAll(): Unit = pgStop()
+
 }

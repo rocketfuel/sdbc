@@ -54,7 +54,7 @@ Packages exist on Maven Central for Scala 2.11 and 2.12.
 * Use tuples or case classes to set query parameters. (thanks to [shapeless](https://github.com/milessabin/shapeless))
 * Use named parameters with queries.
 * Use Scala collection combinators to manipulate result sets.
-* Query execution logging.
+* Query execution logging with [SLF4J](http://www.slf4j.org/).
 * Supports Java 8's java.time package.
 * [FS2 Streams](https://github.com/functional-streams-for-scala/fs2) for streaming to or from a DBMS.
 * Easily add column or row types.

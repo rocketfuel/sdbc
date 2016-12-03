@@ -10,13 +10,7 @@ import fs2.Strategy
 abstract class PostgreSqlSuite
   extends fixture.FunSuite
   with HasPostgreSqlPool
-  with TestingConfig
-  with PgTestingConfig
   with BeforeAndAfterAll {
-
-  override def config: Config = ConfigFactory.load("sql-testing.conf")
-
-  override def pgConfigKey: String = "pg"
 
   def testSelect[T](query: String, expectedValue: Option[T])(implicit converter: RowConverter[Option[T]]): Unit = {
     test(query) { implicit connection =>
@@ -39,13 +33,13 @@ abstract class PostgreSqlSuite
   }
 
   override protected def beforeAll(): Unit = {
-    pgBeforeAll()
+    pgStart()
     createLTree()
     createHstore()
   }
 
   override protected def afterAll(): Unit = {
-    pgAfterAll()
+    pgStop()
   }
 
   implicit val strategy =
