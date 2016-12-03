@@ -350,7 +350,7 @@ object Example7Product {
 
 #### For parameters
 
-The following will not work, because the requested type, Duration, is not supported natively by H2.
+The following will not work, because the parameter's type, Duration, is not supported natively by H2.
 
 ```scala
 object Example8Failure {
@@ -380,8 +380,9 @@ object Example8Success0 {
 
   implicit val durationParameter: Parameter[Duration] =
     new Parameter[Duration] {
-      override val set: Duration => (PreparedStatement, Int) => PreparedStatement = {
+      override val set = {
         (value) => (statement, parameterIndex) =>
+          //Note the + 1, which converts SDBC's 0-based index to JDBC's 1-based index.
           statement.setString(parameterIndex + 1, value.toString)
           statement
       }
@@ -393,7 +394,7 @@ object Example8Success0 {
 }
 ```
 
-Another possibility is that we want to store durations as bigints in milliseconds. This example uses the existing `Parameter[Long]` along with the convenience DerivedParameter trait.
+Another possibility is that we want to store durations as milliseconds. This example uses the existing `Parameter[Long]` along with the convenience DerivedParameter trait.
 
 ```scala
 object Example8Success1 {
