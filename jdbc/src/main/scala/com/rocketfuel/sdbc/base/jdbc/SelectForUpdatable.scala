@@ -1,25 +1,43 @@
 package com.rocketfuel.sdbc.base.jdbc
 
+import fs2.util.Async
+
 trait SelectForUpdatable {
   self: DBMS with Connection =>
 
   trait SelectForUpdatable[Key] {
-    def selectForUpdate(key: Key): SelectForUpdate
+    def update(key: Key): SelectForUpdate
   }
 
   object SelectForUpdatable {
     def apply[Key](f: Key => SelectForUpdate): SelectForUpdatable[Key] =
       new SelectForUpdatable[Key] {
-        override def selectForUpdate(key: Key): SelectForUpdate =
+        override def update(key: Key): SelectForUpdate =
           f(key)
       }
 
-    def iterator[Key](
+    def update[Key](
       key: Key
     )(implicit selectable: SelectForUpdatable[Key],
       connection: Connection
-    ): CloseableIterator[UpdateableRow] = {
-      selectable.selectForUpdate(key).iterator()
+    ): Long = {
+      selectable.update(key).update()
+    }
+
+    def pipe[F[_], Key](
+      key: Key
+    )(implicit async: Async[F],
+      updatable: SelectForUpdatable[Key]
+    ): SelectForUpdate.Pipe[F] = {
+      updatable.update(key).pipe[F]
+    }
+
+    def sink[F[_], Key](
+      key: Key
+    )(implicit async: Async[F],
+      updatable: SelectForUpdatable[Key]
+    ): Ignore.Sink[F] = {
+      updatable.update(key).sink[F]
     }
   }
 

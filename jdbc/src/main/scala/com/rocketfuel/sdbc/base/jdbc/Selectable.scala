@@ -49,22 +49,13 @@ trait Selectable {
       selectable.select(key).singleton()
     }
 
-    def streamFromConnection[F[_], Key, Result](
+    def stream[F[_], Key, Result](
       key: Key
     )(implicit selectable: Selectable[Key, Result],
       connection: Connection,
       async: Async[F]
     ): Stream[F, Result] = {
-      selectable.select(key).streamFromConnection[F]()
-    }
-
-    def streamFromPool[F[_], Key, Result](
-      key: Key
-    )(implicit selectable: Selectable[Key, Result],
-      pool: Pool,
-      async: Async[F]
-    ): Stream[F, Result] = {
-      selectable.select(key).streamFromPool[F]()
+      selectable.select(key).stream[F]
     }
 
     def pipe[F[_], Key, Result](

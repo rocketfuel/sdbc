@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.{Logger, StreamUtils}
+import com.rocketfuel.sdbc.base.{Logger, IteratorUtils}
 import fs2.{Stream, pipe}
 import fs2.util.Async
 import shapeless.ops.record.{MapValues, ToMap}
@@ -43,18 +43,11 @@ trait Select {
       Select.singleton(statement, parameters)
     }
 
-    def streamFromConnection[F[_]]()(implicit
+    def stream[F[_]](implicit
       async: Async[F],
       connection: Connection
     ): Stream[F, A] = {
-      Select.streamFromConnection[F, A](statement, parameters)
-    }
-
-    def streamFromPool[F[_]]()(implicit
-      async: Async[F],
-      pool: Pool
-    ): Stream[F, A] = {
-      Select.streamFromPool[F, A](statement, parameters)
+      Select.stream[F, A](statement, parameters)
     }
 
     def pipe[F[_]](implicit async: Async[F]): Select.Pipe[F, A] =
@@ -113,29 +106,14 @@ trait Select {
       finally executed.close()
     }
 
-    def streamFromPool[F[_], A](
-      statement: CompiledStatement,
-      parameterValues: Parameters = Parameters.empty
-    )(implicit async: Async[F],
-      pool: Pool,
-      rowConverter: RowConverter[A]
-    ): Stream[F, A] = {
-      StreamUtils.fromCloseableIteratorR[F, Connection, A](
-        async.delay(pool.getConnection()),
-        {implicit connection: Connection =>
-          async.delay(iterator(statement, parameterValues))
-        },
-        (c: Connection) => async.delay(c.close()))
-    }
-
-    def streamFromConnection[F[_], A](
+    def stream[F[_], A](
       statement: CompiledStatement,
       parameterValues: Parameters = Parameters.empty
     )(implicit async: Async[F],
       connection: Connection,
       rowConverter: RowConverter[A]
     ): Stream[F, A] = {
-      StreamUtils.fromCloseableIterator(async.delay(iterator[A](statement, parameterValues)))
+      IteratorUtils.fromCloseableIterator(async.delay(iterator[A](statement, parameterValues)))
     }
 
     case class Pipe[F[_], A](
@@ -149,7 +127,9 @@ trait Select {
       def parameters(implicit pool: Pool): fs2.Pipe[F, Parameters, Stream[F, A]] = {
         parameterPipe.combine(defaultParameters).andThen(
           pipe.lift[F, Parameters, Stream[F, A]] { params =>
-            streamFromPool[F, A](statement, params)
+            StreamUtils.connection {implicit connection =>
+              stream(statement, params)
+            }
           }
         )
       }

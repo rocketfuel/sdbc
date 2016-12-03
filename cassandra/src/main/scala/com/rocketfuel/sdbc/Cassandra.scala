@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc
 
 import com.datastax.driver.core
-import com.rocketfuel.sdbc.cassandra.{ParameterValue, RowConverter, ToSessionMethods}
+import com.rocketfuel.sdbc.cassandra.ParameterValue
 import com.rocketfuel.sdbc.base.CompiledStatement
 import shapeless.ops.hlist._
 import shapeless.{HList, ProductArgs}
@@ -18,18 +18,13 @@ import shapeless.{HList, ProductArgs}
   * }}}
   */
 object Cassandra
-  extends ParameterValue
-  with ToSessionMethods {
+  extends ParameterValue {
 
   type ResultSet = core.ResultSet
 
   type Session = core.Session
 
-  type Cluster = core.Cluster
-
-  type UDTValue = core.UDTValue
-
-  type Token = core.Token
+  val StreamUtils = cassandra.StreamUtils
 
   type CompositeGetter[A] = cassandra.CompositeGetter[A]
   val CompositeGetter = cassandra.CompositeGetter

@@ -1,10 +1,10 @@
 package com.rocketfuel.sdbc.cassandra
 
-import com.datastax.driver.core
 import com.rocketfuel.sdbc.base.{CompiledStatement, Logger}
 import com.rocketfuel.sdbc.Cassandra._
 import fs2._
 import fs2.util.Async
+import fs2.util.syntax._
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import shapeless.HList
@@ -52,7 +52,7 @@ case class Query[A](
 
   object future {
 
-    def execute()(implicit session: Session, ec: ExecutionContext): Future[core.ResultSet] = {
+    def execute()(implicit session: Session, ec: ExecutionContext): Future[ResultSet] = {
       Query.future.execute(statement, queryOptions, parameters)
     }
 
@@ -62,6 +62,10 @@ case class Query[A](
 
     def option()(implicit session: Session, ec: ExecutionContext): Future[Option[A]] = {
       Query.future.option(statement, queryOptions, parameters)
+    }
+
+    def singleton()(implicit session: Session, ec: ExecutionContext): Future[A] = {
+      Query.future.singleton(statement, queryOptions, parameters)
     }
 
   }
@@ -142,16 +146,16 @@ object Query
     async: Async[F]
   ): Stream[F, A] = {
 
-    def currentChunk(results: core.ResultSet, chunkSize: Int): Stream[F, A] = {
+    def currentChunk(results: ResultSet, chunkSize: Int): Stream[F, A] = {
       val chunk = Vector.fill[A](chunkSize)(results.one())
       Stream.chunk(Chunk.seq(chunk))
     }
 
-    def chunks(results: core.ResultSet): Stream[F, A] = {
+    def chunks(results: ResultSet): Stream[F, A] = {
       (results.getAvailableWithoutFetching, results.isFullyFetched) match {
         case (0, false) =>
           for {
-            nextResults <- Stream.eval(toAsync[F, core.ResultSet](results.fetchMoreResults()))
+            nextResults <- Stream.eval(toAsync[F, ResultSet](results.fetchMoreResults()))
             one <- chunks(nextResults)
           } yield one
 
@@ -165,7 +169,7 @@ object Query
     }
 
     for {
-      results <- Stream.eval(this.async[F].execute(statement, queryOptions, parameters))
+      results <- Stream.eval(this.async.execute(statement, queryOptions, parameters))
       next <- chunks(results)
     } yield next
   }
@@ -191,7 +195,7 @@ object Query
       getOrElse(throw new NoSuchElementException("empty ResultSet"))
   }
 
-  abstract class PipeAux[F[_], A] private[Query] (
+  sealed abstract class PipeAux[F[_], A] private[Query] (
     statement: CompiledStatement,
     defaultParameters: Parameters,
     queryOptions: QueryOptions
@@ -264,15 +268,17 @@ object Query
 
 }
 
-//This class exists merely to solve the name clash that occurs
-//when a class and its companion object have objects with the same
-//name.
+/**
+  * This class exists merely to solve the name clash that occurs
+  * when a class and its companion object have objects with the same
+  * name.
+  */
 trait QueryCompanionOps {
   self: Logger =>
 
   protected def bind(
     statement: CompiledStatement,
-    prepared: core.PreparedStatement,
+    prepared: com.datastax.driver.core.PreparedStatement,
     parameters: Parameters,
     queryOptions: QueryOptions
   )(implicit session: Session
@@ -293,22 +299,22 @@ trait QueryCompanionOps {
   protected def logExecution(statement: CompiledStatement, parameters: Parameters): Unit =
     log.debug(s"""Executing "${statement.originalQueryText}" with parameters $parameters.""")
 
-  class AsyncMethods[F[_]] private[cassandra] (implicit async: Async[F]) {
+  object async {
 
-    import fs2.util.syntax._
-
-    private def prepare(
+    private def prepare[F[_]](
       statement: CompiledStatement
-    )(implicit session: Session
-    ): F[core.PreparedStatement] = {
-      toAsync[F, core.PreparedStatement](session.prepareAsync(statement.queryText))
+    )(implicit session: Session,
+      async: Async[F]
+    ): F[com.datastax.driver.core.PreparedStatement] = {
+      toAsync[F, com.datastax.driver.core.PreparedStatement](session.prepareAsync(statement.queryText))
     }
 
-    def execute(
+    def execute[F[_]](
       statement: CompiledStatement,
       queryOptions: QueryOptions,
       parameters: Parameters
-    )(implicit session: Session
+    )(implicit session: Session,
+      async: Async[F]
     ): F[ResultSet] = {
       logExecution(statement, parameters)
 
@@ -319,16 +325,66 @@ trait QueryCompanionOps {
       } yield executed
     }
 
+    def iterator[F[_], A](
+      statement: CompiledStatement,
+      queryOptions: QueryOptions,
+      parameters: Parameters
+    )(implicit converter: RowConverter[A],
+      session: Session,
+      async: Async[F]
+    ): F[Iterator[A]] = {
+      for (results <- execute(statement, queryOptions, parameters)) yield
+        for (result <- results.iterator().asScala) yield
+          result
+    }
+
+    def option[F[_], A](
+      statement: CompiledStatement,
+      queryOptions: QueryOptions,
+      parameters: Parameters
+    )(implicit converter: RowConverter[A],
+      session: Session,
+      async: Async[F]
+    ): F[Option[A]] = {
+      for (results <- execute(statement, queryOptions, parameters)) yield
+        for (result <- Option(results.one())) yield
+          result
+    }
+
+    def singleton[F[_], A](
+      statement: CompiledStatement,
+      queryOptions: QueryOptions,
+      parameters: Parameters
+    )(implicit converter: RowConverter[A],
+      session: Session,
+      async: Async[F]
+    ): F[A] = {
+      option(statement, queryOptions, parameters).map(_.get)
+    }
+
+  }
+
+  object task {
+
+    def execute(
+      statement: CompiledStatement,
+      queryOptions: QueryOptions,
+      parameters: Parameters
+    )(implicit session: Session,
+      strategy: Strategy
+    ): Task[ResultSet] = {
+      async.execute[Task](statement, queryOptions, parameters)
+    }
+
     def iterator[A](
       statement: CompiledStatement,
       queryOptions: QueryOptions,
       parameters: Parameters
     )(implicit converter: RowConverter[A],
-      session: Session
-    ): F[Iterator[A]] = {
-      for (results <- execute(statement, queryOptions, parameters)) yield
-        for (result <- results.iterator().asScala) yield
-          result
+      session: Session,
+      strategy: Strategy
+    ): Task[Iterator[A]] = {
+      async.iterator[Task, A](statement, queryOptions, parameters)
     }
 
     def option[A](
@@ -336,20 +392,23 @@ trait QueryCompanionOps {
       queryOptions: QueryOptions,
       parameters: Parameters
     )(implicit converter: RowConverter[A],
-      session: Session
-    ): F[Option[A]] = {
-      for (results <- execute(statement, queryOptions, parameters)) yield
-        for (result <- Option(results.one())) yield
-          result
+      session: Session,
+      strategy: Strategy
+    ): Task[Option[A]] = {
+      async.option[Task, A](statement, queryOptions, parameters)
     }
 
+    def singleton[A](
+      statement: CompiledStatement,
+      queryOptions: QueryOptions,
+      parameters: Parameters
+    )(implicit converter: RowConverter[A],
+      session: Session,
+      strategy: Strategy
+    ): Task[A] = {
+      async.singleton[Task, A](statement, queryOptions, parameters)
+    }
   }
-
-  def async[F[_]](implicit async: Async[F]): AsyncMethods[F] =
-    new AsyncMethods[F]
-
-  def task(implicit strategy: Strategy): AsyncMethods[Task] =
-    new AsyncMethods[Task]
 
   object future {
 
@@ -357,7 +416,7 @@ trait QueryCompanionOps {
       statement: CompiledStatement
     )(implicit session: Session,
       ec: ExecutionContext
-    ): Future[core.PreparedStatement] = {
+    ): Future[com.datastax.driver.core.PreparedStatement] = {
       toScalaFuture(session.prepareAsync(statement.queryText))
     }
 
@@ -401,6 +460,17 @@ trait QueryCompanionOps {
       for (results <- execute(statement, queryOptions, parameters)) yield
         for (result <- Option(results.one())) yield
           result
+    }
+
+    def singleton[A](
+      statement: CompiledStatement,
+      queryOptions: QueryOptions,
+      parameters: Parameters
+    )(implicit converter: RowConverter[A],
+      session: Session,
+      ec: ExecutionContext
+    ): Future[A] = {
+      option(statement, queryOptions, parameters).map(_.get)
     }
 
   }

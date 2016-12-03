@@ -1,13 +1,14 @@
 package com.rocketfuel.sdbc.cassandra
 
 import com.datastax.driver.core
-import com.datastax.driver.core.{BoundStatement, LocalDate}
+import com.datastax.driver.core.LocalDate
 import com.rocketfuel.sdbc.base
 import java.lang
 import java.math.BigInteger
 import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.time.Instant
+import java.util.concurrent.TimeUnit
 import java.util.{Date, UUID}
 import scala.collection.JavaConverters._
 import scodec.bits.ByteVector
@@ -21,9 +22,7 @@ trait ParameterValue
 
   type PreparedStatement = core.BoundStatement
 
-  type Connection = core.Session
-
-  override protected def setNone(preparedStatement: BoundStatement, parameterIndex: Int): BoundStatement = {
+  override protected def setNone(preparedStatement: PreparedStatement, parameterIndex: Int): PreparedStatement = {
     preparedStatement.setToNull(parameterIndex)
     preparedStatement
   }
@@ -53,6 +52,13 @@ trait ParameterValue
   implicit val LocalDateParameter: Parameter[LocalDate] = {
     (value: LocalDate) => (statement: PreparedStatement, parameterIndex: Int) =>
       statement.setDate(parameterIndex, value)
+  }
+
+  implicit val JavaLocalDateParameter: Parameter[java.time.LocalDate] = {
+    DerivedParameter[java.time.LocalDate, LocalDate](
+      conversion0 = l => LocalDate.fromMillisSinceEpoch(TimeUnit.DAYS.toMillis(l.toEpochDay)),
+      baseParameter0 = LocalDateParameter
+    )
   }
 
   implicit val DateParameter: Parameter[Date] = {

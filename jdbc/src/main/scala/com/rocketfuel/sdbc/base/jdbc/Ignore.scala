@@ -62,11 +62,9 @@ trait Ignore {
       def parameters(implicit pool: Pool): fs2.Sink[F, Parameters] = {
         parameterPipe.combine(defaultParameters).andThen(
           pipe.lift[F, Parameters, Unit] { params =>
-            Stream.bracket[F, Connection, Unit](
-              r = async.delay(pool.getConnection())
-            )(use = {implicit connection: Connection => Stream.eval(async.delay(ignore(statement, params)))},
-              release = connection => async.delay(connection.close())
-            )
+            StreamUtils.connection {implicit connection =>
+              Stream.eval(async.delay(ignore(statement, params)))
+            }
           }
         )
       }

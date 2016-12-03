@@ -19,10 +19,7 @@ class UpdatersSpec extends H2Suite {
 
       update"INSERT INTO tbl (v) VALUES ($before)".update()
 
-      for (row <- selectForUpdate"SELECT * FROM tbl".iterator()) {
-        row("v") = after
-        row.updateRow()
-      }
+      selectForUpdate"SELECT * FROM tbl".copy(updater = {row => row("v") = after; row.updateRow()}).update()
 
       val maybeValue = Select[T]("SELECT v FROM tbl").option()
 
@@ -87,10 +84,7 @@ class UpdatersSpec extends H2Suite {
 
     update"INSERT INTO tbl (v) VALUES ($before)".update()
 
-    for (row <- selectForUpdate"SELECT id, v FROM tbl".iterator()) {
-      row("v") = after
-      row.updateRow()
-    }
+    selectForUpdate"SELECT id, v FROM tbl".copy(updater = {row => row("v") = after; row.updateRow()}).update()
 
     val maybeRow = Select[Option[Int]]("SELECT v FROM tbl").iterator.toStream.headOption
 

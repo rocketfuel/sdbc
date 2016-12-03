@@ -31,7 +31,7 @@ trait Update {
     }
 
     def pipe[F[_]](implicit async: Async[F]): Update.Pipe[F] =
-      Update.Pipe(statement, parameters)
+      Update.pipe(statement, parameters)
 
   }
 
@@ -49,6 +49,20 @@ trait Update {
       finally runStatement.close()
     }
 
+    def pipe[F[_]](
+      statement: CompiledStatement,
+      defaultParameters: Parameters = Parameters.empty
+    )(implicit async: Async[F]
+    ): Pipe[F] =
+      Pipe(statement, defaultParameters)
+
+    def sink[F[_]](
+      statement: CompiledStatement,
+      defaultParameters: Parameters = Parameters.empty
+    )(implicit async: Async[F]
+    ): Ignore.Sink[F] =
+      Ignore.Sink[F](statement, defaultParameters)
+
     case class Pipe[F[_]](
       statement: CompiledStatement,
       defaultParameters: Parameters = Parameters.empty
@@ -62,11 +76,9 @@ trait Update {
             for {
               params <- paramStream
               result <-
-                Stream.bracket(
-                  r = async.delay(pool.getConnection())
-                )(use = {implicit connection => Stream.eval(async.delay(update(statement, params)))},
-                  release = connection => async.delay(connection.close())
-                )
+                StreamUtils.connection {implicit connection =>
+                  Stream.eval(async.delay(update(statement, params)))
+                }
             } yield result
         )
       }

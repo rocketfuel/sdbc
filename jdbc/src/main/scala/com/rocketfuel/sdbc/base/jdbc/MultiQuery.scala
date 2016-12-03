@@ -71,11 +71,9 @@ trait MultiQuery extends MultiResultConverter {
             for {
               params <- paramStream
               result <-
-                Stream.bracket(
-                  r = async.delay(pool.getConnection())
-                )(use = {implicit connection => Stream.eval(async.delay(run(statement, params)))},
-                  release = connection => async.delay(connection.close())
-                )
+                StreamUtils.connection {implicit connection =>
+                  Stream.eval(async.delay(run(statement, params)))
+                }
             } yield result
         )
       }

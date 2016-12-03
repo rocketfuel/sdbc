@@ -30,7 +30,7 @@ class UpdatersSpec
 
       Ignore.ignore(s"INSERT INTO $tableName (v) VALUES (@before)", Map("before" -> before))
 
-      val rows =  SelectForUpdate(s"SELECT * FROM $tableName").iterator()
+      val rows =  SelectForUpdate(s"SELECT * FROM $tableName").update()
       for (row <- rows) {
         row("v") = after
         row.updateRow()

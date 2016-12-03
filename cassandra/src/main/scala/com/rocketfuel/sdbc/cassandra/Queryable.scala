@@ -1,14 +1,10 @@
 package com.rocketfuel.sdbc.cassandra
 
-import com.datastax.driver.core
-import com.google.common.util.concurrent.{FutureCallback, Futures, ListenableFuture}
+import com.datastax.driver.core.Cluster
 import com.rocketfuel.sdbc.base.Logger
 import com.rocketfuel.sdbc.Cassandra._
-import java.util.concurrent.ConcurrentHashMap
-import java.util.function.BiFunction
-import fs2.util.{Async, NonFatal}
+import fs2.util.Async
 import fs2.{Pipe, Stream}
-import fs2.util.syntax._
 
 trait Queryable[Key, Value] {
   def query(key: Key): Query[Value]
@@ -46,121 +42,55 @@ object Queryable
     queryable.query(key).singleton()
   }
 
-  def pipe[F[_], Key, Value](
-    implicit cluster: core.Cluster,
+  def stream[F[_], Key, Value](
+    key: Key
+  )(implicit queryable: Queryable[Key, Value],
+    session: Session,
+    async: Async[F]
+  ): Stream[F, Value] = {
+    queryable.query(key).stream[F]
+  }
+
+  def pipe[F[_], Key, Value](implicit
+    session: Session,
     queryable: Queryable[Key, Value],
     async: Async[F]
   ): Pipe[F, Key, Stream[F, Value]] = {
-    val req = toAsync(cluster.connectAsync())
-    def release(session: Session): F[Unit] = {
-      async.map(toAsync(session.closeAsync()))(Function.const(()))
-    }
-    fs2.pipe.lift[F, Key, Stream[F, Value]] { key =>
-      def use(session: Session) = {
-        queryable.query(key).stream[F](session, async)
-      }
-      fs2.Stream.bracket(req)(use, release)
-    }
-  }
-
-  private def createSession(
-    keyspace: String,
-    register: (scala.Either[scala.Throwable, Session]) => Unit
-  )(implicit cluster: Cluster
-  ): ListenableFuture[Session] = {
-    log.info("creating session for keyspace {}", keyspace: Any)
-    val f = cluster.connectAsync(keyspace)
-    val callback = new FutureCallback[Session] {
-      override def onFailure(t: Throwable): Unit = {
-        log.warn(s"session creation for keyspace $keyspace failed", t)
-        register(Left(t))
-      }
-      override def onSuccess(result: Session): Unit = {
-        log.debug(s"session creation for keyspace {} succeeded", keyspace: Any)
-        register(Right(result))
-      }
-    }
-    Futures.addCallback(f, callback)
-    f
+    keys =>
+      keys.map(key => queryable.query(key).stream[F])
   }
 
   /**
-    * Use a map to store sessions. Create one Session for each keyspace on demand, and keep Sessions open for
-    * further queries.
-    */
-  private def sessionProviders[F[_]](implicit async: Async[F], cluster: Cluster): Stream[F, String => F[Session]] = {
-    Stream.bracket[F, ConcurrentHashMap[String, ListenableFuture[Session]], String => F[Session]](
-      r = async.delay(new ConcurrentHashMap[String, ListenableFuture[Session]]())
-    )(use = { (sessions: ConcurrentHashMap[String, ListenableFuture[Session]]) =>
-      def lookup(keyspace: String): F[Session] = {
-        async.async[Session](register =>
-          async.pure(
-            /*
-            We don't actually use the return value of compute(), which is synchronous.
-            Instead, we use a callback on connectAsync().
-             */
-            sessions.compute(
-              keyspace,
-              new BiFunction[String, ListenableFuture[Session], ListenableFuture[Session]] {
-                override def apply(
-                  t: String,
-                  u: ListenableFuture[Session]
-                ): ListenableFuture[Session] = {
-                  if (u == null) {
-                    createSession(t, register)
-                  } else {
-                    try {
-                      register(
-                        Right {
-                          val session = u.get()
-                          log.debug("found open session for keyspace {}", t)
-                          session
-                        }
-                      )
-                      u
-                    } catch {
-                      case NonFatal(e) =>
-                        log.debug(s"retrying session creation for keyspace $t", e)
-                        createSession(t, register)
-                    }
-                  }
-                }
-              }
-            )
-          )
-        )
-      }
-      Stream(lookup _).repeat
-    },
-      release = { sessionsPar =>
-        import scala.collection.JavaConverters._
-        log.debug("closing sessions")
-        val sessions = sessionsPar.values().asScala.toVector
-        val closers =
-          for {
-            session <- sessions
-          } yield {
-            toAsync(session.get().closeAsync())
-          }
-        closers.sequence.map(Function.const(()))
-      }
-    )
-  }
-
-  /**
-    * This method creates at most one session per keyspace.
+    * Creates at most one session per keyspace.
+    * Use this method when you want to manage the Cluster.
     */
   def pipeWithKeyspace[F[_], Key, Value](
-    implicit cluster: core.Cluster,
+    implicit cluster: Cluster,
     queryable: Queryable[Key, Value],
     async: Async[F]
   ): Pipe[F, (String, Key),  Stream[F, Value]] = {
     (s: Stream[F, (String, Key)]) =>
-      s.zip(sessionProviders).flatMap {
+      s.zip(StreamUtils.sessionProviders).flatMap {
         case ((keyspace, key), sessionProvider) =>
-          for {
-            session <- Stream.eval(sessionProvider(keyspace))
-          } yield queryable.query(key).stream[F](session, async)
+          Stream.eval(sessionProvider(keyspace)).map {implicit session =>
+            queryable.query(key).stream[F]
+          }
+      }
+  }
+
+  /**
+    * Creates at most one session per keyspace.
+    * The Cluster is created when the stream starts, and closed
+    * when it completes.
+    */
+  def pipeWithKeyspace[F[_], Key, Value](
+    initializer: Cluster.Initializer
+  )(implicit queryable: Queryable[Key, Value],
+    async: Async[F]
+  ): Pipe[F, (String, Key), Stream[F, Value]] = {
+    s =>
+      StreamUtils.cluster(initializer) {implicit cluster =>
+        s.through(pipeWithKeyspace)
       }
   }
 

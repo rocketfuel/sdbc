@@ -21,8 +21,7 @@ trait MultiQueryable {
     def pipe[F[_], Key, Result](
       key: Key
     )(implicit async: Async[F],
-      multiQueryable: MultiQueryable[Key, Result],
-      connection: Connection
+      multiQueryable: MultiQueryable[Key, Result]
     ): MultiQuery.Pipe[F, Result] = {
       multiQueryable.multiQueryable(key).pipe[F]
     }
@@ -30,8 +29,7 @@ trait MultiQueryable {
     def sink[F[_], Key](
       key: Key
     )(implicit async: Async[F],
-      multiQueryable: MultiQueryable[Key, _],
-      connection: Connection
+      multiQueryable: MultiQueryable[Key, _]
     ): Ignore.Sink[F] = {
       multiQueryable.multiQueryable(key).sink[F]
     }

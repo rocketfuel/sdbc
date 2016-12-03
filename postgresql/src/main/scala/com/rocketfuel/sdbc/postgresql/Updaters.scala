@@ -33,7 +33,7 @@ trait Updaters
 
   def IsPGobjectUpdater[A, B <: PGobject](implicit converter: A => B): Updater[A] = {
     new Updater[A] {
-      override def update(row: UpdateableRow, columnIndex: Int, x: A): Unit = {
+      override def update(row: UpdatableRow, columnIndex: Int, x: A): Unit = {
         PGobjectUpdater.update(row, columnIndex, converter(x))
       }
     }
@@ -62,7 +62,7 @@ trait Updaters
 
   implicit val PGobjectUpdater: Updater[PGobject] = new Updater[PGobject] {
     override def update(
-      row: UpdateableRow,
+      row: UpdatableRow,
       columnIndex: Int,
       x: PGobject
     ): Unit = {
@@ -71,7 +71,7 @@ trait Updaters
   }
 
   implicit val MapUpdater: Updater[Map[String, String]] = new Updater[Map[String, String]] {
-    override def update(row: UpdateableRow, columnIndex: Int, x: Map[String, String]): Unit = {
+    override def update(row: UpdatableRow, columnIndex: Int, x: Map[String, String]): Unit = {
       import scala.collection.JavaConverters._
       row.updateObject(columnIndex, x.asJava)
     }

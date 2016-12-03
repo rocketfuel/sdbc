@@ -4,3 +4,5 @@ You will usually import an object corresponding to the database you are connecti
  - [[com.rocketfuel.sdbc.H2]]
  - [[com.rocketfuel.sdbc.PostgreSql]]
  - [[com.rocketfuel.sdbc.SqlServer]]
+
+[[https://github.com/rocketfuel/sdbc git repository and documentation]]

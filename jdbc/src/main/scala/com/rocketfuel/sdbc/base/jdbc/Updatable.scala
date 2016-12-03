@@ -27,8 +27,7 @@ trait Updatable {
     def pipe[F[_], Key](
       key: Key
     )(implicit async: Async[F],
-      updatable: Updatable[Key],
-      connection: Connection
+      updatable: Updatable[Key]
     ): Update.Pipe[F] = {
       updatable.update(key).pipe[F]
     }
@@ -36,8 +35,7 @@ trait Updatable {
     def sink[F[_], Key](
       key: Key
     )(implicit async: Async[F],
-      updatable: Updatable[Key],
-      connection: Connection
+      updatable: Updatable[Key]
     ): Ignore.Sink[F] = {
       updatable.update(key).sink[F]
     }

@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc.statement
 
 import com.rocketfuel.sdbc.base.jdbc.DBMS
-import java.sql.{ResultSet, SQLFeatureNotSupportedException}
+import java.sql.ResultSet
 
 trait StatementConverter {
   self: DBMS =>
@@ -78,9 +78,9 @@ trait StatementConverter {
       ConnectedRow.iterator(resultSet)
     }
 
-    def updatableResults(v1: PreparedStatement): CloseableIterator[UpdateableRow] = {
+    def updatableResults(v1: PreparedStatement): CloseableIterator[UpdatableRow] = {
       val resultSet = results(v1)
-      UpdateableRow.iterator(resultSet)
+      UpdatableRow.iterator(resultSet)
     }
 
   }

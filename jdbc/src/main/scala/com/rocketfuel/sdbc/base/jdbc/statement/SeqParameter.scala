@@ -137,7 +137,7 @@ trait SeqParameter {
     arrayType: ArrayTypeName[Seq[T]],
     toArray: Seq[T] => Array[AnyRef]
   ) extends Updater[Seq[T]] {
-    override def update(row: UpdateableRow, columnIndex: Int, x: Seq[T]): Unit = {
+    override def update(row: UpdatableRow, columnIndex: Int, x: Seq[T]): Unit = {
       val connection = row.getStatement.getConnection
       val array = connection.createArrayOf(arrayType.name, toArray(x))
       row.updateArray(columnIndex, array)

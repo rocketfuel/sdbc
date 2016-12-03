@@ -10,7 +10,7 @@ class QSeqUpdaterSpec
 
     Update("INSERT INTO tbl (ints) VALUES (@ints)").on("ints" -> QSeqUpdaterSpec.original).update()
 
-    val rows = SelectForUpdate.iterator("SELECT id, ints FROM tbl")
+    val rows = SelectForUpdate.update("SELECT id, ints FROM tbl")
 
     try {
       for (row <- rows) {

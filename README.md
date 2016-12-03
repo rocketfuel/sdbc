@@ -232,7 +232,7 @@ val example4 = {
 
 ### Reuse a query with different parameter values
 
-The query classes Select, SelectForUpdate, Update, and Batch are immutable. Adding a parameter value returns a new object with that parameter set, leaving the old object untouched.
+The query classes, such as Select, are immutable. Adding a parameter value returns a new object with that parameter set, leaving the old object untouched.
 
 ```scala
 object Example5 {
@@ -347,6 +347,33 @@ object Example7Product {
 }
 ```
 
+### Update rows in a result set
+```scala
+object Example8 {
+  import java.sql.DriverManager
+  import com.rocketfuel.sdbc.H2._
+
+  def addGold(amount: Int)(row: UpdatableRow): Unit = {
+    row("gold_nuggets") = row[Int]("gold_nuggets") + amount
+    row.updateRow()
+  }
+
+  val accountUpdateQuery = SelectForUpdate("SELECT * FROM accounts WHERE id = @id")
+
+  def addGold(accountId: Int, amount: Int)(implicit connection: Connection): Long = {
+    accountUpdateQuery.copy(updater = addGold(amount) _).on("id" -> accountId).update()
+  }
+
+  val selectedRowCount = Connection.using("jdbc:h2:mem:example;DB_CLOSE_DELAY=0") {implicit connection =>
+    Ignore.ignore("CREATE TABLE accounts (id int auto_increment primary key, gold_nuggets int not null default (0))")
+    Ignore.ignore("INSERT INTO accounts default values")
+
+    addGold(1, 159)
+  }
+}
+Example8.selectedRowCount
+```
+
 The remaining examples do not work in the Scala REPL.
 
 ### Batch Update
@@ -361,23 +388,6 @@ val batchUpdate =
 
 val updatedRowCount = Connection.using("...") {implicit connection =>
   batchUpdate.batch().sum
-}
-```
-
-### Update rows in a result set
-```scala
-val actionLogger = Update("INSERT INTO action_log (account_id, action) VALUES (@accountId, @action)")
-
-val accountUpdateQuery = SelectForUpdate("SELECT * FROM accounts WHERE id = @id")
-
-case class Action(accountId: Int, action: String)
-
-def addGold(accountId: Int, quantity: Int)(implicit connection: Connection): Unit = {
-  val iterator = accountUpdateQuery.on("id" -> accountId).iterator()
-  try for (row <- iterator) {
-    row("gold_nuggets") = row[Int]("gold_nuggets") + 159
-    actionLogger.onProduct(Action(accountId, s"added $quantity gold nuggets")).update()
-  } finally iterator.close()
 }
 ```
 

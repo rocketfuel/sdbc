@@ -487,21 +487,12 @@ trait ConnectedRow {
     }
 
     def iterator(resultSet: ResultSet): CloseableIterator[ConnectedRow]  = {
-      val columnNames = Row.columnNames(resultSet.getMetaData)
-      val columnIndexes = Row.columnIndexes(columnNames)
-
-      resultSet.iterator().map { resultSet =>
-        new ConnectedRow(
-          underlying = resultSet,
-          columnNames = columnNames,
-          columnIndexes = columnIndexes
-        )
-      }
+      val row = ConnectedRow(resultSet)
+      resultSet.iterator().map(Function.const(row))
     }
-
   }
 
-  class UpdateableRow private[sdbc](
+  class UpdatableRow private[sdbc](
     underlying: ResultSet,
     columnNames: IndexedSeq[String],
     columnIndexes: Map[String, Int]
@@ -513,29 +504,21 @@ trait ConnectedRow {
 
   }
 
-  private[sdbc] object UpdateableRow {
-    def apply(resultSet: ResultSet): UpdateableRow = {
+  private[sdbc] object UpdatableRow {
+    def apply(resultSet: ResultSet): UpdatableRow = {
       val columnNames = Row.columnNames(resultSet.getMetaData)
       val columnIndexes = Row.columnIndexes(columnNames)
 
-      new UpdateableRow(
+      new UpdatableRow(
         underlying = resultSet,
         columnNames = columnNames,
         columnIndexes = columnIndexes
       )
     }
 
-    def iterator(resultSet: ResultSet): CloseableIterator[UpdateableRow]  = {
-      val columnNames = Row.columnNames(resultSet.getMetaData)
-      val columnIndexes = Row.columnIndexes(columnNames)
-
-      resultSet.iterator().map { resultSet =>
-        new UpdateableRow(
-          underlying = resultSet,
-          columnNames = columnNames,
-          columnIndexes = columnIndexes
-        )
-      }
+    def iterator(resultSet: ResultSet): CloseableIterator[UpdatableRow]  = {
+      val row = UpdatableRow(resultSet)
+      resultSet.iterator().map(Function.const(row))
     }
 
   }

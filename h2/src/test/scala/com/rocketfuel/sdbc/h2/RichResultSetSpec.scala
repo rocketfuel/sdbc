@@ -43,10 +43,7 @@ class RichResultSetSpec
 
     batch.batch()
 
-    for(row <- SelectForUpdate("SELECT * FROM tbl").iterator()) {
-      row("x") = row[Int]("x") + 1
-      row.updateRow()
-    }
+    SelectForUpdate("SELECT * FROM tbl", updater = {row => row("x") = row[Int]("x") + 1; row.updateRow()}).update()
 
     val afterUpdate = Select[Int]("SELECT x FROM tbl ORDER BY x ASC").iterator().toVector
 

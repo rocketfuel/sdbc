@@ -112,7 +112,7 @@ trait MultiResultConverter {
         keepOpen = true
       )
 
-    implicit lazy val updateableResults: MultiResultConverter[QueryResult.Iterator[UpdateableRow]] =
+    implicit lazy val updateableResults: MultiResultConverter[QueryResult.Iterator[UpdatableRow]] =
       MultiResultConverter(
         impl = v1 => QueryResult.Iterator(StatementConverter.updatableResults(v1)),
         resultSetType = Some(ResultSet.TYPE_SCROLL_SENSITIVE),

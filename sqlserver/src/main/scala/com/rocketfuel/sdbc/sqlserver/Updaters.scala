@@ -26,38 +26,38 @@ trait Updaters
   self: SqlServer =>
 
   implicit val LocalTimeUpdater: Updater[LocalTime] = new Updater[LocalTime] {
-    override def update(row: UpdateableRow, columnIndex: Int, x: LocalTime): Unit = {
+    override def update(row: UpdatableRow, columnIndex: Int, x: LocalTime): Unit = {
       row.updateString(columnIndex, x.toString)
     }
   }
 
   implicit val InstantUpdater: Updater[Instant] = new Updater[Instant] {
-    override def update(row: UpdateableRow, columnIndex: Int, x: Instant): Unit = {
+    override def update(row: UpdatableRow, columnIndex: Int, x: Instant): Unit = {
       val format: String = instantFormatter.format(x)
       row.updateString(columnIndex, format)
     }
   }
 
   implicit val OffsetDateTimeUpdater: Updater[OffsetDateTime] = new Updater[OffsetDateTime] {
-    override def update(row: UpdateableRow, columnIndex: Int, x: OffsetDateTime): Unit = {
+    override def update(row: UpdatableRow, columnIndex: Int, x: OffsetDateTime): Unit = {
       row.updateString(columnIndex, offsetDateTimeFormatter.format(x))
     }
   }
 
   implicit val UUIDUpdater: Updater[UUID] = new Updater[UUID] {
-    override def update(row: UpdateableRow, columnIndex: Int, x: UUID): Unit = {
+    override def update(row: UpdatableRow, columnIndex: Int, x: UUID): Unit = {
       row.updateString(columnIndex, x.toString)
     }
   }
 
   implicit val HierarchyUpdater: Updater[HierarchyId] = new Updater[HierarchyId] {
-    override def update(row: UpdateableRow, columnIndex: Int, x: HierarchyId): Unit = {
+    override def update(row: UpdatableRow, columnIndex: Int, x: HierarchyId): Unit = {
       row.updateString(columnIndex, x.toString)
     }
   }
 
   implicit val XmlUpdater: Updater[Node] = new Updater[Node] {
-    override def update(row: UpdateableRow, columnIndex: Int, x: Node): Unit = {
+    override def update(row: UpdatableRow, columnIndex: Int, x: Node): Unit = {
       row.updateString(columnIndex, x.toString)
     }
   }

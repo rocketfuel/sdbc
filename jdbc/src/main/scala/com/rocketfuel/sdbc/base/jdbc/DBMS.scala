@@ -30,7 +30,7 @@ trait DBMS
   with CompositeGetter
   with RowConverter
   with QueryMethods
-  with StreamSupport {
+  with StreamUtils {
   self: com.rocketfuel.sdbc.base.jdbc.Connection =>
 
   type CloseableIterator[+A] = base.CloseableIterator[A]

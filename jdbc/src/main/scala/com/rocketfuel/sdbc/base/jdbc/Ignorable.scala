@@ -27,8 +27,7 @@ trait Ignorable {
     def sink[F[_], Key](
       key: Key
     )(implicit async: Async[F],
-      ignorable: Ignorable[Key],
-      connection: Connection
+      ignorable: Ignorable[Key]
     ): Ignore.Sink[F] = {
       ignorable.ignore(key).sink[F]
     }

@@ -47,7 +47,7 @@ class RichResultSetSpec
 
     val beforeUpdate = select.iterator().toVector
 
-    for (row <- SelectForUpdate("SELECT x FROM tbl").iterator()) {
+    for (row <- SelectForUpdate("SELECT x FROM tbl").update()) {
       row("x") = row[Option[Int]]("x").map(_ + 1)
       row.updateRow()
     }
