@@ -38,6 +38,8 @@ trait Update {
   object Update
     extends Logger {
 
+    override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.jdbc.Update]
+
     def update(
       compiledStatement: CompiledStatement,
       parameters: Parameters = Parameters.empty
@@ -110,7 +112,7 @@ trait Update {
       compiledStatement: CompiledStatement,
       parameters: Parameters
     ): Unit = {
-      log.debug(s"""Updating "${compiledStatement.originalQueryText}" with parameters $parameters.""")
+      log.debug(s"""query "${compiledStatement.originalQueryText}", parameters $parameters""")
     }
 
   }

@@ -88,6 +88,8 @@ trait Batch {
   object Batch
     extends Logger {
 
+    override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.jdbc.Batch]
+
     protected def prepare(
       compiledStatement: CompiledStatement,
       defaultParameters: Parameters,
@@ -217,9 +219,10 @@ trait Batch {
       compiledStatement: CompiledStatement,
       batches: Seq[Parameters]
     ): Unit = {
-      log.debug(s"""Executing batch of "${compiledStatement.originalQueryText}".""")
+      log.debug(s"""query "${compiledStatement.originalQueryText}"""")
 
-      if (batches.isEmpty) log.warn("Executing a batch query without any batches.")
+      if (batches.isEmpty)
+        log.warn("Executing a batch query without any batches.")
     }
 
   }

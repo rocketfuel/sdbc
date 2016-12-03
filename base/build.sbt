@@ -9,7 +9,7 @@ val macroParadiseVersion = "2.1.0"
 libraryDependencies ++= Seq(
   "co.fs2" %% "fs2-core" % "0.9.2",
   //Logging
-  "org.slf4j" % "slf4j-api" % "1.7.21",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
   "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.7" % "test",
   "org.apache.logging.log4j" % "log4j-api" % "2.7" % "test",
   "org.apache.logging.log4j" % "log4j-core" % "2.7" % "test",

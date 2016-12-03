@@ -58,6 +58,8 @@ trait Select {
   object Select
     extends Logger {
 
+    override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.jdbc.Select]
+
     def iterator[A](
       statement: CompiledStatement,
       parameterValues: Parameters = Parameters.empty
@@ -161,7 +163,7 @@ trait Select {
       compiledStatement: CompiledStatement,
       parameters: Parameters
     ): Unit = {
-      log.debug(s"""Selecting "${compiledStatement.originalQueryText}" with parameters $parameters.""")
+      log.debug(s"""query "${compiledStatement.originalQueryText}" parameters $parameters""")
     }
 
   }

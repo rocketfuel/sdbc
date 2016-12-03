@@ -10,6 +10,7 @@ trait SelectForUpdatable {
   }
 
   object SelectForUpdatable {
+
     def apply[Key](f: Key => SelectForUpdate): SelectForUpdatable[Key] =
       new SelectForUpdatable[Key] {
         override def update(key: Key): SelectForUpdate =

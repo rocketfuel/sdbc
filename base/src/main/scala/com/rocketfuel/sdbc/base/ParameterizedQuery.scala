@@ -11,6 +11,8 @@ trait ParameterizedQuery {
     extends Subtractable[String, Self]
     with Logger {
 
+    override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.ParameterizedQuery]
+
     def statement: CompiledStatement
 
     def parameters: Parameters

@@ -114,6 +114,8 @@ object Query
   extends QueryCompanionOps
     with Logger {
 
+  override protected def logClass: Class[_] = classOf[Query[_]]
+
   def execute(
     statement: CompiledStatement,
     parameters: Parameters = Parameters.empty,
@@ -297,7 +299,7 @@ trait QueryCompanionOps {
   }
 
   protected def logExecution(statement: CompiledStatement, parameters: Parameters): Unit =
-    log.debug(s"""Executing "${statement.originalQueryText}" with parameters $parameters.""")
+    log.debug(s"""query "${statement.originalQueryText}", parameters $parameters""")
 
   object async {
 

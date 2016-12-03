@@ -31,6 +31,8 @@ trait SelectForUpdate {
   object SelectForUpdate
     extends Logger {
 
+    override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.jdbc.SelectForUpdate]
+
     val defaultUpdater =
       Function.const[Unit, UpdatableRow](()) _
 
@@ -116,7 +118,7 @@ trait SelectForUpdate {
       parameters: Parameters,
       update: UpdatableRow => Unit
     ): Unit = {
-      log.debug(s"""Selecting for update "${compiledStatement.originalQueryText}" with parameters $parameters.""")
+      log.debug(s"""query "${compiledStatement.originalQueryText}", parameters $parameters""")
       if (update eq defaultUpdater)
         log.warn("Update function was not set.")
     }

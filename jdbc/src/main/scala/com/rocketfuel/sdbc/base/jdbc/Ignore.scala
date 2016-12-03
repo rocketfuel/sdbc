@@ -35,6 +35,8 @@ trait Ignore {
   object Ignore
     extends Logger {
 
+    override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.jdbc.Ignore]
+
     def ignore(
       statement: CompiledStatement,
       parameters: Parameters = Parameters.empty
@@ -95,7 +97,7 @@ trait Ignore {
       compiledStatement: CompiledStatement,
       parameters: Parameters
     ): Unit = {
-      log.debug(s"""Executing "${compiledStatement.originalQueryText}" with parameters $parameters.""")
+      log.debug(s"""query "${compiledStatement.originalQueryText}", parameters $parameters""")
     }
 
   }

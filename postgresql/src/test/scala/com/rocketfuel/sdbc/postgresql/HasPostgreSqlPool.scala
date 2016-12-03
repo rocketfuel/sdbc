@@ -2,7 +2,6 @@ package com.rocketfuel.sdbc.postgresql
 
 import com.rocketfuel.sdbc.PostgreSql._
 import com.zaxxer.hikari.HikariConfig
-import org.postgresql.PGProperty
 import ru.yandex.qatools.embed.postgresql._
 import ru.yandex.qatools.embed.postgresql.config.PostgresConfig
 
@@ -13,7 +12,7 @@ trait HasPostgreSqlPool {
   val password = "postgres"
 
   var pgProcess: Option[PostgresProcess] = None
-  protected var pgPool: Option[Pool] = None
+  var pgPool: Option[Pool] = None
 
   val pgServer = PostgresStarter.getDefaultInstance()
   val pgConfig = PostgresConfig.defaultWithDbName(dbName, user, password)
@@ -21,11 +20,6 @@ trait HasPostgreSqlPool {
   def pgStartServer(): Unit = {
     pgProcess = Some(pgServer.prepare(pgConfig).start())
   }
-
-  /*
-  PostgreSQL doesn't allow changing the database for a connection,
-  so we need a separate connection for the postgres database.
-   */
 
   def startPool(): Unit = {
     val poolConfig = new HikariConfig()
@@ -47,12 +41,11 @@ trait HasPostgreSqlPool {
     }
   }
 
-  protected def createHstore(): Unit = {
+  def createHstore(): Unit = {
     withPg {implicit connection =>
       ignore"CREATE EXTENSION hstore".ignore()
     }
   }
-
 
   def createLTree(): Unit = {
     withPg { implicit connection =>
@@ -63,7 +56,7 @@ trait HasPostgreSqlPool {
   /**
    * Method for use with ScalaTest's beforeEach().
    */
-  protected def pgStart(): Unit = {
+  def pgStart(): Unit = {
     pgStartServer()
     startPool()
   }
@@ -71,7 +64,7 @@ trait HasPostgreSqlPool {
   /**
    * Method for use with ScalaTest's afterAll().
    */
-  protected def pgStop(): Unit = {
+  def pgStop(): Unit = {
     pgPool.foreach(_.close())
     pgPool = None
     pgProcess.foreach(_.stop())

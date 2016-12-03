@@ -10,8 +10,7 @@ trait Queryable[Key, Value] {
   def query(key: Key): Query[Value]
 }
 
-object Queryable
-  extends Logger {
+object Queryable {
   def apply[Key, Value](f: Key => Query[Value]): Queryable[Key, Value] =
     new Queryable[Key, Value] {
       override def query(key: Key): Query[Value] =

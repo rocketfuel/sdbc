@@ -38,6 +38,8 @@ trait MultiQuery extends MultiResultConverter {
   object MultiQuery
     extends Logger {
 
+    override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.jdbc.MultiQuery]
+
     val defaultResultSetType = ResultSet.TYPE_FORWARD_ONLY
 
     val defaultResultSetConcurrency = ResultSet.CONCUR_READ_ONLY
@@ -105,7 +107,7 @@ trait MultiQuery extends MultiResultConverter {
       compiledStatement: CompiledStatement,
       parameters: Parameters
     ): Unit = {
-      log.debug(s"""Executing "${compiledStatement.originalQueryText}" with parameters $parameters.""")
+      log.debug(s"""query "${compiledStatement.originalQueryText}" parameters $parameters""")
     }
 
   }
