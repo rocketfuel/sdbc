@@ -351,7 +351,8 @@ object Example7Product {
 #### For parameters
 
 The following will not work, because the requested type is not supported natively by H2.
-```
+
+```scala
 object Example8Failure {
   import com.rocketfuel.sdbc.H2._
   import scala.concurrent.duration._
@@ -372,7 +373,7 @@ gives
 
 To resolve this, provide an implicit `Parameter[Duration]`. For example, maybe we want to insert durations as strings.
 
-```
+```scala
 object Example8Success0 {
   import com.rocketfuel.sdbc.H2._
   import scala.concurrent.duration._
@@ -394,7 +395,7 @@ object Example8Success0 {
 
 Another possibility is that we want to store durations as bigints in milliseconds. This example uses the existing `Parameter[Long]` along with the convenience DerivedParameter trait.
 
-```
+```scala
 object Example8Success1 {
   import com.rocketfuel.sdbc.H2._
   import scala.concurrent.duration._
