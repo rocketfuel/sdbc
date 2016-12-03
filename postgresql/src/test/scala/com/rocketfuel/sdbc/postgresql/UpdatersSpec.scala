@@ -30,12 +30,14 @@ class UpdatersSpec
 
       Ignore.ignore(s"INSERT INTO $tableName (v) VALUES (@before)", Map("before" -> before))
 
-      val rows =  SelectForUpdate(s"SELECT * FROM $tableName").update()
-      for (row <- rows) {
+      def updateRow(row: UpdatableRow): Unit = {
         row("v") = after
         row.updateRow()
       }
-      rows.close()
+
+      val summary =  SelectForUpdate.update(s"SELECT * FROM $tableName", rowUpdater = updateRow)
+
+      assertResult(UpdatableRow.Summary(updatedRows = 1))(summary)
 
       val maybeValue = Select.option[Option[T]](s"SELECT v FROM $tableName").get
 
@@ -108,13 +110,14 @@ class UpdatersSpec
 
     update"INSERT INTO tbl (v) VALUES ($before)".update()
 
-    val rows = selectForUpdate"SELECT id, v FROM tbl".iterator()
-    try {
-      for (row <- rows) {
-        row("v") = after
-        row.updateRow()
-      }
-    } finally rows.close()
+    def updateRow(row: UpdatableRow): Unit = {
+      row("v") = after
+      row.updateRow()
+    }
+
+    val summary = selectForUpdate"SELECT id, v FROM tbl".copy(rowUpdater = updateRow).update()
+
+    assertResult(UpdatableRow.Summary(updatedRows = 1))(summary)
 
     val maybeRow = Select[Option[Int]]("SELECT v FROM tbl").option()
 

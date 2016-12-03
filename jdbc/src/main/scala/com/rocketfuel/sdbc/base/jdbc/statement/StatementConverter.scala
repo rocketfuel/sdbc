@@ -83,6 +83,16 @@ trait StatementConverter {
       UpdatableRow.iterator(resultSet)
     }
 
+    def updatedResults(v1: PreparedStatement, rowUpdater: UpdatableRow => Unit): UpdatableRow.Summary = {
+      val resultSet = results(v1)
+      try {
+        val updatableResultSet = UpdatableRow(resultSet)
+        val i = UpdatableRow.iterator(updatableResultSet)
+        i.foreach(rowUpdater)
+        updatableResultSet.summary
+      } finally resultSet.close()
+    }
+
   }
 
 }

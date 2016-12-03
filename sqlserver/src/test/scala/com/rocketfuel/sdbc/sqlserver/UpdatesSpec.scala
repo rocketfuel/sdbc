@@ -24,10 +24,14 @@ class UpdatesSpec extends SqlServerSuite {
 
       Ignore("INSERT INTO tbl (v) VALUES (@before)").on("before" -> before).ignore()
 
-      for (row <- selectForUpdate"SELECT * FROM tbl".iterator()) {
+      def updateRow(row: UpdatableRow): Unit = {
         row("v") = after
         row.updateRow()
       }
+
+      val summary = selectForUpdate"SELECT * FROM tbl".copy(rowUpdater = updateRow).update()
+
+      assertResult(UpdatableRow.Summary(updatedRows = 1))(summary)
 
       val maybeValue = Select[T]("SELECT v FROM tbl").option()
 
@@ -92,24 +96,22 @@ class UpdatesSpec extends SqlServerSuite {
 
     val after = Timestamp.from(Instant.now())
 
-    for (row <- selectForUpdate"SELECT * FROM tbl".iterator()) {
+    def updateRow(row: UpdatableRow): Unit = {
       row("v") = after
       row.updateRow()
     }
 
-    val values = Select[Timestamp]("SELECT v FROM tbl").iterator().toVector
+    val summary = selectForUpdate"SELECT v FROM tbl".copy(rowUpdater = updateRow).update()
+
+    assertResult(UpdatableRow.Summary(updatedRows = 1))(summary)
+
+    val values = Select.vector[Timestamp]("SELECT v FROM tbl")
 
     assert(values.nonEmpty)
 
     assert(Math.abs(values.head.getTime - after.getTime) < 5)
   }
 
-  /**
-    * JTDS returns a value with a precision of about 4 ms,
-    * so we can't use straight equality.
-    *
-    * http://sourceforge.net/p/jtds/feature-requests/73/
-    */
   test("Update java.time.Instant") {implicit connection =>
     Ignore.ignore(s"CREATE TABLE tbl (id int identity PRIMARY KEY, v datetime2)")
 
@@ -117,15 +119,25 @@ class UpdatesSpec extends SqlServerSuite {
 
     val after = Instant.now()
 
-    for (row <- selectForUpdate"SELECT * FROM tbl".iterator()) {
+    def updateRow(row: UpdatableRow): Unit = {
       row("v") = after
       row.updateRow()
     }
+
+    val summary = selectForUpdate"SELECT v FROM tbl".copy(rowUpdater = updateRow).update()
+
+    assertResult(UpdatableRow.Summary(updatedRows = 1))(summary)
 
     val maybeValue = Select[Instant]("SELECT v FROM tbl").option()
 
     assert(maybeValue.nonEmpty)
 
+    /*
+     * JTDS returns a value with a precision of about 4 ms,
+     * so we can't use equality.
+     *
+     * http://sourceforge.net/p/jtds/feature-requests/73/
+     */
     assert(Math.abs(maybeValue.get.toEpochMilli - after.toEpochMilli) < 5)
   }
 
@@ -137,10 +149,14 @@ class UpdatesSpec extends SqlServerSuite {
 
     update"INSERT INTO tbl (v) VALUES ($before)".update()
 
-    for (row <- selectForUpdate"SELECT id, v FROM tbl".iterator()) {
+    def updateRow(row: UpdatableRow): Unit = {
       row("v") = after
       row.updateRow()
     }
+
+    val summary = selectForUpdate"SELECT id, v FROM tbl".copy(rowUpdater = updateRow).update()
+
+    assertResult(UpdatableRow.Summary(updatedRows = 1))(summary)
 
     val maybeValue = Select[HierarchyId]("SELECT v.ToString() FROM tbl").option()
 
@@ -157,10 +173,14 @@ class UpdatesSpec extends SqlServerSuite {
 
     update"INSERT INTO tbl (v) VALUES ($before)".update()
 
-    for (row <- selectForUpdate"SELECT id, v FROM tbl".iterator()) {
+    def updateRow(row: UpdatableRow): Unit = {
       row("v") = after
       row.updateRow()
     }
+
+    val summary = selectForUpdate"SELECT v FROM tbl".copy(rowUpdater = updateRow).update()
+
+    assertResult(UpdatableRow.Summary(updatedRows = 1))(summary)
 
     val maybeRow = Select[Option[Int]]("SELECT v FROM tbl").option()
 

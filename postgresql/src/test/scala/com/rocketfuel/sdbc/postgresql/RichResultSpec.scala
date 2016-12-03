@@ -67,13 +67,14 @@ class RichResultSpec
 
     batch.batch()
 
-    val rows = selectForUpdate"SELECT * FROM tbl".iterator()
-    try {
-      for (row <- rows) {
-        row("x") = row[Option[Int]]("x").map(_ + 1)
-        row.updateRow()
-      }
-    } finally rows.close()
+    def updateRow(row: UpdatableRow): Unit = {
+      row("x") = row[Option[Int]]("x").map(_ + 1)
+      row.updateRow()
+    }
+
+    val summary = selectForUpdate"SELECT * FROM tbl".copy(rowUpdater = updateRow).update()
+
+    assertResult(UpdatableRow.Summary(updatedRows = batch.batches.size))(summary)
 
     val incrementedFromDb = Select[Int]("SELECT x FROM tbl ORDER BY x ASC").vector()
 

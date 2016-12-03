@@ -45,14 +45,18 @@ class RichResultSetSpec
     val select =
       Select[Int]("SELECT x FROM tbl ORDER BY id ASC")
 
-    val beforeUpdate = select.iterator().toVector
+    val beforeUpdate = select.vector()
 
-    for (row <- SelectForUpdate("SELECT x FROM tbl").update()) {
+    def updateRow(row: UpdatableRow): Unit = {
       row("x") = row[Option[Int]]("x").map(_ + 1)
       row.updateRow()
     }
 
-    val afterUpdate = select.iterator().toVector
+    val summary = SelectForUpdate("SELECT x FROM tbl", rowUpdater = updateRow).update()
+
+    assertResult(UpdatableRow.Summary(updatedRows = batch.batches.size))(summary)
+
+    val afterUpdate = select.vector()
 
     for ((afterUpdate, original) <- afterUpdate.zip(randoms)) {
       assertResult(original + 1)(afterUpdate)

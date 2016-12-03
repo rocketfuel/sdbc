@@ -10,17 +10,15 @@ class QSeqUpdaterSpec
 
     Update("INSERT INTO tbl (ints) VALUES (@ints)").on("ints" -> QSeqUpdaterSpec.original).update()
 
-    val rows = SelectForUpdate.update("SELECT id, ints FROM tbl")
+    def updater(row: UpdatableRow): Unit = {
+      row("ints") = QSeqUpdaterSpec.updated
+      row.updateRow()
+    }
 
-    try {
-      for (row <- rows) {
-        row("ints") = QSeqUpdaterSpec.updated
-        row.updateRow()
-      }
-    } finally rows.close()
+    SelectForUpdate.update("SELECT id, ints FROM tbl", rowUpdater = updater)
 
     val selected: Seq[Seq[Option[Int]]] =
-      Select[Seq[Option[Int]]]("SELECT ints FROM tbl").vector()
+      Select.vector[Seq[Option[Int]]]("SELECT ints FROM tbl")
 
     assertResult(Seq(QSeqUpdaterSpec.updated))(selected)
   }

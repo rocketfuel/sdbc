@@ -12,7 +12,7 @@ trait SelectForUpdate {
   case class SelectForUpdate(
     override val statement: CompiledStatement,
     override val parameters: Parameters = Parameters.empty,
-    updater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
+    rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
   ) extends IgnorableQuery[SelectForUpdate] {
 
     override def subclassConstructor(parameters: Parameters): SelectForUpdate = {
@@ -20,35 +20,29 @@ trait SelectForUpdate {
     }
 
     def update()(implicit connection: Connection): UpdatableRow.Summary = {
-      SelectForUpdate.update(statement, parameters, updater)
+      SelectForUpdate.update(statement, parameters, rowUpdater)
     }
 
     def pipe[F[_]](implicit async: Async[F]): SelectForUpdate.Pipe[F] =
-      SelectForUpdate.pipe[F](statement, parameters, updater)
+      SelectForUpdate.pipe[F](statement, parameters, rowUpdater)
 
   }
 
   object SelectForUpdate
     extends Logger {
 
-    private val defaultUpdater =
+    val defaultUpdater =
       Function.const[Unit, UpdatableRow](()) _
 
     def update[A](
       statement: CompiledStatement,
       parameterValues: Parameters = Parameters.empty,
-      updater: UpdatableRow => Unit = defaultUpdater
+      rowUpdater: UpdatableRow => Unit
     )(implicit connection: Connection
     ): UpdatableRow.Summary = {
-      logRun(statement, parameterValues, updater)
+      logRun(statement, parameterValues, rowUpdater)
       val executed = QueryMethods.executeForUpdate(statement, parameterValues)
-      try {
-        val resultSet = StatementConverter.results(executed)
-        val updatableResultSet = UpdatableRow(resultSet)
-        val i = UpdatableRow.iterator(updatableResultSet)
-        i.foreach(updater)
-        updatableResultSet.summary
-      } finally executed.close()
+      StatementConverter.updatedResults(executed, rowUpdater)
     }
 
     def pipe[F[_]](

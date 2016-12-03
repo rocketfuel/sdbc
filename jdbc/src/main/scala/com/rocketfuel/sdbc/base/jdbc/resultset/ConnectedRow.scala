@@ -564,7 +564,7 @@ trait ConnectedRow {
     )
 
     object Summary {
-      val empty = Summary()
+      lazy val empty = Summary()
     }
 
   }
