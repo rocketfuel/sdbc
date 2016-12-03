@@ -350,14 +350,14 @@ object Example7Product {
 
 #### For parameters
 
-The following will not work, because the requested type is not supported natively by H2.
+The following will not work, because the requested type, Duration, is not supported natively by H2.
 
 ```scala
 object Example8Failure {
   import com.rocketfuel.sdbc.H2._
   import scala.concurrent.duration._
 
-  val duration = 5 seconds
+  val duration = 5.seconds
 
   Update("").on("duration" -> duration)
 }
@@ -366,7 +366,7 @@ object Example8Failure {
 gives
 
 ```
-16: error: type mismatch;
+error: type mismatch;
  found   : scala.concurrent.duration.FiniteDuration
  required: com.rocketfuel.sdbc.H2.ParameterValue
 ```
@@ -409,6 +409,25 @@ object Example8Success1 {
 
   Update("").on("duration" -> duration)
 }
+```
+
+Unfortunately, if you use an unsupported parameter in string interpolation, the error is not helpful.
+
+```scala
+object Example8Failure {
+  import com.rocketfuel.sdbc.H2._
+  import scala.concurrent.duration._
+
+  val duration = 5.seconds
+
+  update"$duration"
+}
+```
+
+gives
+
+```
+error: could not find implicit value for parameter mapper: shapeless.ops.hlist.Mapper.Aux[com.rocketfuel.sdbc.H2.ToParameterValue.type,shapeless.::[scala.concurrent.duration.FiniteDuration,shapeless.HNil],MappedA]
 ```
 
 ### Update rows in a result set
