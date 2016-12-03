@@ -644,7 +644,7 @@ Starting with 2.0, there are benchmarks to ensure that some common operations do
 * Moved database objects to `com.rocketfuel.sdbc.{Cassandra, H2, PostgreSql, SqlServer}`.
 * Renamed Execute to Ignore.
 * Typeclass methods are now in their respective companion objects. For example, `Selectable.select`.
-* SelectForUpdate takes the update function as an argument. It returns a summary of the number of rows deletd, inserted, and updated.
+* SelectForUpdate takes the update function as an argument. It returns a summary of the number of rows deleted, inserted, and updated.
 
 ### 1.0
 
