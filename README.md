@@ -523,7 +523,7 @@ parameters.through(select.pipe[Task].products).runFree.run.unsafeRun()
 
 You can use one of the type classes for generating queries to create query streams from values.
 
-For JDBC the type classes are Batchable, Executable, Selectable, SelectForUpdatable, and Updatable. For Cassandra there is Queryable.
+For JDBC the type classes are Batchable, Ignorable, Selectable, SelectForUpdatable, and Updatable. For Cassandra there is Queryable.
 
 ```scala
 import com.rocketfuel.sdbc.H2._
