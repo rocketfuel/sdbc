@@ -437,15 +437,17 @@ object Example9 {
   import java.sql.DriverManager
   import com.rocketfuel.sdbc.H2._
 
-  def addGold(amount: Int)(row: UpdatableRow): Unit = {
-    row("gold_nuggets") = row[Int]("gold_nuggets") + amount
-    row.updateRow()
+  def addGoldToRow(accountId: Int, amount: Int)(row: UpdatableRow): Unit = {
+    if (row[Int]("id") == accountId) {
+      row("gold_nuggets") = row[Int]("gold_nuggets") + amount
+      row.updateRow()
+    }
   }
 
-  val accountUpdateQuery = SelectForUpdate("SELECT * FROM accounts WHERE id = @id")
+  val accountUpdateQuery = SelectForUpdate("SELECT * FROM accounts")
 
-  def addGold(accountId: Int, amount: Int)(implicit connection: Connection): Long = {
-    accountUpdateQuery.copy(updater = addGold(amount) _).on("id" -> accountId).update()
+  def addGold(accountId: Int, amount: Int)(implicit connection: Connection): UpdatableRow.Summary = {
+    accountUpdateQuery.copy(updater = addGoldToRow(accountId, amount) _).on("id" -> accountId).update()
   }
 
   val selectedRowCount = Connection.using("jdbc:h2:mem:example;DB_CLOSE_DELAY=0") {implicit connection =>
@@ -455,7 +457,7 @@ object Example9 {
     addGold(1, 159)
   }
 }
-Example8.selectedRowCount
+Example9.selectedRowCount
 ```
 
 The remaining examples do not work in the Scala REPL.

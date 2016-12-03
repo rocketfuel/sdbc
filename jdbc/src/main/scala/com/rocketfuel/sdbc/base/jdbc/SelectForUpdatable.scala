@@ -20,7 +20,7 @@ trait SelectForUpdatable {
       key: Key
     )(implicit selectable: SelectForUpdatable[Key],
       connection: Connection
-    ): Long = {
+    ): UpdatableRow.Summary = {
       selectable.update(key).update()
     }
 

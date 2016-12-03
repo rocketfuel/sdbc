@@ -19,7 +19,7 @@ trait SelectForUpdate {
       copy(parameters = parameters)
     }
 
-    def update()(implicit connection: Connection): Long = {
+    def update()(implicit connection: Connection): UpdatableRow.Summary = {
       SelectForUpdate.update(statement, parameters, updater)
     }
 
@@ -39,12 +39,15 @@ trait SelectForUpdate {
       parameterValues: Parameters = Parameters.empty,
       updater: UpdatableRow => Unit = defaultUpdater
     )(implicit connection: Connection
-    ): Long = {
+    ): UpdatableRow.Summary = {
       logRun(statement, parameterValues, updater)
       val executed = QueryMethods.executeForUpdate(statement, parameterValues)
       try {
-        val i = StatementConverter.updatableResults(executed)
-        i.foldLeft(0L){case (count, row) => updater(row); count + 1}
+        val resultSet = StatementConverter.results(executed)
+        val updatableResultSet = UpdatableRow(resultSet)
+        val i = UpdatableRow.iterator(updatableResultSet)
+        i.foreach(updater)
+        updatableResultSet.summary
       } finally executed.close()
     }
 
@@ -79,14 +82,14 @@ trait SelectForUpdate {
         * A connection is taken from the pool for each execution.
         * @return
         */
-      def parameters(implicit pool: Pool): fs2.Pipe[F, Parameters, Long] = {
+      def parameters(implicit pool: Pool): fs2.Pipe[F, Parameters, UpdatableRow.Summary] = {
         parameterPipe.combine(defaultParameters).andThen(
           paramStream =>
             for {
               params <- paramStream
               result <-
                 StreamUtils.connection {implicit connection =>
-                  Stream.eval(async.delay(SelectForUpdate.update(statement, params, updater)))
+                  Stream.eval(async.delay(update(statement, params, updater)))
                 }
             } yield result
         )
@@ -99,7 +102,7 @@ trait SelectForUpdate {
         AsParameters <: HList
       ](implicit pool: Pool,
         p: Parameters.Products[A, Repr, Key, AsParameters]
-      ): fs2.Pipe[F, A, Long] = {
+      ): fs2.Pipe[F, A, UpdatableRow.Summary] = {
         parameterPipe.products.andThen(parameters)
       }
 
@@ -109,7 +112,7 @@ trait SelectForUpdate {
         AsParameters <: HList
       ](implicit pool: Pool,
         r: Parameters.Records[Repr, Key, AsParameters]
-      ): fs2.Pipe[F, Repr, Long] = {
+      ): fs2.Pipe[F, Repr, UpdatableRow.Summary] = {
         parameterPipe.records.andThen(parameters)
       }
     }

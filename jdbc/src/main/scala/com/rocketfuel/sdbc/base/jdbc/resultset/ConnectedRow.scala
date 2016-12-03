@@ -18,6 +18,12 @@ trait ConnectedRow {
   ) extends Row()
     with ResultSet {
 
+    protected var updatedRows = 0L
+
+    protected var insertedRows = 0L
+
+    protected var deletedRows = 0L
+
     def apply[T](columnIndex: Index)(implicit getter: CompositeGetter[T]): T = {
       getter(this, columnIndex)
     }
@@ -296,15 +302,24 @@ trait ConnectedRow {
 
     def updateRef(columnLabel: String, x: java.sql.Ref): Unit = underlying.updateRef(columnLabel, x)
 
-    def updateRow(): Unit = underlying.updateRow()
+    def updateRow(): Unit = {
+      underlying.updateRow()
+      updatedRows += 1L
+    }
 
     def rowUpdated(): Boolean = underlying.rowUpdated()
 
-    def insertRow(): Unit = underlying.insertRow()
+    def insertRow(): Unit = {
+      underlying.insertRow()
+      insertedRows += 1L
+    }
 
     def rowInserted(): Boolean = underlying.rowInserted()
 
-    def deleteRow(): Unit = underlying.deleteRow()
+    def deleteRow(): Unit = {
+      underlying.deleteRow()
+      deletedRows += 1
+    }
 
     def rowDeleted(): Boolean = underlying.rowDeleted()
 
@@ -474,7 +489,7 @@ trait ConnectedRow {
         underlying.isWrapperFor(iface)
   }
 
-  private[sdbc] object ConnectedRow {
+  object ConnectedRow {
     def apply(resultSet: ResultSet): ConnectedRow = {
       val columnNames = Row.columnNames(resultSet.getMetaData)
       val columnIndexes = Row.columnIndexes(columnNames)
@@ -490,6 +505,10 @@ trait ConnectedRow {
       val row = ConnectedRow(resultSet)
       resultSet.iterator().map(Function.const(row))
     }
+
+    def iterator(row: ConnectedRow): CloseableIterator[ConnectedRow]  = {
+      row.underlying.iterator().map(Function.const(row))
+    }
   }
 
   class UpdatableRow private[sdbc](
@@ -502,9 +521,16 @@ trait ConnectedRow {
       updater.update(this, columnIndex(this), x)
     }
 
+    def summary: UpdatableRow.Summary =
+      UpdatableRow.Summary(
+        deletedRows = this.deletedRows,
+        insertedRows = this.insertedRows,
+        updatedRows = this.updatedRows
+      )
+
   }
 
-  private[sdbc] object UpdatableRow {
+  object UpdatableRow {
     def apply(resultSet: ResultSet): UpdatableRow = {
       val columnNames = Row.columnNames(resultSet.getMetaData)
       val columnIndexes = Row.columnIndexes(columnNames)
@@ -519,6 +545,26 @@ trait ConnectedRow {
     def iterator(resultSet: ResultSet): CloseableIterator[UpdatableRow]  = {
       val row = UpdatableRow(resultSet)
       resultSet.iterator().map(Function.const(row))
+    }
+
+    def iterator(row: UpdatableRow): CloseableIterator[UpdatableRow]  = {
+      row.underlying.iterator().map(Function.const(row))
+    }
+
+    /**
+      *
+      * @param deletedRows how many times deleteRow() was called
+      * @param insertedRows how many times insertRow() was called
+      * @param updatedRows how many times updateRow() was called
+      */
+    case class Summary(
+      deletedRows: Long = 0L,
+      insertedRows: Long = 0L,
+      updatedRows: Long = 0L
+    )
+
+    object Summary {
+      val empty = Summary()
     }
 
   }
