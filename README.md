@@ -296,10 +296,11 @@ Example6.updatedRowCount
 
 ### Add a column type
 
-The following will not work, because the requested type is not supported natively by SDBC.
+#### For Selecting
+
+The following will not work, because the requested type is not supported natively by H2.
 ```scala
 object Example7Failure {
-  import java.sql.DriverManager
   import com.rocketfuel.sdbc.H2._
   import scala.concurrent.duration._
 
@@ -347,9 +348,71 @@ object Example7Product {
 }
 ```
 
+#### For parameters
+
+The following will not work, because the requested type is not supported natively by H2.
+```
+object Example8Failure {
+  import com.rocketfuel.sdbc.H2._
+  import scala.concurrent.duration._
+
+  val duration = 5 seconds
+
+  Update("").on("duration" -> duration)
+}
+```
+
+gives
+
+```
+16: error: type mismatch;
+ found   : scala.concurrent.duration.FiniteDuration
+ required: com.rocketfuel.sdbc.H2.ParameterValue
+```
+
+To resolve this, provide an implicit `Parameter[Duration]`. For example, maybe we want to insert durations as strings.
+
+```
+object Example8Success0 {
+  import com.rocketfuel.sdbc.H2._
+  import scala.concurrent.duration._
+
+  implicit val durationParameter: Parameter[Duration] =
+    new Parameter[Duration] {
+      override val set: Duration => (PreparedStatement, Int) => PreparedStatement = {
+        (value) => (statement, parameterIndex) =>
+          statement.setString(parameterIndex + 1, value.toString)
+          statement
+      }
+    }
+
+  val duration = 5.seconds
+
+  Update("").on("duration" -> duration)
+}
+```
+
+Another possibility is that we want to store durations as bigints in milliseconds. This example uses the existing `Parameter[Long]` along with the convenience DerivedParameter trait.
+
+```
+object Example8Success1 {
+  import com.rocketfuel.sdbc.H2._
+  import scala.concurrent.duration._
+
+  implicit val durationParameter: Parameter[Duration] = {
+    implicit def durationToMillis(d: Duration): Long = d.toMillis
+    DerivedParameter[Duration, Long]
+  }
+
+  val duration = 5.seconds
+
+  Update("").on("duration" -> duration)
+}
+```
+
 ### Update rows in a result set
 ```scala
-object Example8 {
+object Example9 {
   import java.sql.DriverManager
   import com.rocketfuel.sdbc.H2._
 
