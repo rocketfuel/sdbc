@@ -68,7 +68,7 @@ Packages exist on Maven Central for Scala 2.11 and 2.12.
 * The H2 JDBC driver does not support getResultSet on inner arrays, so only 1 dimensional arrays are supported.
 * The H2 JDBC driver does not support ResultSet#updateArray, so updating arrays is not supported.
 
-## [Scaladoc](https://www.jeffshaw.me/sdbc/2.0)
+## [Scaladoc](https://www.jeffshaw.me/sdbc/2.0/doc)
 
 ## Java 8 time notes
 
