@@ -169,3 +169,12 @@ abstract class CloseableIterator[+A](
   override def toString: String = underlying.toString
 
 }
+
+object CloseableIterator {
+  /**
+    * Allow a CloseableIterator to be used in any context requiring
+    * a plain Scala Iterator.
+    */
+  implicit def toIterator[A](i: CloseableIterator[A]): Iterator[A] =
+    i.toIterator
+}

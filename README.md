@@ -236,7 +236,6 @@ The query classes, such as Select, are immutable. Adding a parameter value retur
 
 ```scala
 object Example5 {
-  import java.sql.DriverManager
   import java.time.LocalDateTime
   import java.time.temporal.TemporalAdjusters
   import java.time.temporal.ChronoUnit
@@ -271,7 +270,6 @@ Example5.results
 ### Update
 ```scala
 object Example6 {
-  import java.sql.DriverManager
   import com.rocketfuel.sdbc.H2._
 
   val query = Update("UPDATE tbl SET unique_id = @uuid WHERE id = @id")
@@ -320,7 +318,6 @@ To resolve this, provide a Getter for Duration. SDBC will then be able to create
 
 ```scala
 object Example7Success {
-  import java.sql.DriverManager
   import com.rocketfuel.sdbc.H2._
   import scala.concurrent.duration._
 
@@ -335,7 +332,6 @@ Providing a Getter also allows Duration to be selected as part of a product (cas
 
 ```scala
 object Example7Product {
-  import java.sql.DriverManager
   import com.rocketfuel.sdbc.H2._
   import scala.concurrent.duration._
 
@@ -434,7 +430,6 @@ error: could not find implicit value for parameter mapper: shapeless.ops.hlist.M
 ### Update rows in a result set
 ```scala
 object Example9 {
-  import java.sql.DriverManager
   import com.rocketfuel.sdbc.H2._
 
   def addGoldToRow(accountId: Int, amount: Int)(row: UpdatableRow): Unit = {
@@ -447,7 +442,7 @@ object Example9 {
   val accountUpdateQuery = SelectForUpdate("SELECT * FROM accounts")
 
   def addGold(accountId: Int, amount: Int)(implicit connection: Connection): UpdatableRow.Summary = {
-    accountUpdateQuery.copy(updater = addGoldToRow(accountId, amount) _).on("id" -> accountId).update()
+    accountUpdateQuery.copy(rowUpdater = addGoldToRow(accountId, amount) _).on("id" -> accountId).update()
   }
 
   val selectedRowCount = Connection.using("jdbc:h2:mem:example;DB_CLOSE_DELAY=0") {implicit connection =>
@@ -460,11 +455,81 @@ object Example9 {
 Example9.selectedRowCount
 ```
 
+### Streaming with managed resources
+
+There are StreamUtils objects in each DBMS, which assist with creating safe FS2 Streams.
+
+```scala
+object Example10_0 {
+  import com.rocketfuel.sdbc.H2._
+  import fs2.Stream
+  import fs2.util.Async
+
+  def ints[F[_]](implicit async: Async[F]): Stream[F, Int] =
+    StreamUtils.connection("connectionUrl") {implicit connection =>
+      Select.stream[F, Int]("query")
+    }
+}
+```
+
+```scala
+object Example10_1 {
+  import com.rocketfuel.sdbc.H2._
+  import com.zaxxer.hikari.HikariConfig
+  import fs2.Stream
+  import fs2.util.Async
+
+  def ints[F[_]](config: HikariConfig)(implicit async: Async[F]): Stream[F, Int] =
+    StreamUtils.pool(config) {implicit pool =>
+      StreamUtils.connection {implicit connection =>
+        Select.stream[F, Int]("query")
+      }
+    }
+}
+
+object Example10_2 {
+  import com.datastax.driver.core.Cluster
+  import com.rocketfuel.sdbc.Cassandra._
+  import fs2.Stream
+  import fs2.util.Async
+
+  def ints[F[_]](initializer: Cluster.Initializer)(implicit async: Async[F]): Stream[F, Int] =
+    StreamUtils.cluster(initializer) {implicit cluster =>
+      StreamUtils.session {implicit session =>
+        Query.stream[F, Int]("query")
+      }
+    }
+}
+```
+
+### Streaming from multiple Cassandra keyspaces
+
+Because a Cassandra Session is a connection pool, there are times we only want to keep on
+Session open per keyspace. Cassandra's StreamUtils contains functions which let you query
+from different Sessions while only ever opening one Session per keyspace. In other words,
+the Session for each keyspace is memoized, and on stream completion they are all closed.
+
+```scala
+object Example11 {
+  import com.datastax.driver.core.Cluster
+  import com.rocketfuel.sdbc.Cassandra._
+  import fs2.{Pipe, Stream}
+  import fs2.util.Async
+
+  def intsFromKeyspaces[F[_]](implicit cluster: Cluster, async: Async[F]): Pipe[F, String, Stream[F, Int]] = {
+    keyspaces =>
+      keyspaces.through(StreamUtils.keyspaces).map {implicit session =>
+        Query.stream[F, Int]("...")
+      }
+  }
+
+}
+```
+
 The remaining examples do not work in the Scala REPL.
 
 ### Batch Update
 ```scala
-import java.sql.DriverManager
 import com.rocketfuel.sdbc.H2._
 
 val batchUpdate =
