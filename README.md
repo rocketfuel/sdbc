@@ -1,12 +1,11 @@
 # SDBC by Rocketfuel
 
 ## Description
-SDBC is a minimalist database API for Scala in the spirit of [Anorm](https://www.playframework.com/documentation/2.4.x/ScalaAnorm).
+SDBC is a minimalist database API for Scala in the spirit of [Anorm](https://www.playframework.com/documentation/2.4.x/ScalaAnorm), with automatic row parsers, and streaming support using [FS2](https://github.com/functional-streams-for-scala/fs2). SDBC is not an ORM.
+
 It currently supports [Apache Cassandra](http://cassandra.apache.org/), [H2](http://www.h2database.com/), [Microsoft SQL Server](http://www.microsoft.com/en-us/server-cloud/products/sql-server/), and [PostgreSQL](http://www.postgresql.org/).
 
 JDBC connection pools are provided by [HikariCP](https://github.com/brettwooldridge/HikariCP). The pools can be created with a [HikariConfig](https://github.com/brettwooldridge/HikariCP) or [Typesafe Config](https://github.com/typesafehub/config) object.
-
-There are additional packages that add support for [scalaz-stream](https://github.com/scalaz/scalaz-stream).
 
 ## Requirements
 
