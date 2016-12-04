@@ -39,7 +39,7 @@ class UpdatersSpec
 
       assertResult(UpdatableRow.Summary(updatedRows = 1))(summary)
 
-      val maybeValue = Select.option[Option[T]](s"SELECT v FROM $tableName").get
+      val maybeValue = Select.one[Option[T]](s"SELECT v FROM $tableName")
 
       assert(maybeValue.nonEmpty)
 

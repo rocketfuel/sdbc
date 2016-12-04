@@ -15,13 +15,8 @@ class GettersSpec
     expectedValue: Option[T]
   )(implicit converter: RowConverter[Option[T]]
   ): Connection => Unit = { implicit connection =>
-    val result = Select[Option[T]](query).option().flatten
-    (expectedValue, result) match {
-      case (Some(expectedArray: Array[_]), Some(resultArray: Array[_])) =>
-        assert(expectedArray.sameElements(resultArray))
-      case (expected, actual) =>
-        assertResult(expected)(actual)
-    }
+    val result = Select[Option[T]](query).one()
+    assertResult(expectedValue)(result)
   }
 
   def testSelect[T](
@@ -94,6 +89,7 @@ class GettersSpec
 
   testSelect[Seq[Seq[Int]]]("SELECT (())", Seq.empty.some)
 
+  //The next two tests are disabled because they cause "org.h2.jdbc.JdbcSQLException: Feature not supported: null [50100-193]"
   testIgnore[Seq[Seq[Int]]]("SELECT ((1, 2),)", Seq(Seq(1, 2)).some)
 
   testIgnore[Seq[Seq[Option[Int]]]]("SELECT ((1, NULL), (2, NULL))", Seq(Seq(Some(1), None), Seq(Some(2), None)).some)

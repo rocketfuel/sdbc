@@ -11,7 +11,7 @@ class UUIDSpec
     val selected =
       Select[Option[UUID]]("SELECT CAST(@uuid AS uniqueidentifier)").on(
         "uuid" -> uuid
-      ).option().flatten
+      ).one()
 
     assertResult(uuid)(selected)
   }
@@ -21,7 +21,7 @@ class UUIDSpec
     val selected =
       Select[Option[UUID]]("SELECT @uuid").on(
         "uuid" -> uuid
-      ).option().flatten
+      ).one()
 
     assertResult(uuid)(selected)
   }

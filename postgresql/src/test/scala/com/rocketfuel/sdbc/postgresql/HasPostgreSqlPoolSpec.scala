@@ -11,7 +11,7 @@ class HasPostgreSqlPoolSpec
   def testDatabaseExists(): Boolean = {
     withPg[Boolean] { implicit connection =>
       Select[Boolean]("SELECT EXISTS(SELECT * FROM pg_database WHERE datname = @databaseName)").
-        on("databaseName" -> dbName).singleton()
+        on("databaseName" -> dbName).one()
     }
   }
 

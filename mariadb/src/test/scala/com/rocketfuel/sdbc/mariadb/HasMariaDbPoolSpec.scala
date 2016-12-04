@@ -10,7 +10,7 @@ class HasMariaDbPoolSpec
 
   def testDatabaseExists(): Boolean = {
     withMaria[Boolean] { implicit connection =>
-      Select[Boolean]("SELECT TRUE").singleton()
+      Select[Boolean]("SELECT TRUE").one()
     }
   }
 

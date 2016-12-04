@@ -42,8 +42,8 @@ case class Query[A](
     Query.option(statement, parameters, queryOptions)
   }
 
-  def singleton()(implicit session: Session): A = {
-    Query.singleton(statement, parameters, queryOptions)
+  def one()(implicit session: Session): A = {
+    Query.one(statement, parameters, queryOptions)
   }
 
   def stream[F[_]](implicit session: Session, async: Async[F]): Stream[F, A] = {
@@ -186,7 +186,7 @@ object Query
     Option(execute(statement, parameters, queryOptions).one()).map(converter)
   }
 
-  def singleton[A](
+  def one[A](
     statement: CompiledStatement,
     parameters: Parameters = Parameters.empty,
     queryOptions: QueryOptions = QueryOptions.default

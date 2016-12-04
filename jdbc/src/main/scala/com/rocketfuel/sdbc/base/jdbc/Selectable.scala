@@ -46,7 +46,7 @@ trait Selectable {
     )(implicit selectable: Selectable[Key, Result],
       connection: Connection
     ): Result = {
-      selectable.select(key).singleton()
+      selectable.select(key).one()
     }
 
     def stream[F[_], Key, Result](

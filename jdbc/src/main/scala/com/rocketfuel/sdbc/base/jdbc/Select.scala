@@ -39,8 +39,8 @@ trait Select {
       Select.option(statement, parameters)
     }
 
-    def singleton()(implicit connection: Connection): A = {
-      Select.singleton(statement, parameters)
+    def one()(implicit connection: Connection): A = {
+      Select.one(statement, parameters)
     }
 
     def stream[F[_]](implicit
@@ -83,7 +83,7 @@ trait Select {
       finally executed.close()
     }
 
-    def singleton[A](
+    def one[A](
       statement: CompiledStatement,
       parameterValues: Parameters = Parameters.empty
     )(implicit connection: Connection,

@@ -19,7 +19,7 @@ abstract class SqlServerSuite
 
   def testSelect[T](query: String, expectedValue: Option[T])(implicit converter: CompositeGetter[Option[T]]): Unit = {
     test(query) { implicit connection =>
-      val result = Select[Option[T]](query).option().flatten
+      val result = Select[Option[T]](query).one()
       (expectedValue, result) match {
         case (Some(expectedArray: Array[Byte]), Some(resultArray: Array[Byte])) =>
           assert(expectedArray.sameElements(resultArray))

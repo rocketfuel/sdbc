@@ -38,7 +38,7 @@ object Queryable {
   )(implicit queryable: Queryable[Key, Value],
     session: Session
   ): Value = {
-    queryable.query(key).singleton()
+    queryable.query(key).one()
   }
 
   def stream[F[_], Key, Value](

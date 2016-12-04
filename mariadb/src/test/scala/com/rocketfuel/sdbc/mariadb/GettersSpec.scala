@@ -1,11 +1,10 @@
 package com.rocketfuel.sdbc.mariadb
 
+import com.rocketfuel.sdbc.MariaDb._
 import java.nio.ByteBuffer
 import java.sql.{Date, Time, Timestamp}
 import java.time._
-import java.util.UUID
 import scalaz.Scalaz._
-import com.rocketfuel.sdbc.MariaDb._
 
 class GettersSpec
   extends MariaDbSuite {
@@ -19,13 +18,8 @@ class GettersSpec
     Ignore.ignore(s"CREATE TABLE tbl (id int primary key auto_increment, x $sqlType NULL)")
     try {
       assertResult(1)(Update(s"INSERT INTO tbl (x) VALUES ($sqlValue)").update())
-      val result = Select[Option[T]]("SELECT x FROM tbl").option().flatten
-      (expectedValue, result) match {
-        case (Some(expectedArray: Array[_]), Some(resultArray: Array[_])) =>
-          assert(expectedArray.sameElements(resultArray))
-        case (expected, actual) =>
-          assertResult(expected)(actual)
-      }
+      val result = Select[Option[T]]("SELECT x FROM tbl").one()
+      assertResult(expectedValue)(result)
     } finally util.Try(Ignore.ignore(s"DROP TABLE tbl"))
   }
 
