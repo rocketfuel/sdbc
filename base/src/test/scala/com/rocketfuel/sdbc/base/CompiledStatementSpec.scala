@@ -1,6 +1,5 @@
-package com.rocketfuel.sdbc
+package com.rocketfuel.sdbc.base
 
-import com.rocketfuel.sdbc.base.CompiledStatement
 import org.scalatest.FunSuite
 
 class CompiledStatementSpec extends FunSuite {

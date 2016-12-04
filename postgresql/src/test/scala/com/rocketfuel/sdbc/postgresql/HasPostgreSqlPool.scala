@@ -25,6 +25,7 @@ trait HasPostgreSqlPool {
     val poolConfig = new HikariConfig()
     poolConfig.setUsername(user)
     poolConfig.setPassword(password)
+    poolConfig.setCatalog(dbName)
     poolConfig.setDataSourceClassName(classOf[org.postgresql.ds.PGSimpleDataSource].getCanonicalName)
     poolConfig.getDataSourceProperties.setProperty("PortNumber", pgConfig.net.port.toString)
     poolConfig.setMaximumPoolSize(10)

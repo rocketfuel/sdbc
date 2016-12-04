@@ -12,8 +12,6 @@ trait DefaultParameters
   with LongParameter
   with ShortParameter
   with StringParameter
-  with TimeParameter
-  with TimestampParameter
   with ReaderParameter
   with InputStreamParameter
   with UUIDParameter {

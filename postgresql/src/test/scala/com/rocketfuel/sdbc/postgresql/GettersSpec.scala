@@ -11,26 +11,8 @@ import org.json4s.jackson.JsonMethods
 import org.postgresql.util.PGInterval
 import scalaz.Scalaz._
 
-class ParameterValueSpec
+class GettersSpec
   extends PostgreSqlSuite {
-
-  test("Identifier that appears as a word in the text can be assigned a value.") {implicit connection =>
-    val query = Ignore("@t").on("t" -> None)
-
-    assertResult(
-      Map("t" -> ParameterValue.empty)
-    )(query.parameters
-    )
-  }
-
-  test("Identifier that does not appear as a word in the text is not assigned a value.") {implicit connection =>
-    val query = Ignore("@t").on("u" -> None)
-
-    assertResult(
-      Map.empty
-    )(query.parameters
-    )
-  }
 
   val jsonString = """{"hi":"there"}"""
 

@@ -10,3 +10,4 @@ trait MariaDb
     with DefaultParameters
     with DefaultUpdaters
     with MariaDbConnection
+    with MultiQuery

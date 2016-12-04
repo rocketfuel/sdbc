@@ -18,8 +18,6 @@ trait Setters
   with LongParameter
   with ShortParameter
   with StringParameter
-  with TimeParameter
-  with TimestampParameter
   with ReaderParameter
   with InputStreamParameter {
   self: SqlServer =>

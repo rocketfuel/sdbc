@@ -11,7 +11,7 @@ JDBC connection pools are provided by [HikariCP](https://github.com/brettwooldri
 
 * Java 8
 * Scala 2.11 or 2.12.
-* Cassandra, H2, Microsoft SQL Server, or PostgreSQL
+* Cassandra, H2, MariaDB, Microsoft SQL Server, or PostgreSQL
 
 Include an implementation of the [SLF4J](http://slf4j.org/) logging interface, turn on debug logging, and all your query executions will be logged with the query text and the parameter name-value map.
 
@@ -31,16 +31,22 @@ Packages exist on Maven Central for Scala 2.11 and 2.12.
 "com.rocketfuel.sdbc.h2" %% "jdbc" % "2.0"
 ```
 
+#### MariaDB
+
+```scala
+"com.rocketfuel.sdbc.mariadb" %% "jdbc" % "2.0"
+```
+
+#### Microsoft SQL Server
+
+```scala
+"com.rocketfuel.sdbc.sqlserver" %% "jdbc" % "2.0"
+```
+
 #### PostgreSql
 
 ```scala
 "com.rocketfuel.sdbc.postgresql" %% "jdbc" % "2.0"
-```
-
-#### SQL Server
-
-```scala
-"com.rocketfuel.sdbc.sqlserver" %% "jdbc" % "2.0"
 ```
 
 ## License
@@ -89,7 +95,6 @@ These can be pasted into a Scala REPL that has the H2, SDBC base, SDBC JDBC, and
 
 ```scala
 object Example0 {
-  import java.sql.DriverManager
   import com.rocketfuel.sdbc.H2._
 
   case class Person(id: Int, name: String)
@@ -186,6 +191,8 @@ object Example1 {
 Example1.result
 ```
 
+You will find that you can remove Log.valueOf, and the example will still work. As long as the columns in the result set have the same names as the fields in your case class, you do not need to manually create the converter.
+
 ### Set parameter values using string interpolation
 
 Since StringContext doesn't allow the string value of the interpolated value to be
@@ -215,7 +222,7 @@ val example3 = {
 
   val query = select"SELECT * FROM table WHERE id = $id"
 
-  //yields Map(0 -> ParameterValue(Some(1)))
+  //yields Map(0 -> ParameterValue(Some(3)))
   query.on("0" -> 3).parameters
 }
 ```
@@ -634,10 +641,11 @@ Starting with 2.0, there are benchmarks to ensure that some common operations do
 
 ### 2.0
 
+* MariaDB & MySQL support
 * JDBC Connection types are now per-DBMS (i.e. they are path dependent).
 * Update scalaz streams to [FS2](https://github.com/functional-streams-for-scala/fs2).
 * Stream support is built-in. Try using methods such as stream, pipe, and sink.
-* Support for multiple result sets per query from SQL Server using MultiQuery.
+* Support for multiple result sets per query from MariaDB and SQL Server using MultiQuery.
 * A datetime without an offset from a DBMS is interpreted as being in UTC rather than the system default time zone.
 * No longer supports Scala 2.10.
 * Moved database objects to `com.rocketfuel.sdbc.{Cassandra, H2, PostgreSql, SqlServer}`.

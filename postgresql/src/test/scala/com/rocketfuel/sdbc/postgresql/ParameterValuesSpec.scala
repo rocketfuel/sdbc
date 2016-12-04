@@ -4,7 +4,7 @@ import com.rocketfuel.sdbc.PostgreSql._
 import java.math.{BigDecimal => JBigDecimal}
 import org.scalatest._
 
-class SettersSpec
+class ParameterValuesSpec
   extends FunSuite {
 
   test("implicit None conversion works") {

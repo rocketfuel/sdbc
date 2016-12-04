@@ -13,7 +13,7 @@ import shapeless.{HList, LabelledGeneric}
   * that can return more than one ResultSet per statement.
   *
   */
-trait MultiQuery extends MultiResultConverter {
+trait MultiQuery extends MultiResultConverter with MultiQueryable {
   self: DBMS with Connection =>
 
   case class MultiQuery[A](
