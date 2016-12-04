@@ -6,14 +6,14 @@ import java.time.LocalTime
 trait PgDateParameter extends DateParameter {
   self: ParameterValue =>
 
-  override implicit object LocalTimeParameter extends Parameter[LocalTime] {
-    override val set: LocalTime => (PreparedStatement, Int) => PreparedStatement = {
-      time => (statement, ix) =>
-        val pgTime = PGLocalTime(time)
-        statement.setObject(ix + 1, pgTime)
-        statement
+  override implicit val LocalTimeParameter: Parameter[LocalTime] =
+    new Parameter[LocalTime] {
+      override val set: LocalTime => (PreparedStatement, Int) => PreparedStatement = {
+        time => (statement, ix) =>
+          val pgTime = PGLocalTime(time)
+          statement.setObject(ix + 1, pgTime)
+          statement
+      }
     }
-  }
 
 }
-
