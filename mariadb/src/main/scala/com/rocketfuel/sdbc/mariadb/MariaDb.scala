@@ -9,4 +9,4 @@ trait MariaDb
     with DefaultGetters
     with DefaultParameters
     with DefaultUpdaters
-    with JdbcConnection
+    with MariaDbConnection

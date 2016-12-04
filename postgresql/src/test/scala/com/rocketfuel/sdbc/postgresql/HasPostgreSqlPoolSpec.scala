@@ -15,10 +15,16 @@ class HasPostgreSqlPoolSpec
     }
   }
 
-  test("creates and destroys test database") {
+  test("creates test database") {
     pgStart()
 
     assert(testDatabaseExists())
+  }
+
+  test("connection unwrap works") {
+    val connection = pgPool.get.getConnection()
+    try assert(connection.escapeIdentifier("hi") != null)
+    finally connection.close()
   }
 
   override protected def afterAll(): Unit = pgStop()

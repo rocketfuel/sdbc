@@ -20,7 +20,12 @@ class HasMariaDbPoolSpec
     assert(testDatabaseExists())
   }
 
+  test("connection unwrap works") {
+    val connection = mariaPool.get.getConnection()
+    try assert(connection.getUsername != null)
+    finally connection.close()
+  }
+
   override protected def afterAll(): Unit = mariaStop()
 
 }
-
