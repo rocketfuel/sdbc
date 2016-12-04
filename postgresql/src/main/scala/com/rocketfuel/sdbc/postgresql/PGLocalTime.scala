@@ -1,7 +1,6 @@
 package com.rocketfuel.sdbc.postgresql
 
-import com.rocketfuel.sdbc.base.jdbc.statement.ParameterValue
-import java.sql.Time
+import com.rocketfuel.sdbc.base.jdbc.statement.{DateParameter, ParameterValue}
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import org.postgresql.util.PGobject
@@ -49,26 +48,4 @@ private object PGLocalTime {
     val parsed = DateTimeFormatter.ISO_LOCAL_TIME.parse(value)
     LocalTime.from(parsed)
   }
-}
-
-trait LocalTimeParameter {
-  self: ParameterValue =>
-
-  implicit object LocalTimeParameter extends Parameter[LocalTime] {
-    override val set: LocalTime => (PreparedStatement, Int) => PreparedStatement = {
-      time => (statement, ix) =>
-        val pgTime = PGLocalTime(time)
-        statement.setObject(ix + 1, pgTime)
-        statement
-    }
-  }
-
-  implicit object TimeParameter extends Parameter[Time] {
-    override val set: Time => (PreparedStatement, Int) => PreparedStatement = {
-      time => (statement, ix) =>
-        statement.setTime(ix + 1, time)
-        statement
-    }
-  }
-
 }

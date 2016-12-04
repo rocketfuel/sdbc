@@ -9,7 +9,7 @@ import scala.collection.JavaConverters._
 trait Setters
   extends BooleanParameter
   with BytesParameter
-  with DateParameter
+  with PgDateParameter
   with BigDecimalParameter
   with DoubleParameter
   with FloatParameter
@@ -17,7 +17,6 @@ trait Setters
   with LongParameter
   with ShortParameter
   with StringParameter
-  with TimestampParameter
   with ReaderParameter
   with InputStreamParameter
   with UUIDParameter
@@ -26,7 +25,6 @@ trait Setters
   with OffsetTimeParameter
   with InetAddressParameter
   with JValueParameter
-  with LocalTimeParameter
   with PGobjectParameter
   with MapParameter
   with SeqWithXmlParameter {

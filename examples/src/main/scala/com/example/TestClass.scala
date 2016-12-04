@@ -13,7 +13,7 @@ object TestClass {
 
   final case class Id(id: Int)
 
-  case object All
+  case class All(newValue: String)
 
   implicit val selectableByValue = new Selectable[Value, TestClass] {
     val query = Select[TestClass]("SELECT * FROM test_class WHERE value = @value")
@@ -47,11 +47,14 @@ object TestClass {
     }
   }
 
-  implicit val updateValues = new SelectForUpdatable[All.type] {
+  implicit val updateValues = new SelectForUpdatable[All] {
     val query = SelectForUpdate("SELECT id, value FROM test_class")
 
-    override def selectForUpdate(key: All.type): SelectForUpdate = {
-      query
+    override def update(key: All): SelectForUpdate = {
+      query.copy(rowUpdater = { (row: UpdatableRow) =>
+        row("value") = key.newValue
+        row.updateRow()
+      })
     }
   }
 

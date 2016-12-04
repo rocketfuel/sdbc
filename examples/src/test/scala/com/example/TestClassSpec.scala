@@ -32,14 +32,11 @@ class TestClassSpec
     assertResult(1)(H2.Updatable.update(TestClass.Value(before)))
 
     //update all the values to "bye"
-    val rows = H2.SelectForUpdatable.iterator(TestClass.All)
-    for (row <- rows) {
-      row("value") = after
-      row.updateRow()
-    }
+    val summary = H2.SelectForUpdatable.update(TestClass.All(after))
+    assertResult(H2.UpdatableRow.Summary(updatedRows = 1))(summary)
 
     //Make sure "hi" disappeared and "bye" exists.
-    val resultRows = H2.Selectable.iterator(TestClass.All).toSeq
+    val resultRows = H2.Selectable.vector(TestClass.All)
     assert(resultRows.forall(_.value == after), "The value wasn't updated.")
   }
 
