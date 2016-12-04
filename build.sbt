@@ -8,6 +8,8 @@ lazy val h2 = project.in(file("h2")).dependsOn(jdbc % "test->test;compile->compi
 
 lazy val h2Benchmarks = project.in(file("h2/benchmarks")).dependsOn(h2)
 
+lazy val mysql = project.in(file("mariadb")).dependsOn(jdbc % "test->test;compile->compile")
+
 lazy val postgresql = project.in(file("postgresql")).dependsOn(jdbc % "test->test;compile->compile")
 
 lazy val sqlserver = project.in(file("sqlserver")).dependsOn(jdbc % "test->test;compile->compile")
