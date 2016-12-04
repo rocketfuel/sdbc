@@ -27,6 +27,7 @@ trait HasMariaDbPool {
     poolConfig.setPassword(password)
     poolConfig.setDataSourceClassName(classOf[org.mariadb.jdbc.MariaDbDataSource].getCanonicalName)
     poolConfig.getDataSourceProperties.setProperty("Port", mariaProcess.get.getConfiguration.getPort.toString)
+    poolConfig.getDataSourceProperties.setProperty("DatabaseName", dbName)
     poolConfig.setMaximumPoolSize(10)
 
     mariaPool = Some(new Pool(poolConfig))
