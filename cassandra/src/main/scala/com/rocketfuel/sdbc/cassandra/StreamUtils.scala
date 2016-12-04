@@ -65,7 +65,7 @@ object StreamUtils extends Logger {
     keyspace: String,
     register: (scala.Either[scala.Throwable, Session]) => Unit
   )(implicit cluster: Cluster
-  ): ListenableFuture[Session] = {
+  ): Session = {
     log.info("creating session for keyspace {}", keyspace: Any)
     val f = cluster.connectAsync(keyspace)
     val callback = new FutureCallback[Session] {
@@ -79,7 +79,7 @@ object StreamUtils extends Logger {
       }
     }
     Futures.addCallback(f, callback, executor)
-    f
+    f.get()
   }
 
   /**
@@ -87,9 +87,9 @@ object StreamUtils extends Logger {
     * further queries.
     */
   def sessionProviders[F[_]](implicit async: Async[F], cluster: Cluster): Stream[F, String => F[Session]] = {
-    Stream.bracket[F, ConcurrentHashMap[String, ListenableFuture[Session]], String => F[Session]](
-      r = async.delay(new ConcurrentHashMap[String, ListenableFuture[Session]]())
-    )(use = { (sessions: ConcurrentHashMap[String, ListenableFuture[Session]]) =>
+    Stream.bracket[F, ConcurrentHashMap[String, Session], String => F[Session]](
+      r = async.delay(new ConcurrentHashMap[String, Session]())
+    )(use = { (sessions: ConcurrentHashMap[String, Session]) =>
       def lookup(keyspace: String): F[Session] = {
         async.async[Session](register =>
           async.delay(
@@ -101,16 +101,16 @@ object StreamUtils extends Logger {
              */
             sessions.compute(
               keyspace,
-              new BiFunction[String, ListenableFuture[Session], ListenableFuture[Session]] {
+              new BiFunction[String, Session, Session] {
                 override def apply(
                   t: String,
-                  u: ListenableFuture[Session]
-                ): ListenableFuture[Session] = {
+                  u: Session
+                ): Session = {
                   if (u == null) {
                     createSession(t, register)
                   } else {
                     try {
-                      register(Right(u.get()))
+                      register(Right(u))
                       u
                     } catch {
                       case NonFatal(e) =>
@@ -134,7 +134,7 @@ object StreamUtils extends Logger {
           for {
             session <- sessions
           } yield {
-            toAsync(session.get().closeAsync())
+            toAsync(session.closeAsync())
           }
         closers.sequence.map(Function.const(()))
       }
