@@ -21,6 +21,7 @@ trait Update {
     override val statement: CompiledStatement,
     override val parameters: Parameters = Parameters.empty
   ) extends IgnorableQuery[Update] {
+    q =>
 
     override protected def subclassConstructor(parameters: Parameters): Update = {
       copy(parameters = parameters)
@@ -32,6 +33,37 @@ trait Update {
 
     def pipe[F[_]](implicit async: Async[F]): Update.Pipe[F] =
       Update.pipe(statement, parameters)
+
+    /**
+      * Get helper methods for creating [[Updatable]]s from this query.
+      */
+    def updatable[Key]: ToUpdatable[Key] =
+      new ToUpdatable[Key]
+
+    class ToUpdatable[Key] {
+      def constant: Updatable[Key] =
+        Updatable(Function.const(q))
+
+      def parameters(toParameters: Key => Parameters): Updatable[Key] =
+        Updatable(key => q.onParameters(toParameters(key)))
+
+      def product[
+        Repr <: HList,
+        HMapKey <: Symbol,
+        AsParameters <: HList
+      ](implicit p: Parameters.Products[Key, Repr, HMapKey, AsParameters]
+      ): Updatable[Key] =
+        parameters(Parameters.product(_))
+
+      def record[
+        Repr <: HList,
+        HMapKey <: Symbol,
+        AsParameters <: HList
+      ](implicit p: Parameters.Records[Repr, HMapKey, AsParameters],
+        ev: Repr =:= Key
+      ): Updatable[Key] =
+        parameters(key => Parameters.record(key.asInstanceOf[Repr]))
+    }
 
   }
 

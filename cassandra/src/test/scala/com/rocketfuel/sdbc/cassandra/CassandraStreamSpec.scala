@@ -1,10 +1,7 @@
 package com.rocketfuel.sdbc.cassandra
 
-import com.rocketfuel.sdbc.Cassandra._
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import fs2.{Stream, Task}
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
 
 class CassandraStreamSpec
   extends CassandraSuite
@@ -46,80 +43,76 @@ class CassandraStreamSpec
 
     val keyspaceCount = util.Random.nextInt(5) + 3
 
-    val rowCount = util.Random.nextInt(50) + 50
+    val rowsPerKeyspace = util.Random.nextInt(50) + 50
+
+    val rowCount = keyspaceCount * rowsPerKeyspace
 
     //There's the default test keyspace, so create keyspaceCount - 1 more.
     for (_ <- 0 until keyspaceCount - 1)
       createRandomKeyspace()
 
-    val expectedRows = 0 until rowCount map(id => TestTable(id, id + 1))
+    val expectedRows =
+      for {
+        id <- 0 until rowCount
+      } yield TestTable(id, id + 1)
+
+    val expectedRowsByKeyspace =
+      for {
+        (keyspace, keyspaceRows) <- keyspaces.zip(expectedRows.sliding(rowsPerKeyspace, rowsPerKeyspace).toSeq).toMap
+      } yield keyspace -> keyspaceRows.toSet
+
+    val insertKeys =
+      for {
+        (keyspace, keyspaceRows) <- expectedRowsByKeyspace
+        insert <- keyspaceRows.map(_.insert(keyspace))
+      } yield insert
 
     for (keyspace <- keyspaces) {
       implicit val session = client.connect(keyspace)
-      TestTable.create.execute()
+      TestTable.createTable.execute()
       session.close()
     }
 
-    val rowsWithKeyspace =
-      for {
-        keyspace <- Stream(keyspaces: _*)
-        keyspaceRow <- Stream(expectedRows: _*).map(row => (keyspace, row.toInsert))
-      } yield keyspaceRow
+    fs2.concurrent.join(keyspaceCount)(Stream(insertKeys.toSeq: _*).
+      through(QueryableWithKeyspace.pipe[Task, TestTable.Insert, Unit])
+    ).run.unsafeRun()
 
-    rowsWithKeyspace.
-      through(Queryable.pipeWithKeyspace[Task, TestTable.Insert, Unit]).
-      flatMap(identity).run.unsafeRun()
+    val results =
+      fs2.concurrent.join(keyspaceCount)(
+        Stream.constant(TestTable.All).zip(Stream(keyspaces: _*)).
+          through(Queryable.pipeWithKeyspace[Task, TestTable.All.type, TestTable])
+      ).runLog.unsafeRun()
 
-    val resultsFuture =
-      Stream(keyspaces: _*).zip(Stream.constant(TestTable.All)).
-        through(Queryable.pipeWithKeyspace[Task, TestTable.All.type, TestTable]).
-        flatMap(identity).
-        runLog.unsafeRunAsyncFuture()
+    assertResult(rowCount)(results.size)
 
-    val actualResults =
-      Await.result(resultsFuture, Duration.Inf)
-
-    assertResult(keyspaceCount * rowCount)(actualResults.size)
-
-    assertResult(expectedRows.toSet)(actualResults.toSet)
+    assertResult(expectedRows.toSet)(results.toSet)
   }
 
   case class TestTable(id: Int, value: Int) {
-    def toInsert: TestTable.Insert =
-      TestTable.Insert(id, value)
+    def insert(keyspace: String): TestTable.Insert =
+      TestTable.Insert(keyspace, id, value)
   }
 
   object TestTable {
 
-    val create =
+    val createTable =
       Query[Unit]("CREATE TABLE tbl (id int PRIMARY KEY, value int)")
 
-    case object All
-
-    implicit val queryable: Queryable[All.type, TestTable] = {
-      val query = Query[TestTable]("SELECT id, value FROM tbl")
-      Queryable[All.type, TestTable](Function.const(query))
-    }
-
-    case class Insert(id: Int, value: Int)
-
-    object Insert {
-      implicit val queryable: Queryable[Insert, Unit] = {
-        val query = Query[Unit]("INSERT INTO tbl (id, value) VALUES (@id, @value)")
-        Queryable[Insert, Unit](query.onProduct(_))
+    object All {
+      implicit val queryable: Queryable[All.type, TestTable] = {
+        Query[TestTable]("SELECT id, value FROM tbl").queryable[All.type].constant
       }
     }
 
-    case class Id(id: Int)
+    case class Insert(keyspace: String, id: Int, value: Int)
 
-    object Id {
-      implicit val queryable: Queryable[Id, TestTable] = {
-        val query = Query[TestTable]("SELECT id, value FROM tbl WHERE id = @id")
-        Queryable[Id, TestTable](id => query.on("id" -> id.id))
+    object Insert {
+      implicit val keyspaceQueryable: QueryableWithKeyspace[Insert, Unit] = {
+        Query[Unit]("INSERT INTO tbl (id, value) VALUES (@id, @value)").
+          queryable[Insert].product.withKeyspace(_.keyspace)
       }
     }
 
   }
-
 
 }

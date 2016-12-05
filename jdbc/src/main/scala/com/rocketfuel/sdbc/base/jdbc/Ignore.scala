@@ -25,9 +25,41 @@ trait Ignore {
     override val statement: CompiledStatement,
     override val parameters: Parameters = Parameters.empty
   ) extends IgnorableQuery[Ignore] {
+    q =>
 
     override def subclassConstructor(parameters: Parameters): Ignore = {
       copy(parameters = parameters)
+    }
+
+    /**
+      * Get helper methods for creating [[Ignorable]]s from this query.
+      */
+    def ignorable[Key]: ToIgnorable[Key] =
+      new ToIgnorable[Key]
+
+    class ToIgnorable[Key] {
+      def constant: Ignorable[Key] =
+        Ignorable(Function.const(q))
+
+      def parameters(toParameters: Key => Parameters): Ignorable[Key] =
+        Ignorable(key => q.onParameters(toParameters(key)))
+
+      def product[
+        Repr <: HList,
+        HMapKey <: Symbol,
+        AsParameters <: HList
+      ](implicit p: Parameters.Products[Key, Repr, HMapKey, AsParameters]
+      ): Ignorable[Key] =
+        parameters(Parameters.product(_))
+
+      def record[
+        Repr <: HList,
+        HMapKey <: Symbol,
+        AsParameters <: HList
+      ](implicit p: Parameters.Records[Repr, HMapKey, AsParameters],
+        ev: Repr =:= Key
+      ): Ignorable[Key] =
+        parameters(key => Parameters.record(key.asInstanceOf[Repr]))
     }
 
   }

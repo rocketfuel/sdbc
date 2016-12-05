@@ -3,7 +3,6 @@ package com.rocketfuel.sdbc.base.jdbc
 import com.rocketfuel.sdbc.base.Logger
 import fs2.Stream
 import fs2.util.Async
-import fs2.util.syntax._
 import shapeless.HList
 
 trait SelectForUpdate {
@@ -14,6 +13,7 @@ trait SelectForUpdate {
     override val parameters: Parameters = Parameters.empty,
     rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
   ) extends IgnorableQuery[SelectForUpdate] {
+    q =>
 
     override def subclassConstructor(parameters: Parameters): SelectForUpdate = {
       copy(parameters = parameters)
@@ -25,6 +25,39 @@ trait SelectForUpdate {
 
     def pipe[F[_]](implicit async: Async[F]): SelectForUpdate.Pipe[F] =
       SelectForUpdate.pipe[F](statement, parameters, rowUpdater)
+
+    /**
+      * Get helper methods for creating [[SelectForUpdatable]]s from this query.
+      */
+    def selectForUpdatable[Key]: ToSelectForUpdatable[Key] =
+      new ToSelectForUpdatable[Key]
+
+    class ToSelectForUpdatable[Key] {
+      def constant(rowUpdater: Key => UpdatableRow => Unit = Function.const(q.rowUpdater)): SelectForUpdatable[Key] =
+        SelectForUpdatable[Key](Function.const(q), rowUpdater)
+
+      def parameters(toParameters: Key => Parameters, rowUpdater: Key => UpdatableRow => Unit = Function.const(q.rowUpdater)): SelectForUpdatable[Key] =
+        SelectForUpdatable(key => q.onParameters(toParameters(key)), (key: Key) => rowUpdater(key))
+
+      def product[
+        Repr <: HList,
+        HMapKey <: Symbol,
+        AsParameters <: HList
+      ](rowUpdater: Key => UpdatableRow => Unit = Function.const(q.rowUpdater)
+      )(implicit p: Parameters.Products[Key, Repr, HMapKey, AsParameters]
+      ): SelectForUpdatable[Key] =
+        parameters(Parameters.product(_), key => rowUpdater(key))
+
+      def record[
+        Repr <: HList,
+        HMapKey <: Symbol,
+        AsParameters <: HList
+      ](rowUpdater: Key => UpdatableRow => Unit = Function.const(q.rowUpdater)
+      )(implicit p: Parameters.Records[Repr, HMapKey, AsParameters],
+        ev: Repr =:= Key
+      ): SelectForUpdatable[Key] =
+        parameters(key => Parameters.record(key.asInstanceOf[Repr]), key => rowUpdater(key))
+    }
 
   }
 

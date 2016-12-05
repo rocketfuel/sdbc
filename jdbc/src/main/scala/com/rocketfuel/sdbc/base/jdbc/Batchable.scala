@@ -10,6 +10,12 @@ trait Batchable {
   }
 
   object Batchable {
+    def apply[Key](f: Key => Batch): Batchable[Key] =
+      new Batchable[Key] {
+        override def batch(key: Key): Batch =
+          f(key)
+      }
+
     def batch[Key](
       key: Key
     )(implicit batchable: Batchable[Key],

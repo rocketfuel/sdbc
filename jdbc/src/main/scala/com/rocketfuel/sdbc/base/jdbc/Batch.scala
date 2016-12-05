@@ -34,7 +34,7 @@ trait Batch {
     defaultParameters: Parameters = Parameters.empty,
     batches: ParameterBatches = Vector.empty[Parameters]
   ) extends ParameterizedQuery[Batch] {
-    batchSelf =>
+    q =>
 
     override def parameters: Parameters = defaultParameters
 
@@ -81,6 +81,48 @@ trait Batch {
       parameters: Parameters
     ): Batch = {
       copy(defaultParameters = parameters)
+    }
+
+    /**
+      * Get helper methods for creating [[Batchable]]s from this query.
+      */
+    def batchable[Key]: ToBatchable[Key] =
+      new ToBatchable[Key]
+
+    class ToBatchable[Key] {
+      def constant: Batchable[Key] =
+        Batchable(Function.const(q))
+
+      def parameters(toParameters: Key => TraversableOnce[Parameters]): Batchable[Key] =
+        new Batchable[Key] {
+          override def batch(key: Key): Batch = {
+            val batches = toParameters(key)
+            batches.foldLeft(q) {
+              case (batchAccum, params) =>
+                batchAccum.addParameters(params)
+            }
+          }
+        }
+
+      def product[
+        P,
+        Repr <: HList,
+        HMapKey <: Symbol,
+        AsParameters <: HList
+      ](toProducts: Key => Traversable[P]
+      )(implicit p: Parameters.Products[P, Repr, HMapKey, AsParameters]
+      ): Batchable[Key] =
+        parameters((key: Key) => toProducts(key).map(Parameters.product(_)))
+
+      def record[
+        Repr <: HList,
+        HMapKey <: Symbol,
+        AsParameters <: HList
+      ](toRecords: Key => Traversable[Repr]
+      )(implicit p: Parameters.Records[Repr, HMapKey, AsParameters],
+        ev: Repr =:= Key
+      ): Batchable[Key] =
+        parameters((key: Key) => toRecords(key).map(Parameters.record(_)))
     }
 
   }

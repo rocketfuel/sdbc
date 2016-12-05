@@ -605,10 +605,9 @@ implicit val pool = Pool(...)
 
 case class Id(id: Int)
 
-implicit val SelectableIntKey: Selectable[Id, String] = {
-  val query = Select[String]("SELECT value FROM table WHERE id = @id")
-  Selectable[Id, String](id => query.on("id" -> id))
-}
+implicit val SelectableIntKey: Selectable[Id, String] =
+  Select[String]("SELECT value FROM table WHERE id = @id").
+    selectable[Id].product
 
 val idStream: Stream[Task, Int] = ???
 

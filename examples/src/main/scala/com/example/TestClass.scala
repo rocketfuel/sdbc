@@ -23,39 +23,21 @@ object TestClass {
     }
   }
 
-  implicit val selectableById = new Selectable[Id, TestClass] {
-    val query = Select[TestClass]("SELECT * FROM test_class WHERE id = @id")
+  implicit val selectableById: Selectable[Id, TestClass] =
+    Select[TestClass]("SELECT * FROM test_class WHERE id = @id").selectable[Id].product
 
-    override def select(key: Id): Select[TestClass] = {
-      query.onProduct(key)
+  implicit val selectableAll: Selectable[All.type, TestClass] =
+    Select[TestClass]("SELECT * FROM test_class").selectable[All.type].constant
+
+  implicit val insertValue: Updatable[Value] =
+    Update("INSERT INTO test_class (value) VALUES (@value)").updatable[Value].product
+
+  implicit val updateValues: SelectForUpdatable[All] =
+    SelectForUpdate("SELECT id, value FROM test_class").
+      selectForUpdatable.constant {
+        (key: All) => (row: UpdatableRow) =>
+          row("value") = key.newValue
+          row.updateRow()
     }
-  }
-
-  implicit val selectableAll = new Selectable[All.type, TestClass] {
-    val query = Select[TestClass]("SELECT * FROM test_class")
-
-    override def select(key: All.type): Select[TestClass] = {
-      query
-    }
-  }
-
-  implicit val insertValue = new Updatable[Value] {
-    val query = Update("INSERT INTO test_class (value) VALUES (@value)")
-
-    override def update(key: Value): Update = {
-      query.onProduct(key)
-    }
-  }
-
-  implicit val updateValues = new SelectForUpdatable[All] {
-    val query = SelectForUpdate("SELECT id, value FROM test_class")
-
-    override def update(key: All): SelectForUpdate = {
-      query.copy(rowUpdater = { (row: UpdatableRow) =>
-        row("value") = key.newValue
-        row.updateRow()
-      })
-    }
-  }
 
 }

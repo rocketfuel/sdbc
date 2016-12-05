@@ -6,16 +6,22 @@ trait MultiQueryable {
   self: DBMS with Connection with MultiQuery =>
 
   trait MultiQueryable[Key, Result] {
-    def multiQueryable(key: Key): MultiQuery[Result]
+    def multiQuery(key: Key): MultiQuery[Result]
   }
 
   object MultiQueryable {
+    def apply[Key, Value](f: Key => MultiQuery[Value]): MultiQueryable[Key, Value] =
+      new MultiQueryable[Key, Value] {
+        override def multiQuery(key: Key): MultiQuery[Value] =
+          f(key)
+      }
+
     def result[Key, Result](
       key: Key
     )(implicit multiQueryable: MultiQueryable[Key, Result],
       connection: Connection
     ): Result = {
-      multiQueryable.multiQueryable(key).result()
+      multiQueryable.multiQuery(key).result()
     }
 
     def pipe[F[_], Key, Result](
@@ -23,7 +29,7 @@ trait MultiQueryable {
     )(implicit async: Async[F],
       multiQueryable: MultiQueryable[Key, Result]
     ): MultiQuery.Pipe[F, Result] = {
-      multiQueryable.multiQueryable(key).pipe[F]
+      multiQueryable.multiQuery(key).pipe[F]
     }
 
     def sink[F[_], Key](
@@ -31,7 +37,7 @@ trait MultiQueryable {
     )(implicit async: Async[F],
       multiQueryable: MultiQueryable[Key, _]
     ): Ignore.Sink[F] = {
-      multiQueryable.multiQueryable(key).sink[F]
+      multiQueryable.multiQuery(key).sink[F]
     }
   }
 

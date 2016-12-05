@@ -1,13 +1,23 @@
 package com.rocketfuel.sdbc.cassandra
 
 import com.datastax.driver.core.Cluster
-import com.rocketfuel.sdbc.base.Logger
 import com.rocketfuel.sdbc.Cassandra._
 import fs2.util.Async
 import fs2.{Pipe, Stream}
 
 trait Queryable[Key, Value] {
+  queryable =>
+
   def query(key: Key): Query[Value]
+
+  def withKeyspace(toKeyspace: Key => String): QueryableWithKeyspace[Key, Value] =
+    new QueryableWithKeyspace[Key, Value] {
+      override def keyspace(key: Key): String =
+        toKeyspace(key)
+
+      override def query(key: Key): Query[Value] =
+        queryable.query(key)
+    }
 }
 
 object Queryable {
@@ -59,37 +69,19 @@ object Queryable {
       keys.map(key => queryable.query(key).stream[F])
   }
 
-  /**
-    * Creates at most one session per keyspace.
-    * Use this method when you want to manage the Cluster.
-    */
-  def pipeWithKeyspace[F[_], Key, Value](
-    implicit cluster: Cluster,
+  def pipeWithKeyspace[F[_], Key, Value](implicit
+    cluster: Cluster,
     queryable: Queryable[Key, Value],
     async: Async[F]
-  ): Pipe[F, (String, Key),  Stream[F, Value]] = {
-    (s: Stream[F, (String, Key)]) =>
-      s.zip(StreamUtils.sessionProviders).flatMap {
-        case ((keyspace, key), sessionProvider) =>
-          Stream.eval(sessionProvider(keyspace)).map {implicit session =>
-            queryable.query(key).stream[F]
-          }
-      }
-  }
-
-  /**
-    * Creates at most one session per keyspace.
-    * The Cluster is created when the stream starts, and closed
-    * when it completes.
-    */
-  def pipeWithKeyspace[F[_], Key, Value](
-    initializer: Cluster.Initializer
-  )(implicit queryable: Queryable[Key, Value],
-    async: Async[F]
-  ): Pipe[F, (String, Key), Stream[F, Value]] = {
-    s =>
-      StreamUtils.cluster(initializer) {implicit cluster =>
-        s.through(pipeWithKeyspace)
+  ): Pipe[F, (Key, String), Stream[F, Value]] = {
+    keyspaceAndKeys =>
+      val keys = keyspaceAndKeys.map(_._1)
+      val keyspaces = keyspaceAndKeys.map(_._2)
+      val queries = keys.map(queryable.query)
+      val sessions = keyspaces.through(StreamUtils.keyspaces)
+      queries.zip(sessions).map {
+        case (query, session) =>
+          query.stream[F](session, implicitly[Async[F]])
       }
   }
 

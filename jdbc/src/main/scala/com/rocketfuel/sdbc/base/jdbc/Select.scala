@@ -22,6 +22,7 @@ trait Select {
     override val parameters: Parameters = Parameters.empty
   )(implicit rowConverter: RowConverter[A]
   ) extends IgnorableQuery[Select[A]] {
+    q =>
 
     override def subclassConstructor(parameters: Parameters): Select[A] = {
       copy(parameters = parameters)
@@ -52,6 +53,40 @@ trait Select {
 
     def pipe[F[_]](implicit async: Async[F]): Select.Pipe[F, A] =
       Select.Pipe(statement, parameters)
+
+    /**
+      * Get helper methods for creating [[Selectable]]s from this query.
+      */
+    def selectable[Key]: ToSelectable[Key] =
+      new ToSelectable[Key]
+
+    class ToSelectable[Key] {
+      def constant: Selectable[Key, A] =
+        Selectable(Function.const(q))
+
+      def parameters(toParameters: Key => Parameters): Selectable[Key, A] =
+        new Selectable[Key, A] {
+          override def select(key: Key): Select[A] =
+            q.onParameters(toParameters(key))
+        }
+
+      def product[
+        Repr <: HList,
+        HMapKey <: Symbol,
+        AsParameters <: HList
+      ](implicit p: Parameters.Products[Key, Repr, HMapKey, AsParameters]
+      ): Selectable[Key, A] =
+        parameters(Parameters.product(_))
+
+      def record[
+        Repr <: HList,
+        HMapKey <: Symbol,
+        AsParameters <: HList
+      ](implicit p: Parameters.Records[Repr, HMapKey, AsParameters],
+        ev: Repr =:= Key
+      ): Selectable[Key, A] =
+        parameters(key => Parameters.record(key.asInstanceOf[Repr]))
+    }
 
   }
 

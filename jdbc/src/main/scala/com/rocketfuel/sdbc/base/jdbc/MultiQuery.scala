@@ -21,17 +21,49 @@ trait MultiQuery extends MultiResultConverter with MultiQueryable {
     override val parameters: Parameters = Parameters.empty
   )(implicit multiResultConverter: MultiResultConverter[A]
   ) extends IgnorableQuery[MultiQuery[A]] {
+    q =>
 
     override def subclassConstructor(parameters: Parameters): MultiQuery[A] = {
       copy(parameters = parameters)
     }
 
     def result()(implicit connection: Connection): A = {
-      MultiQuery.run(statement, parameters)
+      MultiQuery.result(statement, parameters)
     }
 
     def pipe[F[_]](implicit async: Async[F]): MultiQuery.Pipe[F, A] =
       MultiQuery.Pipe(statement, parameters)
+
+    /**
+      * Get helper methods for creating [[MultiQueryable]]s from this query.
+      */
+    def multiQueryable[Key]: ToMultiQueryable[Key] =
+      new ToMultiQueryable[Key]
+
+    class ToMultiQueryable[Key] {
+      def constant: MultiQueryable[Key, A] =
+        MultiQueryable(Function.const(q))
+
+      def parameters(toParameters: Key => Parameters): MultiQueryable[Key, A] =
+        MultiQueryable(key => q.onParameters(toParameters(key)))
+
+      def product[
+        Repr <: HList,
+        HMapKey <: Symbol,
+        AsParameters <: HList
+      ](implicit p: Parameters.Products[Key, Repr, HMapKey, AsParameters]
+      ): MultiQueryable[Key, A] =
+        parameters(Parameters.product(_))
+
+      def record[
+        Repr <: HList,
+        HMapKey <: Symbol,
+        AsParameters <: HList
+      ](implicit p: Parameters.Records[Repr, HMapKey, AsParameters],
+        ev: Repr =:= Key
+      ): MultiQueryable[Key, A] =
+        parameters(key => Parameters.record(key.asInstanceOf[Repr]))
+    }
 
   }
 
@@ -44,7 +76,7 @@ trait MultiQuery extends MultiResultConverter with MultiQueryable {
 
     val defaultResultSetConcurrency = ResultSet.CONCUR_READ_ONLY
 
-    def run[A](
+    def result[A](
       compiledStatement: CompiledStatement,
       parameters: Parameters = Parameters.empty
     )(implicit connection: Connection,
@@ -74,7 +106,7 @@ trait MultiQuery extends MultiResultConverter with MultiQueryable {
               params <- paramStream
               result <-
                 StreamUtils.connection {implicit connection =>
-                  Stream.eval(async.delay(run(statement, params)))
+                  Stream.eval(async.delay(result(statement, params)))
                 }
             } yield result
         )

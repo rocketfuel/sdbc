@@ -4,7 +4,7 @@ import com.datastax.driver.core.Cluster
 import com.google.common.util.concurrent._
 import com.rocketfuel.sdbc.Cassandra.Session
 import com.rocketfuel.sdbc.base.Logger
-import fs2.Stream
+import fs2.{Pipe, Stream}
 import fs2.util.{Async, NonFatal}
 import fs2.util.syntax._
 import java.util.concurrent._
@@ -46,18 +46,6 @@ object StreamUtils extends Logger {
   }
 
   /**
-    * Maps a stream of keyspaces into a stream of Sessions for those keyspaces.
-    * At most one Session is created per keyspace.
-    */
-  def keyspaces[F[_]](implicit cluster: Cluster, async: Async[F]): fs2.Pipe[F, String, Session] = {
-    keyspaces =>
-      keyspaces.zip(sessionProviders).flatMap {
-        case (keyspace, sessionProvider) =>
-          Stream.eval(sessionProvider(keyspace))
-      }
-  }
-
-  /**
     * Create a session, registering it with the async callback
     * when it is created, or when creation fails.
     */
@@ -83,22 +71,26 @@ object StreamUtils extends Logger {
   }
 
   /**
-    * Use a map to store sessions. Create one Session for each keyspace on demand, and keep Sessions open for
+    * Maps a stream of keyspaces into a stream of Sessions for those keyspaces.
+    * At most one Session is created per keyspace.
+    *
+    * It uses a map to store sessions. Create one Session for each keyspace on demand, and keep Sessions open for
     * further queries.
     */
-  def sessionProviders[F[_]](implicit async: Async[F], cluster: Cluster): Stream[F, String => F[Session]] = {
-    Stream.bracket[F, ConcurrentHashMap[String, Session], String => F[Session]](
+  def keyspaces[F[_]](implicit async: Async[F], cluster: Cluster): Pipe[F, String, Session] = {
+    (keyspaces: Stream[F, String]) =>
+    Stream.bracket(
       r = async.delay(new ConcurrentHashMap[String, Session]())
     )(use = { (sessions: ConcurrentHashMap[String, Session]) =>
       def lookup(keyspace: String): F[Session] = {
         async.async[Session](register =>
           async.delay(
             /*
-            When creating the session for this keyspace, we don't actually use the return value of compute(),
-            which is synchronous. Instead, we use a callback on connectAsync().
+          When creating the session for this keyspace, we don't actually use the return value of compute(),
+          which is synchronous. Instead, we use a callback on connectAsync().
 
-            Any additional requests for this keyspace's session will use the return value of compute().
-             */
+          Any additional requests for this keyspace's session will use the return value of compute().
+           */
             sessions.compute(
               keyspace,
               new BiFunction[String, Session, Session] {
@@ -124,7 +116,10 @@ object StreamUtils extends Logger {
           )
         )
       }
-      Stream(lookup _).repeat
+        for {
+          keyspace <- keyspaces
+          session <- Stream.eval(lookup(keyspace))
+        } yield session
     },
       release = { sessionsPar =>
         import scala.collection.JavaConverters._

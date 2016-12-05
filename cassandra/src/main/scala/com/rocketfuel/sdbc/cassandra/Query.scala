@@ -24,10 +24,41 @@ case class Query[A](
   queryOptions: QueryOptions = QueryOptions.default
 )(implicit val converter: RowConverter[A]
 ) extends ParameterizedQuery[Query[A]] {
-  query =>
+  q =>
 
   override protected def subclassConstructor(parameters: Parameters): Query[A] = {
     copy(parameters = parameters)
+  }
+
+  /**
+    * Get helper methods for creating [[Queryable]]s from this query.
+    */
+  def queryable[Key]: ToQueryable[Key] =
+    new ToQueryable[Key]
+
+  class ToQueryable[Key] {
+    def constant: Queryable[Key, A] =
+      Queryable(Function.const(q))
+
+    def parameters(toParameters: Key => Parameters): Queryable[Key, A] =
+      Queryable(key => q.onParameters(toParameters(key)))
+
+    def product[
+      Repr <: HList,
+      HMapKey <: Symbol,
+      AsParameters <: HList
+    ](implicit p: Parameters.Products[Key, Repr, HMapKey, AsParameters]
+    ): Queryable[Key, A] =
+      parameters(Parameters.product(_))
+
+    def record[
+      Repr <: HList,
+      HMapKey <: Symbol,
+      AsParameters <: HList
+    ](implicit p: Parameters.Records[Repr, HMapKey, AsParameters],
+      ev: Repr =:= Key
+    ): Queryable[Key, A] =
+      parameters(key => Parameters.record(key.asInstanceOf[Repr]))
   }
 
   def execute()(implicit session: Session): ResultSet = {
