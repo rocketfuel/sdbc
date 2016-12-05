@@ -35,9 +35,8 @@ abstract class CloseableIterator[+A](
   def take(n: Int): CloseableIterator[A] =
     new Mapped(underlying.take(n))
 
-  def drop(n: Int): CloseableIterator[A] = {
+  def drop(n: Int): CloseableIterator[A] =
     new Mapped(underlying.drop(n))
-  }
 
   def slice(from: Int, until: Int): CloseableIterator[A] =
     new Mapped(underlying.slice(from, until))
@@ -45,7 +44,7 @@ abstract class CloseableIterator[+A](
   def map[B](f: A => B): CloseableIterator[B] =
     new Mapped[B](underlying.map(f))
 
-  def ++[B >: A](that: GenTraversableOnce[B]): CloseableIterator[B] =
+  def ++[B >: A](that: => GenTraversableOnce[B]): CloseableIterator[B] =
     new Mapped[B](underlying ++ that)
 
   def flatMap[B](f: A => GenTraversableOnce[B]): CloseableIterator[B] =
