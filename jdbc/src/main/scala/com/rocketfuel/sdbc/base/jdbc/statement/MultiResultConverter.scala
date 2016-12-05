@@ -33,7 +33,7 @@ trait MultiResultConverter {
       override val get: scala.Vector[A]
     ) extends QueryResult[scala.Vector[A]]
 
-    case class Singleton[A](
+    case class One[A](
       override val get: A
     ) extends QueryResult[A]
 
@@ -60,8 +60,8 @@ trait MultiResultConverter {
       implicit def caseVector[A] =
         at[Vector[A]](_.get)
 
-      implicit def caseSingleton[A] =
-        at[Singleton[A]](_.get)
+      implicit def caseOne[A] =
+        at[One[A]](_.get)
 
       implicit def caseOption[A] =
         at[Option[A]](_.get)
@@ -152,13 +152,13 @@ trait MultiResultConverter {
         impl = v1 => QueryResult.Option(StatementConverter.convertedRowOption(v1))
       )
 
-    implicit def convertedRowSingleton[
+    implicit def convertedRowOne[
       R <: Row,
       A
     ](implicit converter: RowConverter[A]
-    ): MultiResultConverter[QueryResult.Singleton[A]] =
+    ): MultiResultConverter[QueryResult.One[A]] =
       MultiResultConverter(
-        impl = v1 => QueryResult.Singleton(StatementConverter.convertedRowSingleton[A](v1))
+        impl = v1 => QueryResult.One(StatementConverter.convertedRowOne[A](v1))
       )
 
     implicit def recordComposite[

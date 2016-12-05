@@ -126,7 +126,7 @@ trait Select {
     ): A = {
       logRun(statement, parameterValues)
       val executed = QueryMethods.execute(statement, parameterValues)
-      try StatementConverter.convertedRowSingleton(executed)
+      try StatementConverter.convertedRowOne(executed)
       finally executed.close()
     }
 

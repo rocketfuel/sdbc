@@ -95,8 +95,8 @@ case class Query[A](
       Query.future.option(statement, queryOptions, parameters)
     }
 
-    def singleton()(implicit session: Session, ec: ExecutionContext): Future[A] = {
-      Query.future.singleton(statement, queryOptions, parameters)
+    def one()(implicit session: Session, ec: ExecutionContext): Future[A] = {
+      Query.future.one(statement, queryOptions, parameters)
     }
 
   }
@@ -115,6 +115,10 @@ case class Query[A](
       Query.async.option(statement, queryOptions, parameters)
     }
 
+    def one[F[_]]()(implicit session: Session, async: Async[F]): F[A] = {
+      Query.async.one(statement, queryOptions, parameters)
+    }
+
   }
 
   object task {
@@ -129,6 +133,10 @@ case class Query[A](
 
     def option()(implicit session: Session, strategy: Strategy): Task[Option[A]] = {
       async.option[Task]()
+    }
+
+    def one()(implicit session: Session, strategy: Strategy): Task[A] = {
+      async.one[Task]()
     }
 
   }
@@ -384,7 +392,7 @@ trait QueryCompanionOps {
           result
     }
 
-    def singleton[F[_], A](
+    def one[F[_], A](
       statement: CompiledStatement,
       queryOptions: QueryOptions,
       parameters: Parameters
@@ -431,7 +439,7 @@ trait QueryCompanionOps {
       async.option[Task, A](statement, queryOptions, parameters)
     }
 
-    def singleton[A](
+    def one[A](
       statement: CompiledStatement,
       queryOptions: QueryOptions,
       parameters: Parameters
@@ -439,7 +447,7 @@ trait QueryCompanionOps {
       session: Session,
       strategy: Strategy
     ): Task[A] = {
-      async.singleton[Task, A](statement, queryOptions, parameters)
+      async.one[Task, A](statement, queryOptions, parameters)
     }
   }
 
@@ -495,7 +503,7 @@ trait QueryCompanionOps {
           result
     }
 
-    def singleton[A](
+    def one[A](
       statement: CompiledStatement,
       queryOptions: QueryOptions,
       parameters: Parameters

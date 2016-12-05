@@ -46,7 +46,7 @@ class MultiQuerySpec
     Ignore.ignore(s"INSERT INTO `$tbl`(i) VALUES (1)")
 
     val (results0, results1) =
-      MultiQuery.result[(QueryResult.Iterator[Int], QueryResult.Singleton[Int])](s"SELECT i FROM `$tbl`; SELECT i FROM `$tbl`;")
+      MultiQuery.result[(QueryResult.Iterator[Int], QueryResult.One[Int])](s"SELECT i FROM `$tbl`; SELECT i FROM `$tbl`;")
 
     assertResult(Vector(1))(results0.get.toVector)
     assertResult(1)(results1.get)

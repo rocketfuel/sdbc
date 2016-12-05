@@ -48,7 +48,7 @@ trait StatementConverter {
       } finally i.close()
     }
 
-    def convertedRowSingleton[
+    def convertedRowOne[
       A
     ](v1: PreparedStatement
     )(implicit converter: RowConverter[A]
