@@ -41,7 +41,7 @@ trait Selectable {
       selectable.select(key).option()
     }
 
-    def singleton[Key, Result](
+    def one[Key, Result](
       key: Key
     )(implicit selectable: Selectable[Key, Result],
       connection: Connection

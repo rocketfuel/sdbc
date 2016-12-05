@@ -43,7 +43,7 @@ object Queryable {
     queryable.query(key).option()
   }
 
-  def singleton[Key, Value](
+  def one[Key, Value](
     key: Key
   )(implicit queryable: Queryable[Key, Value],
     session: Session
