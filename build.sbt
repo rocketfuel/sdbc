@@ -36,7 +36,7 @@ scalaVersion in ThisBuild := "2.12.0"
 
 crossScalaVersions in ThisBuild := Seq("2.11.8")
 
-version in ThisBuild := "2.0"
+version in ThisBuild := "2.0-RC0"
 
 licenses in ThisBuild := Seq("The BSD 3-Clause License" -> url("http://opensource.org/licenses/BSD-3-Clause"))
 
