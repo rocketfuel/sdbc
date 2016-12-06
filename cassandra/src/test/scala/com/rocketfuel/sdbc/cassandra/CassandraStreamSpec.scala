@@ -2,13 +2,14 @@ package com.rocketfuel.sdbc.cassandra
 
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import fs2.{Stream, Task}
+import scala.concurrent.ExecutionContext
 
 class CassandraStreamSpec
   extends CassandraSuite
   with GeneratorDrivenPropertyChecks {
 
   implicit val strategy =
-    fs2.Strategy.sequential
+    fs2.Strategy.fromExecutionContext(ExecutionContext.global)
 
   override implicit val generatorDrivenConfig: PropertyCheckConfiguration =
     PropertyCheckConfiguration(sizeRange = 10)
@@ -49,7 +50,7 @@ class CassandraStreamSpec
 
     //There's the default test keyspace, so create keyspaceCount - 1 more.
     for (_ <- 0 until keyspaceCount - 1)
-      createRandomKeyspace()
+      createKeyspace()
 
     val expectedRows =
       for {
@@ -58,8 +59,8 @@ class CassandraStreamSpec
 
     val expectedRowsByKeyspace =
       for {
-        (keyspace, keyspaceRows) <- keyspaces.zip(expectedRows.sliding(rowsPerKeyspace, rowsPerKeyspace).toSeq).toMap
-      } yield keyspace -> keyspaceRows.toSet
+        (keyspace, keyspaceRows) <- keyspaces.zip(expectedRows.sliding(rowsPerKeyspace, rowsPerKeyspace).toSet).toMap
+      } yield keyspace -> keyspaceRows
 
     val insertKeys =
       for {

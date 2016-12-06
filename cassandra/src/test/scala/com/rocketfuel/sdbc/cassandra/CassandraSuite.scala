@@ -12,6 +12,8 @@ abstract class CassandraSuite
   with BeforeAndAfterEach {
   self =>
 
+  private var keyspaceCount = 0
+
   private val _keyspaces: mutable.Buffer[String] =
     mutable.Buffer.empty[String]
 
@@ -23,7 +25,7 @@ abstract class CassandraSuite
 
   override protected def beforeAll(): Unit = {
     EmbeddedCassandraServerHelper.startEmbeddedCassandra("another-cassandra.yaml")
-    createRandomKeyspace()
+    createKeyspace()
   }
 
   override protected def afterAll(): Unit = {
@@ -48,11 +50,12 @@ abstract class CassandraSuite
     finally session.close()
   }
 
-  def createRandomKeyspace(): String = {
-    val keyspace = new String(util.Random.alphanumeric.filter(_.isLetter).take(10).toArray)
+  def createKeyspace(): String = synchronized {
+    val keyspace = "k" + keyspaceCount.toString
     implicit val session = client.connect()
-    Query.execute(s"CREATE KEYSPACE $keyspace WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.close()
+    try Query.execute(s"CREATE KEYSPACE $keyspace WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}")
+    finally session.close()
+    keyspaceCount += 1
     _keyspaces += keyspace
     keyspace
   }

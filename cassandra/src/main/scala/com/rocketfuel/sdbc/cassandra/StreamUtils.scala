@@ -126,9 +126,7 @@ object StreamUtils extends Logger {
         log.debug("closing sessions")
         val sessions = sessionsPar.values().asScala.toVector
         val closers =
-          for {
-            session <- sessions
-          } yield {
+          for (session <- sessions) yield {
             toAsync(session.closeAsync())
           }
         closers.sequence.map(Function.const(()))

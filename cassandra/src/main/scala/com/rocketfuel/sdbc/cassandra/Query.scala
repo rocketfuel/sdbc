@@ -347,7 +347,7 @@ trait QueryCompanionOps {
     )(implicit session: Session,
       async: Async[F]
     ): F[com.datastax.driver.core.PreparedStatement] = {
-      toAsync[F, com.datastax.driver.core.PreparedStatement](session.prepareAsync(statement.queryText))
+      toAsync(session.prepareAsync(statement.queryText))
     }
 
     def execute[F[_]](
