@@ -99,16 +99,15 @@ object StreamUtils extends Logger {
                   u: Session
                 ): Session = {
                   if (u == null) {
-                    createSession(t, register)
-                  } else {
-                    try {
-                      register(Right(u))
-                      u
-                    } catch {
-                      case NonFatal(e) =>
-                        log.debug(s"retrying session creation for keyspace $t", e)
-                        createSession(t, register)
+                    try createSession(t, register)
+                    catch {
+                      case NonFatal(_) =>
+                        //The exception was already logged, and sent to the caller asynchronously.
+                        null
                     }
+                  } else {
+                    register(Right(u))
+                    u
                   }
                 }
               }
