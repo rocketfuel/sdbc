@@ -10,8 +10,12 @@ import java.time._
 import java.util.UUID
 import scodec.bits.ByteVector
 
-trait Getter {
+trait Getter extends base.Getter {
   self: DBMS =>
+
+  override type Row = ConnectedRow
+
+  override type Getters = this.type
 
   /**
     * This is a DBMS specific type that creates getters from implicit methods
@@ -19,7 +23,7 @@ trait Getter {
     *
     * @tparam T
     */
-  case class Getter[+T] private[sdbc] (getter: base.Getter[ConnectedRow, Index, T])
+  case class Getter[+T] private[sdbc] (getter: base.Getter[Row, Index, T])
     extends base.Getter[ConnectedRow, Index, T] {
 
     override def apply(row: ConnectedRow, index: Index): Option[T] = {

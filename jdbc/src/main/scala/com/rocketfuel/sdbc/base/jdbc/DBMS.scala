@@ -39,6 +39,9 @@ trait DBMS
 
   val CompiledStatement = base.CompiledStatement
 
+  type Index = base.Index
+  val Index = base.Index
+
   /**
    * Override if the driver does not support .isValid().
    */

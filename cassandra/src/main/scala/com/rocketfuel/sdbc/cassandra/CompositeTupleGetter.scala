@@ -3,19 +3,12 @@ package com.rocketfuel.sdbc.cassandra
 import shapeless._
 import shapeless.labelled._
 
-/**
-  * Like doobie's Composite, but only the getter part.
-  *
-  * @tparam A
-  */
 trait CompositeTupleGetter[A] extends ((TupleValue, Int) => A) {
 
   val length: Int
 
 }
-/**
-  * This is inspired from doobie, which supports using Shapeless to create getters, setters, and updaters.
-  */
+
 object CompositeTupleGetter extends LowerPriorityCompositeTupleGetter {
   def apply[A](implicit converter: CompositeTupleGetter[A]): CompositeTupleGetter[A] = converter
 

@@ -2,7 +2,6 @@ package com.rocketfuel.sdbc.cassandra
 
 import com.datastax.driver.core.{LocalDate, UDTValue}
 import com.google.common.reflect.TypeToken
-import com.rocketfuel.sdbc.base
 import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.time.Instant
@@ -10,13 +9,14 @@ import java.util.{Date, UUID}
 import scala.collection.JavaConverters._
 import scodec.bits.ByteVector
 
-trait TupleGetter[+A] extends base.Getter[TupleValue, Int, A]
+trait TupleGetter[+A] extends ((TupleValue, Int) => Option[A])
 
 object TupleGetter {
   implicit def of[A](getter: TupleValue => Int => A): TupleGetter[A] = {
     new TupleGetter[A] {
       override def apply(tuple: TupleValue, ix: Int): Option[A] = {
-        if (tuple.isNull(ix)) None
+        if (tuple.isNull(ix))
+          None
         else Some(getter(tuple)(ix))
       }
     }
