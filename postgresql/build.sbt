@@ -1,6 +1,6 @@
-organization := "com.rocketfuel.sdbc.postgresql"
+organization := "com.rocketfuel.sdbc"
 
-name := "jdbc"
+name := "postgresql-jdbc"
 
 description := "An implementation of SDBC for accessing PostgreSQL using JDBC."
 

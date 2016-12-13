@@ -22,31 +22,31 @@ Packages exist on Maven Central for Scala 2.11 and 2.12.
 #### Cassandra
 
 ```scala
-"com.rocketfuel.sdbc.cassandra" %% "datastax" % "2.0-RC0"
+"com.rocketfuel.sdbc" %% "cassandra-datastax" % "2.0-RC0"
 ```
 
 #### H2
 
 ```scala
-"com.rocketfuel.sdbc.h2" %% "jdbc" % "2.0-RC0"
+"com.rocketfuel.sdbc" %% "h2-jdbc" % "2.0-RC0"
 ```
 
 #### MariaDB
 
 ```scala
-"com.rocketfuel.sdbc.mariadb" %% "jdbc" % "2.0-RC0"
+"com.rocketfuel.sdbc" %% "mariadb-jdbc" % "2.0-RC0"
 ```
 
 #### Microsoft SQL Server
 
 ```scala
-"com.rocketfuel.sdbc.sqlserver" %% "jdbc" % "2.0-RC0"
+"com.rocketfuel.sdbc" %% "sqlserver-jdbc" % "2.0-RC0"
 ```
 
 #### PostgreSql
 
 ```scala
-"com.rocketfuel.sdbc.postgresql" %% "jdbc" % "2.0-RC0"
+"com.rocketfuel.sdbc" %% "postgresql-jdbc" % "2.0-RC0"
 ```
 
 ## License
@@ -651,6 +651,7 @@ Starting with 2.0, there are benchmarks to ensure that some common operations do
 * Renamed Execute to Ignore.
 * Typeclass methods are now in their respective companion objects. For example, `Selectable.select`.
 * SelectForUpdate takes the update function as an argument. It returns a summary of the number of rows deleted, inserted, and updated.
+* Package names changed again. Hopefully the last time.
 
 ### 1.0
 

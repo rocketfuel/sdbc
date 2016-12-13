@@ -1,6 +1,6 @@
-organization := "com.rocketfuel.sdbc.mariadb"
+organization := "com.rocketfuel.sdbc"
 
-name := "jdbc"
+name := "mariadb-jdbc"
 
 description := "An implementation of SDBC for accessing MariaDB using JDBC."
 
