@@ -104,24 +104,22 @@ object Example0 {
   }
 
   val result = Connection.using("jdbc:h2:mem:example") {implicit connection =>
-    try {
-      Ignore.ignore("CREATE TABLE people (id int auto_increment PRIMARY KEY, name varchar(255))")
-
-      //Use named parameters and a case class to insert a row.
-      Ignore.ignore("INSERT INTO people (name) VALUES (@name)", Parameters.product(Person.Name("jeff")))
-
-      //prints "Person(1, jeff)"
-      for (x <- Select.iterator[Person]("SELECT * FROM people"))
-        println(x)
-
-      /*
-      You can select directly to tuples if you name your columns appropriately.
-      If you select Tuple2s, you can create a map from the results.
-      */
-
-      //yields Map(1 -> "jeff")
-      Select.iterator[(Int, String)]("SELECT id AS _1, name AS _2 FROM people").toMap
-    } finally connection.close()
+    Ignore.ignore("CREATE TABLE people (id int auto_increment PRIMARY KEY, name varchar(255))")
+   
+    //Use named parameters and a case class to insert a row.
+    Ignore.ignore("INSERT INTO people (name) VALUES (@name)", Parameters.product(Person.Name("jeff")))
+   
+    //prints "Person(1, jeff)"
+    for (x <- Select.iterator[Person]("SELECT * FROM people"))
+      println(x)
+   
+    /*
+    You can select directly to tuples if you name your columns appropriately.
+    If you select Tuple2s, you can create a map from the results.
+    */
+   
+    //yields Map(1 -> "jeff")
+    Select.iterator[(Int, String)]("SELECT id AS _1, name AS _2 FROM people").toMap
   }
 }
 
