@@ -3,7 +3,7 @@ package com.rocketfuel.sdbc.sqlserver
 import com.rocketfuel.sdbc.base.jdbc.statement._
 import java.time._
 import java.util.UUID
-import scala.xml.Node
+import scala.xml.Elem
 
 //We have to use a special UUID getter, so we can't use the default setters.
 trait Setters
@@ -22,28 +22,14 @@ trait Setters
   with InputStreamParameter {
   self: SqlServer =>
 
-  implicit val OffsetDateTimeParameter =
-    new DerivedParameter[OffsetDateTime] {
-      override type B = String
-      override val conversion: OffsetDateTime => B = offsetDateTimeFormatter.format
-      override val baseParameter: Parameter[B] = StringParameter
-    }
+  implicit val OffsetDateTimeParameter: Parameter[OffsetDateTime] =
+    DerivedParameter.converted[OffsetDateTime, String](offsetDateTimeFormatter.format)
 
-  override implicit val InstantParameter: DerivedParameter[Instant] =
-    new DerivedParameter[Instant] {
-      override type B = String
-      override val conversion: Instant => B = {(i: Instant) =>
-        val value = offsetDateTimeFormatter.format(i.atOffset(ZoneOffset.UTC))
-        value
-      }
-      override val baseParameter: Parameter[B] = StringParameter
-    }
+  override implicit val InstantParameter: Parameter[Instant] =
+    DerivedParameter.converted[Instant, String](i => offsetDateTimeFormatter.format(i.atOffset(ZoneOffset.UTC)))
 
-  implicit val HierarchyIdParameter: Parameter[HierarchyId] = {
-    (id: HierarchyId) =>
-      val asString = id.toString
-      StringParameter.set(asString)
-  }
+  implicit val HierarchyIdParameter: Parameter[HierarchyId] =
+    DerivedParameter.toString[HierarchyId]
 
   implicit val UUIDParameter: Parameter[UUID] = {
     (uuid: UUID) =>
@@ -51,10 +37,7 @@ trait Setters
       StringParameter.set(asString)
   }
 
-  implicit val XmlParameter: Parameter[Node] = {
-    (node: Node) =>
-      val asString = node.toString
-      StringParameter.set(asString)
-  }
+  implicit val XmlElemParameter: Parameter[Elem] =
+    DerivedParameter.toString[Elem]
 
 }

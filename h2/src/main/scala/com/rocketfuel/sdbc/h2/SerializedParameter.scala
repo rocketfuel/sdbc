@@ -5,21 +5,15 @@ import java.sql.Types
 trait SerializedParameter {
   self: H2 =>
 
-  implicit object SerializedParameter
-    extends Parameter[Serialized] {
-    override val set: (Serialized) => (PreparedStatement, Int) => PreparedStatement = {
-      value => (statement, index) =>
+  implicit val SerializedParameter: Parameter[Serialized] = {
+      (value: Serialized) => (statement: PreparedStatement, index: Int) =>
         statement.setObject(index + 1, value.value, Types.JAVA_OBJECT)
         statement
     }
-  }
 
   implicit val SerializedUpdater: Updater[Serialized] =
-    new Updater[Serialized] {
-      override def update(row: UpdatableRow, columnIndex: Int, x: Serialized): Unit = {
-        row.updateObject(columnIndex + 1, x.value, Types.JAVA_OBJECT)
-      }
-    }
+    (row: UpdatableRow, columnIndex: Int, x: Serialized) =>
+      row.updateObject(columnIndex + 1, x.value, Types.JAVA_OBJECT)
 
   implicit val SerializedGetter: Getter[Serialized] = {
     (row: Row, ix: Int) =>

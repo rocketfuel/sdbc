@@ -26,8 +26,9 @@ trait Setters
   with InetAddressParameter
   with JValueParameter
   with PGobjectParameter
-  with MapParameter
-  with SeqWithXmlParameter {
+  with HStoreParameter
+  with SeqParameter
+  with SQLXMLParameter {
   self: DBMS =>
 
 }
@@ -35,35 +36,27 @@ trait Setters
 trait PGobjectParameter {
   self: ParameterValue =>
 
-  implicit object PGobjectParameter extends Parameter[PGobject] {
-    override val set: PGobject => (PreparedStatement, Int) => PreparedStatement = {
-      value => (statement, parameterIndex) =>
-        statement.setObject(parameterIndex + 1, value)
-        statement
+  implicit val PGobjectParameter: Parameter[PGobject] =
+    (value: PGobject, statement: PreparedStatement, ix: Int) => {
+      statement.setObject(ix + 1, value)
+      statement
     }
-  }
 
-  implicit def isPGobjectParameter[A](value: A)(implicit toPGobject: A => PGobject): Parameter[A] = {
-    new Parameter[A] {
-      override val set: A => (PreparedStatement, Int) => PreparedStatement = {
-        value => (statement, parameterIndex) =>
-          val asPGobject = toPGobject(value)
-          PGobjectParameter.set(asPGobject)(statement, parameterIndex)
-      }
-    }
-  }
+  implicit def isPGobjectParameter[A](implicit toPGobject: A => PGobject): Parameter[A] =
+    DerivedParameter[A, PGobject]
 
 }
 
-trait MapParameter {
+trait HStoreParameter {
   self: ParameterValue =>
 
-  implicit object MapParameter extends Parameter[Map[String, String]] {
-    override val set: Map[String, String] => (PreparedStatement, Int) => PreparedStatement = {
-      value => (statement, parameterIndex) =>
-        statement.setObject(parameterIndex + 1, value.asJava)
-        statement
+  implicit val HStoreJavaParameter: Parameter[java.util.Map[String, String]] =
+    (value: java.util.Map[String, String], statement: PreparedStatement, ix: Int) => {
+      statement.setObject(ix + 1, value)
+      statement
     }
-  }
+
+  implicit val HStoreScalaParameter: Parameter[Map[String, String]] =
+    DerivedParameter.converted[Map[String, String], java.util.Map[String, String]](_.asJava)
 
 }

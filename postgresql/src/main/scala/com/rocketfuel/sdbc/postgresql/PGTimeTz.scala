@@ -44,13 +44,13 @@ private object PGTimeTz {
 trait OffsetTimeParameter {
   self: ParameterValue =>
 
-  implicit object OffsetTimeParameter extends Parameter[OffsetTime] {
-    override val set: (OffsetTime) => (PreparedStatement, Int) => PreparedStatement = {
-      offsetTime => (statement, ix) =>
-        val timeTz = PGTimeTz(offsetTime)
+  implicit val OffsetTimeParameter: Parameter[OffsetTime] =
+    (offsetTime: OffsetTime) => {
+      val timeTz = PGTimeTz(offsetTime)
+      (statement: PreparedStatement, ix: Int) => {
         statement.setObject(ix + 1, timeTz)
         statement
+      }
     }
-  }
 
 }

@@ -4,27 +4,32 @@ import com.rocketfuel.sdbc.base.jdbc.resultset.DefaultGetters
 import java.time._
 import java.time.temporal.{ChronoField, TemporalAccessor}
 import java.util.UUID
-import scala.xml.{Node, XML}
+import scala.xml._
 
 trait Getters
   extends DefaultGetters {
   self: SqlServer =>
 
   override implicit val LocalTimeGetter: Getter[LocalTime] =
-    (asString: String) => LocalTime.parse(asString)
+    LocalTime.parse _
 
   implicit val OffsetDateTimeGetter: Getter[OffsetDateTime] =
     (asString: String) => OffsetDateTime.from(offsetDateTimeFormatter.parse(asString))
 
   override implicit val UUIDGetter: Getter[UUID] =
-    (asString: String) => UUID.fromString(asString)
+    UUID.fromString _
 
   implicit val HierarchyIdGetter: Getter[HierarchyId] =
-    (asString: String) => HierarchyId.fromString(asString)
+    HierarchyId.fromString _
 
-  implicit val XmlGetterImmutable: Getter[Node] =
-    (row: Row, ix: Int) =>
-      Option(row.getString(ix)).map(XML.loadString)
+  implicit val XmlNodeGetter: Getter[Node] =
+    XML.loadString _
+
+  implicit val XmlNodeSeqGetter: Getter[NodeSeq] = {
+    (asString: String) =>
+      val asDocument = "<xml>" + asString + "</xml>"
+      NodeSeq.fromSeq(XML.loadString(asDocument).child)
+  }
 
   /**
    * JTDS sometimes fails to parse timestamps, so we use our own parser.

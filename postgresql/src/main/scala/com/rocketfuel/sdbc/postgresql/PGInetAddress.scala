@@ -45,13 +45,13 @@ private object PGInetAddress {
 trait InetAddressParameter {
   self: ParameterValue =>
 
-  implicit object InetAddressParameter extends Parameter[InetAddress] {
-    override val set: (InetAddress) => (PreparedStatement, Int) => PreparedStatement = {
-      address => (statement, ix) =>
-        val pgAddress = PGInetAddress(address)
+  implicit val InetAddressParameter: Parameter[InetAddress] =
+    (address: InetAddress) => {
+      val pgAddress = PGInetAddress(address)
+      (statement: PreparedStatement, ix: Int) => {
         statement.setObject(ix + 1, pgAddress)
         statement
+      }
     }
-  }
 
 }

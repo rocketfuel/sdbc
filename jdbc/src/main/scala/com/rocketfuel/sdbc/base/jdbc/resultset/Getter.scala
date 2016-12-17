@@ -7,6 +7,7 @@ import java.nio.ByteBuffer
 import java.sql.{Date, SQLException, Time, Timestamp}
 import java.time._
 import java.util.UUID
+import scala.xml._
 import scodec.bits.ByteVector
 
 trait LongGetter {
@@ -38,10 +39,8 @@ trait ShortGetter {
   implicit val ShortGetter: Getter[Short] =
     ofVal[Short] { (row, ix) => row.getShort(ix) }
 
-  implicit val BoxedShortGetter: Getter[lang.Short] = {
-    (row: ConnectedRow, ix: Int) =>
-      ShortGetter(row, ix).map(lang.Short.valueOf)
-  }
+  implicit val BoxedShortGetter: Getter[lang.Short] =
+    Getter.derived[lang.Short, Short]
 
 }
 
@@ -51,10 +50,8 @@ trait ByteGetter {
   implicit val ByteGetter: Getter[Byte] =
     ofVal[Byte] { (row, ix) => row.getByte(ix) }
 
-  implicit val BoxedByteGetter: Getter[lang.Byte] = {
-    (row: ConnectedRow, ix: Int) =>
-      ByteGetter(row, ix).map(lang.Byte.valueOf)
-  }
+  implicit val BoxedByteGetter: Getter[lang.Byte] =
+    Getter.derived[lang.Byte, Byte]
 
 }
 
@@ -125,10 +122,8 @@ trait FloatGetter {
   implicit val FloatGetter: Getter[Float] =
     ofVal[Float] { (row, ix) => row.getFloat(ix) }
 
-  implicit val BoxedFloatGetter: Getter[lang.Float] = {
-    (row: ConnectedRow, ix: Int) =>
-      FloatGetter(row, ix).map(lang.Float.valueOf)
-  }
+  implicit val BoxedFloatGetter: Getter[lang.Float] =
+    Getter.derived[lang.Float, Float]
 
 }
 
@@ -139,8 +134,7 @@ trait DoubleGetter {
     ofVal[Double]((row, ix) => row.getDouble(ix))
 
   implicit val BoxedDoubleGetter: Getter[lang.Double] =
-    (row: ConnectedRow, ix: Int) =>
-      DoubleGetter(row, ix).map(lang.Double.valueOf)
+    Getter.derived[lang.Double, Double]
 }
 
 trait JavaBigDecimalGetter {
@@ -231,8 +225,8 @@ trait BooleanGetter {
     ofVal[Boolean] { (row, ix) => row.getBoolean(ix) }
 
   implicit val BoxedBooleanGetter: Getter[lang.Boolean] =
-    (row: ConnectedRow, ix: Int) =>
-      BooleanGetter(row, ix).map(lang.Boolean.valueOf)
+    Getter.derived[lang.Boolean, Boolean]
+
 }
 
 trait StringGetter {
@@ -267,5 +261,13 @@ trait URLGetter {
   implicit val URLGetter: Getter[URL] =
     (row: ConnectedRow, ix: Int) =>
       Option(row.getURL(ix))
+
+}
+
+trait XmlGetter {
+  self: DBMS with StringGetter =>
+
+  implicit val XmlElemGetter: Getter[Elem] =
+    Getter.converted[Elem, String](XML.loadString)
 
 }

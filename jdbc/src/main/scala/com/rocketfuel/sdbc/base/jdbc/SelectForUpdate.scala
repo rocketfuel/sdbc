@@ -17,7 +17,7 @@ trait SelectForUpdate {
   ) extends ConnectedRow(underlying, columnNames, columnIndexes) {
 
     def update[T](columnIndex: Index, x: T)(implicit updater: Updater[T]): Unit = {
-      updater.update(this, columnIndex(this), x)
+      updater(this, columnIndex(this), x)
     }
 
     def summary: UpdatableRow.Summary =

@@ -1,22 +1,22 @@
 package com.rocketfuel.sdbc.base.jdbc.statement
 
 import com.rocketfuel.sdbc.base.box
-import com.rocketfuel.sdbc.base.jdbc.DBMS
+import com.rocketfuel.sdbc.base.jdbc._
 import java.sql.{Array => _, _}
-import scala.xml.{Elem, NodeSeq}
+import scala.xml._
 
 trait SeqParameter {
   self: DBMS =>
 
-  case class SeqParameter[T] private[sdbc] (
+  case class SeqParameter[T] private[sdbc](
     arrayType: ArrayTypeName[Seq[T]],
     toArray: Seq[T] => Array[AnyRef]
   ) extends Parameter[Seq[T]] {
 
-    override val set: Seq[T] => (PreparedStatement, Int) => PreparedStatement = {
-      seq => (statement, ix) =>
+    override def apply(v1: Seq[T]): (PreparedStatement, Int) => PreparedStatement = {
+      (statement, ix) =>
         val connection = statement.getConnection
-        val array = connection.createArrayOf(arrayType.name, toArray(seq))
+        val array = connection.createArrayOf(arrayType.name, toArray(v1))
         statement.setArray(ix + 1, array)
         statement
     }
@@ -30,8 +30,8 @@ trait SeqParameter {
       arrayType: ArrayTypeName[Seq[T]]
     ): SeqParameter[T] = {
       val mapF: T => AnyRef = parameter match {
-        case p: DerivedParameter[_] =>
-          elem => box(p.conversion(elem))
+        case p: DerivedParameter[_, _] =>
+          elem => box(p.convert(elem))
         case _ =>
           elem => box(elem)
       }
@@ -47,8 +47,8 @@ trait SeqParameter {
       arrayType: ArrayTypeName[Seq[Option[T]]]
     ): SeqParameter[Option[T]] = {
       val mapF: Option[T] => AnyRef = parameter match {
-        case p: DerivedParameter[_] =>
-          elem => elem.map(p.conversion andThen box).orNull
+        case p: DerivedParameter[_, _] =>
+          elem => elem.map(p.convert _ andThen box).orNull
         case _ =>
           elem => elem.map(box).orNull
       }
@@ -64,8 +64,8 @@ trait SeqParameter {
       arrayType: ArrayTypeName[Seq[Some[T]]]
     ): SeqParameter[Some[T]] = {
       val mapF: Some[T] => AnyRef = parameter match {
-        case p: DerivedParameter[_] =>
-          elem => elem.map(p.conversion andThen box).orNull
+        case p: DerivedParameter[_, _] =>
+          elem => elem.map(p.convert _ andThen box).orNull
         case _ =>
           elem => elem.map(box).orNull
       }
@@ -133,11 +133,16 @@ trait SeqParameter {
 
   }
 
+}
+
+trait SeqUpdater {
+  self: DBMS with SelectForUpdate with Updater with SeqParameter =>
+
   case class SeqUpdater[T](
     arrayType: ArrayTypeName[Seq[T]],
     toArray: Seq[T] => Array[AnyRef]
   ) extends Updater[Seq[T]] {
-    override def update(row: UpdatableRow, columnIndex: Int, x: Seq[T]): Unit = {
+    override def apply(row: UpdatableRow, columnIndex: Int, x: Seq[T]): Unit = {
       val connection = row.getStatement.getConnection
       val array = connection.createArrayOf(arrayType.name, toArray(x))
       row.updateArray(columnIndex, array)
@@ -172,30 +177,6 @@ trait SeqParameter {
       arrayType = arrayType,
       toArray = parameter.toArray
     )
-  }
-
-}
-
-/**
-  * Use this instead of SQLXMLParameter when the DBMS has both arrays and XML.
-  */
-trait SeqWithXmlParameter extends SeqParameter {
-  self: DBMS with StringParameter =>
-
-  implicit val NodeSeqParameter: Parameter[NodeSeq] = {
-    (nodes: NodeSeq) =>
-      val asString = nodes.toString()
-      (statement: PreparedStatement, columnIndex: Int) =>
-        statement.setObject(columnIndex + 1, asString, Types.SQLXML)
-        statement
-  }
-
-  implicit val ElemParameter: Parameter[Elem] = {
-    (nodes: Elem) =>
-      val asString = nodes.toString()
-      (statement: PreparedStatement, columnIndex: Int) =>
-        statement.setObject(columnIndex + 1, asString, Types.SQLXML)
-        statement
   }
 
 }

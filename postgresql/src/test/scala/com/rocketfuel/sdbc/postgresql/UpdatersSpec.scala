@@ -1,15 +1,15 @@
 package com.rocketfuel.sdbc.postgresql
 
+import com.rocketfuel.sdbc.PostgreSql._
 import java.sql.{Date, Time, Timestamp}
 import java.time._
 import java.util.UUID
 import org.apache.commons.lang3.RandomStringUtils
 import org.json4s.JValue
 import org.json4s.jackson.JsonMethods
-import scala.xml.NodeSeq
-import scodec.bits.ByteVector
 import scala.reflect.ClassTag
-import com.rocketfuel.sdbc.PostgreSql._
+import scala.xml._
+import scodec.bits.ByteVector
 
 class UpdatersSpec
   extends PostgreSqlSuite {
@@ -28,7 +28,7 @@ class UpdatersSpec
 
       Ignore.ignore(s"CREATE TABLE $tableName (id serial PRIMARY KEY, v $typeName)")
 
-      Ignore.ignore(s"INSERT INTO $tableName (v) VALUES (@before)", Map("before" -> before))
+      Ignore.ignore(s"INSERT INTO $tableName (v) VALUES (@before :: $typeName)", Map("before" -> before))
 
       def updateRow(row: UpdatableRow): Unit = {
         row("v") = after
@@ -98,7 +98,7 @@ class UpdatersSpec
 
   testUpdate[Map[String, String]]("hstore")(Map("hi" -> "there"))(Map("bye" -> "now"))
 
-  testUpdate[NodeSeq]("xml")(<a></a>)(<b></b>)
+  testUpdate[Elem]("xml")(<a></a>)(<b></b>)
 
   testUpdate[JValue]("json")(JsonMethods.parse("{}"))(JsonMethods.parse("""{"a": 1}"""))
 

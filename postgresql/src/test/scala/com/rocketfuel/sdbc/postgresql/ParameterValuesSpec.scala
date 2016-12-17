@@ -3,17 +3,19 @@ package com.rocketfuel.sdbc.postgresql
 import com.rocketfuel.sdbc.PostgreSql._
 import java.math.{BigDecimal => JBigDecimal}
 import org.scalatest._
+import scala.xml.Elem
 
 class ParameterValuesSpec
   extends FunSuite {
+
+  val elem: Elem = <a></a>
 
   test("implicit None conversion works") {
     assertCompiles("val _: ParameterValue = None")
   }
 
-  test("implicit Node conversion works") {
-    //assertCompiles doesn't work for this test
-    val _: ParameterValue = <a></a>
+  test("implicit Elem conversion works") {
+    assertCompiles("val _: ParameterValue = elem")
   }
 
   test("implicit Seq[Int] conversion works") {

@@ -7,18 +7,16 @@ import java.nio.ByteBuffer
 import java.sql.{Date => JdbcDate, Array => _, _}
 import java.time._
 import java.util.{Date, UUID}
-import scala.xml.NodeSeq
+import scala.xml._
 import scodec.bits.ByteVector
 
 trait LongParameter {
   self: ParameterValue =>
 
-  implicit val LongParameter = new Parameter[Long] {
-    override val set: Long => (PreparedStatement, Int) => PreparedStatement = {
-      (value) => (statement, parameterIndex) =>
-        statement.setLong(parameterIndex + 1, value)
-        statement
-    }
+  implicit val LongParameter: Parameter[Long] = {
+    (value: Long) => (statement: PreparedStatement, parameterIndex: Int) =>
+      statement.setLong(parameterIndex + 1, value)
+      statement
   }
 
   implicit val BoxedLongParameter: Parameter[lang.Long] =
@@ -29,12 +27,10 @@ trait LongParameter {
 trait IntParameter {
   self: ParameterValue =>
 
-  implicit val IntParameter = new Parameter[Int] {
-    override val set: Int => (PreparedStatement, Int) => PreparedStatement = {
-      (value) => (statement, parameterIndex) =>
-        statement.setInt(parameterIndex + 1, value)
-        statement
-    }
+  implicit val IntParameter: Parameter[Int] = {
+    (value: Int) => (statement: PreparedStatement, parameterIndex: Int) =>
+    statement.setInt(parameterIndex + 1, value)
+    statement
   }
 
   implicit val BoxedIntParameter: Parameter[lang.Integer] =
@@ -45,12 +41,10 @@ trait IntParameter {
 trait ShortParameter {
   self: ParameterValue =>
 
-  implicit val ShortParameter = new Parameter[Short] {
-    override val set: Short => (PreparedStatement, Int) => PreparedStatement = {
-      (value) => (statement, parameterIndex) =>
-        statement.setShort(parameterIndex + 1, value)
-        statement
-    }
+  implicit val ShortParameter: Parameter[Short] = {
+    (value: Short, statement: PreparedStatement, parameterIndex: Int) =>
+      statement.setShort(parameterIndex + 1, value)
+      statement
   }
 
   implicit val BoxedShortParameter: Parameter[lang.Short] =
@@ -61,13 +55,11 @@ trait ShortParameter {
 trait ByteParameter {
   self: ParameterValue =>
 
-  implicit val ByteParameter = new Parameter[Byte] {
-    override val set: Byte => (PreparedStatement, Int) => PreparedStatement = {
-      (value) => (statement, parameterIndex) =>
+  implicit val ByteParameter: Parameter[Byte] = {
+    (value: Byte, statement: PreparedStatement, parameterIndex: Int) =>
         statement.setByte(parameterIndex + 1, value)
         statement
     }
-  }
 
   implicit val BoxedByteParameter: Parameter[lang.Byte] =
     DerivedParameter[lang.Byte, Byte]
@@ -80,32 +72,32 @@ trait BytesParameter {
   //We're using ByteVectors, since they're much more easily testable than Array[Byte].
   //IE equality actually works. Also, they're immutable.
   implicit val ByteVectorParameter: Parameter[ByteVector] = {
-    (value: ByteVector) => (statement: PreparedStatement, parameterIndex: Int) =>
+    (value: ByteVector) => {
       val arrayValue = value.toArray
-      statement.setBytes(parameterIndex + 1, arrayValue)
-      statement
+      (statement: PreparedStatement, parameterIndex: Int) =>
+        statement.setBytes(parameterIndex + 1, arrayValue)
+        statement
+    }
   }
 
   implicit val ByteBufferParameter: Parameter[ByteBuffer] =
-    DerivedParameter[ByteBuffer, ByteVector](ByteVector.apply, ByteVectorParameter)
+    DerivedParameter.converted((bytes: ByteBuffer) => ByteVector(bytes))
 
   implicit val ArrayByteParameter: Parameter[Array[Byte]] =
-    DerivedParameter[Array[Byte], ByteVector](ByteVector.apply, ByteVectorParameter)
+    DerivedParameter.converted((bytes: Array[Byte]) => ByteVector(bytes))
 
   implicit val SeqByteParameter: Parameter[Seq[Byte]] =
-    DerivedParameter[Seq[Byte], ByteVector](ByteVector.apply, ByteVectorParameter)
+    DerivedParameter.converted((bytes: Seq[Byte]) => ByteVector(bytes))
 
 }
 
 trait FloatParameter {
   self: ParameterValue =>
 
-  implicit val FloatParameter = new Parameter[Float] {
-    override val set: Float => (PreparedStatement, Int) => PreparedStatement = {
-      (value) => (statement, parameterIndex) =>
-        statement.setFloat(parameterIndex + 1, value)
-        statement
-    }
+  implicit val FloatParameter: Parameter[Float] = {
+    (value: Float, statement: PreparedStatement, parameterIndex: Int) =>
+      statement.setFloat(parameterIndex + 1, value)
+      statement
   }
 
   implicit val BoxedFloatParameter: Parameter[lang.Float] =
@@ -116,14 +108,11 @@ trait FloatParameter {
 trait DoubleParameter {
   self: ParameterValue =>
 
-  implicit val DoubleParameter: Parameter[Double] =
-    new Parameter[Double] {
-      override val set: Double => (PreparedStatement, Int) => PreparedStatement = {
-        (value) => (statement, parameterIndex) =>
-          statement.setDouble(parameterIndex + 1, value)
-          statement
-      }
-    }
+  implicit val DoubleParameter: Parameter[Double] = {
+    (value: Double, statement: PreparedStatement, parameterIndex: Int) =>
+      statement.setDouble(parameterIndex + 1, value)
+      statement
+  }
 
   implicit val BoxedDoubleParameter: Parameter[lang.Double] =
     DerivedParameter[lang.Double, Double]
@@ -133,86 +122,67 @@ trait DoubleParameter {
 trait BigDecimalParameter {
   self: ParameterValue =>
 
-  implicit val JavaBigDecimalParameter: Parameter[java.math.BigDecimal] =
-    new Parameter[java.math.BigDecimal] {
-      override val set: java.math.BigDecimal => (PreparedStatement, Int) => PreparedStatement = {
-        (value) => (statement, parameterIndex) =>
-          statement.setBigDecimal(parameterIndex + 1, value)
-          statement
-      }
-    }
+  implicit val JavaBigDecimalParameter: Parameter[java.math.BigDecimal] = {
+    (value: java.math.BigDecimal, statement: PreparedStatement, parameterIndex: Int) =>
+      statement.setBigDecimal(parameterIndex + 1, value)
+      statement
+  }
 
   implicit val BigDecimalParameter: Parameter[BigDecimal] =
-    new DerivedParameter[BigDecimal] {
-      override type B = java.math.BigDecimal
-      override val conversion: BigDecimal => B = _.underlying()
-      override val baseParameter: Parameter[java.math.BigDecimal] = JavaBigDecimalParameter
-    }
+    DerivedParameter.converted[BigDecimal, java.math.BigDecimal](_.underlying())
 
 }
 
 trait DateParameter {
   self: ParameterValue =>
 
-  implicit val DateParameter: Parameter[Date] =
-    new Parameter[Date] {
-      override val set: Date => (PreparedStatement, Int) => PreparedStatement = {
-        (value) => (statement, parameterIndex) =>
-          value match {
-            case jdbcDate: JdbcDate =>
-              statement.setDate(parameterIndex + 1, jdbcDate)
-            case jdbcTime: Time =>
-              statement.setTime(parameterIndex + 1, jdbcTime)
-            case timestamp: Timestamp =>
-              statement.setTimestamp(parameterIndex + 1, timestamp)
-            case otherwise =>
-              statement.setDate(parameterIndex + 1, new JdbcDate(otherwise.getTime))
+  implicit val DateParameter: Parameter[Date] = {
+    (_: Date) match {
+        case jdbcDate: JdbcDate =>
+          (statement: PreparedStatement, parameterIndex: Int) => {
+            statement.setDate(parameterIndex + 1, jdbcDate)
+            statement
           }
-          statement
+        case jdbcTime: Time =>
+          (statement: PreparedStatement, parameterIndex: Int) => {
+            statement.setTime(parameterIndex + 1, jdbcTime)
+            statement
+          }
+        case timestamp: Timestamp =>
+          (statement: PreparedStatement, parameterIndex: Int) => {
+            statement.setTimestamp(parameterIndex + 1, timestamp)
+            statement
+          }
+        case otherwise =>
+          (statement: PreparedStatement, parameterIndex: Int) => {
+            statement.setDate(parameterIndex + 1, new JdbcDate(otherwise.getTime))
+            statement
+          }
       }
-    }
+  }
 
   implicit val LocalDateParameter: Parameter[LocalDate] =
-    new DerivedParameter[LocalDate] {
-      override type B = JdbcDate
-      override val conversion: LocalDate => B = JdbcDate.valueOf
-      override val baseParameter: Parameter[B] = DateParameter
-    }
+    DerivedParameter.converted[LocalDate, Date](JdbcDate.valueOf)
 
   implicit val LocalTimeParameter: Parameter[LocalTime] =
-    new DerivedParameter[LocalTime] {
-      override type B = Time
-      override val conversion: LocalTime => B = Time.valueOf
-      override val baseParameter: Parameter[B] = DateParameter
-    }
+    DerivedParameter.converted[LocalTime, Time](Time.valueOf)
 
   implicit val InstantParameter: Parameter[Instant] =
-    new DerivedParameter[Instant] {
-      override type B = Timestamp
-      override val conversion: Instant => B = Timestamp.from
-      override val baseParameter: Parameter[B] = DateParameter
-    }
+    DerivedParameter.converted[Instant, Timestamp](Timestamp.from)
 
   implicit val LocalDateTimeParameter: Parameter[LocalDateTime] =
-    new DerivedParameter[LocalDateTime] {
-      override type B = Timestamp
-      override val conversion: LocalDateTime => B = Timestamp.valueOf
-      override val baseParameter: Parameter[B] = DateParameter
-    }
+    DerivedParameter.converted[LocalDateTime, Timestamp](Timestamp.valueOf)
 
 }
 
 trait BooleanParameter {
   self: ParameterValue =>
 
-  implicit val BooleanParameter: Parameter[Boolean] =
-    new Parameter[Boolean] {
-      override val set: Boolean => (PreparedStatement, Int) => PreparedStatement = {
-        (value) => (statement, parameterIndex) =>
-          statement.setBoolean(parameterIndex + 1, value)
-          statement
-      }
-    }
+  implicit val BooleanParameter: Parameter[Boolean] = {
+    (value: Boolean, statement: PreparedStatement, parameterIndex: Int) =>
+      statement.setBoolean(parameterIndex + 1, value)
+      statement
+  }
 
   implicit val BoxedBooleanParameter: Parameter[lang.Boolean] =
     DerivedParameter[lang.Boolean, Boolean]
@@ -222,56 +192,44 @@ trait BooleanParameter {
 trait StringParameter {
   self: ParameterValue =>
 
-  implicit val StringParameter: Parameter[String] =
-    new Parameter[String] {
-      override val set: String => (PreparedStatement, Int) => PreparedStatement = {
-        (value) => (statement, parameterIndex) =>
-          statement.setString(parameterIndex + 1, value)
-          statement
-      }
-    }
+  implicit val StringParameter: Parameter[String] = {
+    (value: String, statement: PreparedStatement, parameterIndex: Int) =>
+      statement.setString(parameterIndex + 1, value)
+      statement
+  }
 
 }
 
 trait ReaderParameter {
   self: ParameterValue =>
 
-  implicit val ReaderParameter: Parameter[Reader] =
-    new Parameter[Reader] {
-      override val set: (Reader) => (PreparedStatement, Int) => PreparedStatement = {
-        (value: Reader) => (statement: PreparedStatement, parameterIndex: Int) =>
-          statement.setCharacterStream(parameterIndex + 1, value)
-          statement
-      }
-    }
+  implicit val ReaderParameter: Parameter[Reader] = {
+    (value: Reader, statement: PreparedStatement, parameterIndex: Int) =>
+      statement.setCharacterStream(parameterIndex + 1, value)
+      statement
+  }
 
 }
 
 trait InputStreamParameter {
   self: ParameterValue =>
 
-  implicit val InputStreamParameter: Parameter[InputStream] =
-    new Parameter[InputStream] {
-      override val set: (InputStream) => (PreparedStatement, Int) => PreparedStatement = {
-        (value: InputStream) => (statement: PreparedStatement, parameterIndex: Int) =>
-          statement.setBinaryStream(parameterIndex + 1, value)
-          statement
-      }
-    }
+  implicit val InputStreamParameter: Parameter[InputStream] = {
+    (value: InputStream, statement: PreparedStatement, parameterIndex: Int) =>
+      statement.setBinaryStream(parameterIndex + 1, value)
+      statement
+  }
 
 }
 
 trait UUIDParameter {
   self: ParameterValue =>
 
-  implicit val UUIDParameter: Parameter[UUID] =
-    new Parameter[UUID] {
-      override val set: (UUID) => (PreparedStatement, Int) => PreparedStatement = {
-        (value: UUID) => (statement: PreparedStatement, parameterIndex: Int) =>
-          statement.setObject(parameterIndex + 1, value)
-          statement
-      }
-    }
+  implicit val UUIDParameter: Parameter[UUID] = {
+    (value: UUID, statement: PreparedStatement, parameterIndex: Int) =>
+      statement.setObject(parameterIndex + 1, value)
+      statement
+  }
 
 }
 
@@ -280,14 +238,11 @@ trait UUIDParameter {
 trait URLParameter {
   self: ParameterValue =>
 
-  implicit val URLParameter: Parameter[URL] =
-    new Parameter[URL] {
-      override val set: (URL) => (PreparedStatement, Int) => PreparedStatement = {
-        (value: URL) => (statement: PreparedStatement, parameterIndex: Int) =>
-          statement.setURL(parameterIndex + 1, value)
-          statement
-      }
-    }
+  implicit val URLParameter: Parameter[URL] = {
+    (value: URL, statement: PreparedStatement, parameterIndex: Int) =>
+      statement.setURL(parameterIndex + 1, value)
+      statement
+  }
 
 }
 
@@ -295,41 +250,24 @@ trait SQLXMLParameter {
   self: ParameterValue
     with StringParameter =>
 
-  implicit val SQLXMLParameter: Parameter[SQLXML] =
-    new Parameter[SQLXML] {
-      override val set: (SQLXML) => (PreparedStatement, Int) => PreparedStatement = {
-        (value: SQLXML) => (statement: PreparedStatement, parameterIndex: Int) =>
-          statement.setSQLXML(parameterIndex + 1, value)
-          statement
-      }
-    }
-
   /**
     * JDBC has a special SQLXML type, but jTDS doesn't support it. Most drivers seem to
     * have no problems sending XML as strings.
     *
     * The PostgreSQL driver, for example, sends the XML as a string with the Oid set as Oid.XML.
     */
-  implicit val NodeParameter: Parameter[NodeSeq] =
-    new DerivedParameter[NodeSeq] {
-      override type B = String
-      override val conversion: NodeSeq => B = nodes => NodeSeq.fromSeq(nodes).toString
-      override val baseParameter: Parameter[B] = StringParameter
-    }
+  implicit val XmlElemParameter: Parameter[Elem] =
+    DerivedParameter.toString[Elem]
 
 }
 
 trait BlobParameter {
   self: ParameterValue =>
 
-  implicit val BlobParameter: Parameter[Blob] =
-    new Parameter[Blob] {
-      override val set: (Blob) => (PreparedStatement, Int) => PreparedStatement = {
-        (value: Blob) => (statement: PreparedStatement, parameterIndex: Int) =>
-          statement.setBlob(parameterIndex + 1, value)
-          statement
-      }
-    }
+  implicit val BlobParameter: Parameter[Blob] = {
+    (value: Blob, statement: PreparedStatement, parameterIndex: Int) =>
+      statement.setBlob(parameterIndex + 1, value)
+      statement
+  }
 
 }
-

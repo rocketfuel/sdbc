@@ -3,7 +3,7 @@ package com.rocketfuel.sdbc.sqlserver
 import com.rocketfuel.sdbc.base.jdbc._
 import java.time._
 import java.util.UUID
-import scala.xml.Node
+import scala.xml.Elem
 
 trait Updaters
   extends LongUpdater
@@ -25,41 +25,22 @@ trait Updaters
   with LocalDateUpdater {
   self: SqlServer =>
 
-  implicit val LocalTimeUpdater: Updater[LocalTime] = new Updater[LocalTime] {
-    override def update(row: UpdatableRow, columnIndex: Int, x: LocalTime): Unit = {
-      row.updateString(columnIndex, x.toString)
-    }
-  }
+  implicit val LocalTimeUpdater: Updater[LocalTime] =
+    Updater.toString[LocalTime]
 
-  implicit val InstantUpdater: Updater[Instant] = new Updater[Instant] {
-    override def update(row: UpdatableRow, columnIndex: Int, x: Instant): Unit = {
-      val format: String = instantFormatter.format(x)
-      row.updateString(columnIndex, format)
-    }
-  }
+  implicit val InstantUpdater: Updater[Instant] =
+    Updater.converted[Instant, String](instantFormatter.format)
 
-  implicit val OffsetDateTimeUpdater: Updater[OffsetDateTime] = new Updater[OffsetDateTime] {
-    override def update(row: UpdatableRow, columnIndex: Int, x: OffsetDateTime): Unit = {
-      row.updateString(columnIndex, offsetDateTimeFormatter.format(x))
-    }
-  }
+  implicit val OffsetDateTimeUpdater: Updater[OffsetDateTime] =
+    Updater.converted[OffsetDateTime, String](offsetDateTimeFormatter.format)
 
-  implicit val UUIDUpdater: Updater[UUID] = new Updater[UUID] {
-    override def update(row: UpdatableRow, columnIndex: Int, x: UUID): Unit = {
-      row.updateString(columnIndex, x.toString)
-    }
-  }
+  implicit val UUIDUpdater: Updater[UUID] =
+    Updater.toString[UUID]
 
-  implicit val HierarchyUpdater: Updater[HierarchyId] = new Updater[HierarchyId] {
-    override def update(row: UpdatableRow, columnIndex: Int, x: HierarchyId): Unit = {
-      row.updateString(columnIndex, x.toString)
-    }
-  }
+  implicit val HierarchyUpdater: Updater[HierarchyId] =
+    Updater.toString[HierarchyId]
 
-  implicit val XmlUpdater: Updater[Node] = new Updater[Node] {
-    override def update(row: UpdatableRow, columnIndex: Int, x: Node): Unit = {
-      row.updateString(columnIndex, x.toString)
-    }
-  }
+  implicit val XmlElemUpdater: Updater[Elem] =
+    Updater.toString[Elem]
 
 }

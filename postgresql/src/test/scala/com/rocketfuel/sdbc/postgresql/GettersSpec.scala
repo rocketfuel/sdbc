@@ -40,7 +40,7 @@ class GettersSpec
 
   testSelect[java.math.BigDecimal]("SELECT 3.14159::numeric(10,5) --as Java BigDecimal", BigDecimal("3.14159").underlying.some)
 
-  testSelect[scala.xml.Node]("SELECT '<a>hi</a>'::xml", <a>hi</a>.some)
+  testSelect[scala.xml.Elem]("SELECT '<a>hi</a>'::xml", <a>hi</a>.some)
 
   testSelect[Date]("SELECT '2014-12-29'::date", Date.valueOf("2014-12-29").some)
 

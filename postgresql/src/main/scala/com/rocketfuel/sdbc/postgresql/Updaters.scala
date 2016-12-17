@@ -1,6 +1,7 @@
 package com.rocketfuel.sdbc.postgresql
 
 import com.rocketfuel.sdbc.base.jdbc._
+import com.rocketfuel.sdbc.base.jdbc.statement._
 import java.net.InetAddress
 import java.time.{Duration => JavaDuration, _}
 import org.json4s._
@@ -27,16 +28,15 @@ trait Updaters
   with LocalDateTimeUpdater
   with InstantUpdater
   with LocalDateUpdater
+  with SeqUpdater
   with XmlUpdater {
   self: DBMS
-    with IntervalImplicits =>
+    with IntervalImplicits
+    with SeqParameter =>
 
   def IsPGobjectUpdater[A, B <: PGobject](implicit converter: A => B): Updater[A] = {
-    new Updater[A] {
-      override def update(row: UpdatableRow, columnIndex: Int, x: A): Unit = {
-        PGobjectUpdater.update(row, columnIndex, converter(x))
-      }
-    }
+    (row: UpdatableRow, columnIndex: Int, x: A) =>
+      PGobjectUpdater(row, columnIndex, converter(x))
   }
 
   implicit val OffsetTimeUpdater: Updater[OffsetTime] =
@@ -60,21 +60,16 @@ trait Updaters
   implicit val InetAddressUpdater: Updater[InetAddress] =
     IsPGobjectUpdater[InetAddress, PGInetAddress]
 
-  implicit val PGobjectUpdater: Updater[PGobject] = new Updater[PGobject] {
-    override def update(
-      row: UpdatableRow,
-      columnIndex: Int,
-      x: PGobject
-    ): Unit = {
-      row.updateObject(columnIndex, x)
-    }
-  }
+  implicit val PGobjectUpdater: Updater[PGobject] =
+    _.updateObject(_, _)
 
-  implicit val MapUpdater: Updater[Map[String, String]] = new Updater[Map[String, String]] {
-    override def update(row: UpdatableRow, columnIndex: Int, x: Map[String, String]): Unit = {
+  implicit val HStoreJavaUpdater: Updater[java.util.Map[String, String]] =
+    _.updateObject(_, _)
+
+  implicit val HStoreScalaUpdater: Updater[Map[String, String]] = {
+    (row: UpdatableRow, columnIndex: Int, x: Map[String, String]) =>
       import scala.collection.JavaConverters._
-      row.updateObject(columnIndex, x.asJava)
+      HStoreJavaUpdater(row, columnIndex, x.asJava)
     }
-  }
 
 }

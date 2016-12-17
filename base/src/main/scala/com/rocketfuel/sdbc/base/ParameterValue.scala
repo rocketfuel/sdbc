@@ -22,48 +22,49 @@ trait ParameterValue {
     value: Option[T]
   )(implicit parameter: Parameter[T]
   ): (PreparedStatement, Int) => PreparedStatement = {
-    value.map(parameter.set).getOrElse(setNone)
+    value.map(parameter).getOrElse(setNone)
   }
 
-  trait Parameter[-A] {
-    val set: A => (PreparedStatement, Int) => PreparedStatement
-  }
+  trait Parameter[-A] extends (A => (PreparedStatement, Int) => PreparedStatement)
 
   object Parameter {
     def apply[A](implicit parameter: Parameter[A]): Parameter[A] = parameter
 
-    implicit def ofFunction[A](set0: A => (PreparedStatement, Int) => PreparedStatement): Parameter[A] = new Parameter[A] {
-      override val set: (A) => (PreparedStatement, Int) => PreparedStatement = set0
-    }
-  }
-
-  trait DerivedParameter[-A] extends Parameter[A] {
-
-    type B
-
-    val conversion: A => B
-    val baseParameter: Parameter[B]
-
-    override val set: A => (PreparedStatement, Int) => PreparedStatement = {
-      (value: A) => {
-        val converted = conversion(value)
-        (statement, parameterIndex) =>
-          baseParameter.set(converted)(statement, parameterIndex)
+    implicit def ofFunction1[A](set0: (A, PreparedStatement, Int) => PreparedStatement): Parameter[A] = new Parameter[A] {
+      override def apply(v1: A): (PreparedStatement, Int) => PreparedStatement = {
+        (preparedStatement: PreparedStatement, ix: Int) =>
+          set0(v1, preparedStatement, ix)
       }
     }
 
+    implicit def ofFunction2[A](set0: A => (PreparedStatement, Int) => PreparedStatement): Parameter[A] = new Parameter[A] {
+      override def apply(v1: A): (PreparedStatement, Int) => PreparedStatement = set0(v1)
+    }
+
+  }
+
+  trait DerivedParameter[-A, +B] extends Parameter[A] {
+    def convert(value: A): B
   }
 
   object DerivedParameter {
-    type Aux[A, B0] = DerivedParameter[A] { type B = B0 }
+    implicit def apply[A, B](implicit convert0: A => B, baseParameter: Parameter[B]): DerivedParameter[A, B] =
+      new DerivedParameter[A, B] {
+        override def convert(value: A): B = convert0(value)
 
-    implicit def apply[A, B0](implicit conversion0: A => B0, baseParameter0: Parameter[B0]): DerivedParameter[A] =
-      new DerivedParameter[A] {
-        type B = B0
-        override val conversion: A => B = conversion0
-        override val baseParameter: Parameter[B] = baseParameter0
+        override def apply(v1: A): (PreparedStatement, Int) => PreparedStatement = {
+          val converted = convert(v1)
+          baseParameter(converted)
+        }
       }
 
+    implicit def converted[A, B](convert: A => B)(implicit baseParameter: Parameter[B]): DerivedParameter[A, B] = {
+      apply[A, B](convert, baseParameter)
+    }
+
+    def toString[A](implicit baseParameter: Parameter[String]): DerivedParameter[A, String] = {
+      apply[A, String](_.toString, baseParameter)
+    }
   }
 
   case class ParameterValue private[sdbc] (
@@ -107,7 +108,7 @@ trait ParameterValue {
     }
 
     implicit def ofSome[T](p: Some[T])(implicit parameter: Parameter[T]): ParameterValue = {
-      ParameterValue(p, parameter.set(p.get))
+      ParameterValue(p, parameter(p.get))
     }
 
     implicit def of[T](p: T)(implicit parameter: Parameter[T]): ParameterValue = {

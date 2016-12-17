@@ -49,8 +49,19 @@ trait Getter {
           f(v1, v2)
       }
 
-    implicit def ofParser[A](parser: String => A)(implicit stringGetter: Getter[String]): Getter[A] = {
-      (row: Row, index: Int) => stringGetter(row, index).map(parser)
+    implicit def derived[A, B](implicit converter: B => A, getter: Getter[B]): Getter[A] = {
+      (row: Row, ix: Int) =>
+        for {
+          base <- getter(row, ix)
+        } yield converter(base)
+    }
+
+    implicit def converted[A, B](converter: B => A)(implicit getter: Getter[B]): Getter[A] = {
+      derived[A, B](converter, getter)
+    }
+
+    def ofParser[A](parser: String => A)(implicit getter: Getter[String]): Getter[A] = {
+      converted[A, String](parser)
     }
   }
 

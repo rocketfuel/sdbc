@@ -10,7 +10,6 @@ import org.json4s.JValue
 import org.postgresql.util.{PGInterval, PGobject}
 import scala.concurrent.duration.{Duration => ScalaDuration}
 import scala.reflect.ClassTag
-import scala.xml.{Elem, XML}
 
 //PostgreSQL doesn't support Byte, so we don't use the default getters.
 trait Getters
@@ -31,29 +30,30 @@ trait Getters
   with InstantGetter
   with LocalDateGetter
   with LocalDateTimeGetter
-  with SeqGetter {
+  with SeqGetter
+  with XmlGetter {
   self: DBMS
     with IntervalImplicits =>
 
   implicit val LTreeGetter: Getter[LTree] =
-    (row: Row, ix: Index) => {
-      Option(row.getObject(ix(row))).map {
+    (row: Row, ix: Int) => {
+      Option(row.getObject(ix)).map {
         case l: LTree => l
         case _ => throw new SQLException("column does not contain an ltree")
       }
     }
 
   implicit val CIdrGetter: Getter[Cidr] =
-    (row: Row, ix: Index) => {
-      Option(row.getObject(ix(row))).map {
+    (row: Row, ix: Int) => {
+      Option(row.getObject(ix)).map {
         case p: Cidr => p
         case _ => throw new SQLException("column does not contain a cidr")
       }
     }
 
   def IsPGobjectGetter[A <: PGobject, B](converter: A => B)(implicit ctag: ClassTag[A]): Getter[B] =
-    (row: Row, ix: Index) => {
-      val shouldBePgValue = Option(row.getObject(ix(row)))
+    (row: Row, ix: Int) => {
+      val shouldBePgValue = Option(row.getObject(ix))
       shouldBePgValue.map {
         case p: A =>
           converter(p)
@@ -84,7 +84,7 @@ trait Getters
 //  implicit val OffsetDateTimeGetter = IsPGobjectGetter[PGTimestampTz, OffsetDateTime](_.offsetDateTime.get)
 
   implicit val LocalTimeGetter: Getter[LocalTime] =
-    (value: String) => PGLocalTime.parse(value)
+    PGLocalTime.parse _
 
   implicit val OffsetTimeGetter: Getter[OffsetTime] =
     (value: String) => OffsetTime.from(offsetTimeFormatter.parse(value))
@@ -93,30 +93,29 @@ trait Getters
     (value: String) => OffsetDateTime.from(offsetDateTimeFormatter.parse(value))
 
   override implicit val UUIDGetter: Getter[UUID] =
-    (row: Row, ix: Index) => {
-      Option(row.getObject(ix(row))).map {
+    (row: Row, ix: Int) => {
+      Option(row.getObject(ix)).map {
         case uuid: UUID => uuid
         case _ => throw new SQLDataException("column does not contain a uuid")
       }
     }
 
-  implicit val XMLGetter: Getter[Elem] =
-    //PostgreSQL's ResultSet#getSQLXML just uses getString.
-    (asString: String) => XML.loadString(asString)
-
-  implicit val MapGetter: Getter[Map[String, String]] =
-    (row: Row, ix: Index) => {
-      Option(row.getObject(ix(row))).map {
+  implicit val HStoreJavaGetter: Getter[java.util.Map[String, String]] = {
+    (row: Row, ix: Int) =>
+      Option(row.getObject(ix)).map {
         case m: java.util.Map[_, _] =>
-          import scala.collection.JavaConverters._
-          val values =
-            for (entry <- m.entrySet().asScala) yield {
-              entry.getKey.asInstanceOf[String] -> entry.getValue.asInstanceOf[String]
-            }
-          Map(values.toSeq: _*)
+          m.asInstanceOf[java.util.Map[String, String]]
         case _ =>
           throw new SQLException("column does not contain an hstore")
       }
-    }
+  }
+
+  implicit val HStoreScalaGetter: Getter[Map[String, String]] = {
+    (row: Row, ix: Int) =>
+      import scala.collection.JavaConverters._
+      for {
+        javaMap <- HStoreJavaGetter(row, ix)
+      } yield javaMap.asScala.toMap
+  }
 
 }

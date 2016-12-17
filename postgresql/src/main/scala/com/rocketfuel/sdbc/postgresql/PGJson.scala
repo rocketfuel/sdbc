@@ -42,13 +42,13 @@ private object PGJson {
 trait JValueParameter {
   self: ParameterValue =>
 
-  implicit object JValueParameter extends Parameter[JValue] {
-    override val set: JValue => (PreparedStatement, Int) => PreparedStatement = {
-      json => (statement, ix) =>
-        val pgJson = PGJson(json)
+  implicit val JValueParameter: Parameter[JValue] =
+    (json: JValue) => {
+      val pgJson = PGJson(json)
+      (statement: PreparedStatement, ix: Int) => {
         statement.setObject(ix + 1, pgJson)
         statement
+      }
     }
-  }
 
 }
