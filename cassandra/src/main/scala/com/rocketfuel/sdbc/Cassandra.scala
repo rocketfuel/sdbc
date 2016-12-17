@@ -39,9 +39,6 @@ object Cassandra
   type QueryOptions = cassandra.QueryOptions
   val QueryOptions = cassandra.QueryOptions
 
-  type RowConverter[A] = cassandra.RowConverter[A]
-  val RowConverter = cassandra.RowConverter
-
   type TupleDataType[A] = cassandra.TupleDataType[A]
   val TupleDataType = cassandra.TupleDataType
 
@@ -62,11 +59,11 @@ object Cassandra
     )(implicit mapper: Mapper.Aux[ToParameterValue.type, A, MappedA],
       toList: ToList[MappedA, ParameterValue]
     ): Parameters = {
-      a
-      .map(ToParameterValue)
-      .toList
-      .zipWithIndex
-      .map {
+      a.
+      map(ToParameterValue).
+      toList.
+      zipWithIndex.
+      map {
         case (parameter, ix) =>
           (ix.toString, parameter)
       } toMap

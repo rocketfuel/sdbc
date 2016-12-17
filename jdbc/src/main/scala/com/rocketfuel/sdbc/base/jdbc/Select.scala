@@ -28,6 +28,9 @@ trait Select {
       copy(parameters = parameters)
     }
 
+    def as[B](implicit otherRowConverter: RowConverter[B]): Select[B] =
+      Select[B](statement, parameters)
+
     def iterator()(implicit connection: Connection): CloseableIterator[A] = {
       Select.iterator(statement, parameters)
     }

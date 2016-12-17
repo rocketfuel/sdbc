@@ -25,7 +25,7 @@ trait ImmutableRow {
     override val getMetaData: ResultSetMetaData,
     override val getRow: Int,
     override val toSeq: IndexedSeq[Option[Any]]
-  ) extends Row() {
+  ) extends com.rocketfuel.sdbc.base.jdbc.resultset.Row() {
 
     override lazy val toMap = Row.toMap(toSeq, getMetaData)
 

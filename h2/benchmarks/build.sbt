@@ -2,7 +2,7 @@ publishArtifact in ThisBuild := false
 
 enablePlugins(JmhPlugin)
 
-val doobieVersion = "0.3.1-M2"
+val doobieVersion = "0.3.1-M3"
 
 libraryDependencies ++= Seq(
   "org.tpolecat" %% "doobie-core" % doobieVersion,

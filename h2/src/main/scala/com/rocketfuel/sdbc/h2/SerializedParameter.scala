@@ -22,8 +22,8 @@ trait SerializedParameter {
     }
 
   implicit val SerializedGetter: Getter[Serialized] = {
-    (row: Row, ix: Index) =>
-      Option(row.getObject(ix(row))).map(o => Serialized(o.asInstanceOf[AnyRef with java.io.Serializable]))
+    (row: Row, ix: Int) =>
+      Option(row.getObject(ix)).map(o => Serialized(o.asInstanceOf[AnyRef with java.io.Serializable]))
   }
 
 }

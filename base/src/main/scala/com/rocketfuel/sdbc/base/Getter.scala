@@ -1,13 +1,28 @@
 package com.rocketfuel.sdbc.base
 
-import shapeless._
+import shapeless.{::, Generic, HList, HNil, Lazy}
+import shapeless.labelled.{FieldType, field}
 
 /*
  * This is inspired from doobie, which supports using Shapeless to create getters, setters, and updaters.
  */
 trait Getter {
+  self: RowConverter =>
 
-  type Row
+  trait RowConverters {
+    /**
+      * Automatically generated row converters are to be used
+      * only if there isn't an explicit row converter.
+      */
+    implicit def fromCompositeGetter[A](implicit
+      converter: CompositeGetter[A]
+    ): RowConverter[A] =
+      new RowConverter[A] {
+        override def apply(row: Row): A = {
+          converter(row, 0)
+        }
+      }
+  }
 
   /**
     * Getters provide a uniform interface for any value that might be stored
@@ -17,37 +32,93 @@ trait Getter {
     * Instead, the row decomposes into parts, which then compose into yet another
     * non-primitive value. Row => elements => case class or product
     */
-  trait Getter[A] extends ((Row, Index) => A) {
+  trait Getter[A] extends ((Row, Int) => Option[A]) {
 
     val length: Int
 
   }
 
-  //Override this with a trait having a collection of implicit Getters.
-  type Getters
-
-  object Getter extends Getters with LowerPriorityGetter {
+  object Getter {
     def apply[A](implicit getter: Getter[A]): Getter[A] = getter
 
-    implicit def optionFromGetter[A](implicit g: Getter[A]): Getter[Option[A]] = {
-      new Getter[Option[A]] {
+    implicit def ofFunction[A](f: (Row, Int) => Option[A]): Getter[A] =
+      new Getter[A] {
         override val length: Int = 1
 
-        override def apply(v1: Row, v2: Index): Option[A] = {
+        override def apply(v1: Row, v2: Int): Option[A] =
+          f(v1, v2)
+      }
+
+    implicit def ofParser[A](parser: String => A)(implicit stringGetter: Getter[String]): Getter[A] = {
+      (row: Row, index: Int) => stringGetter(row, index).map(parser)
+    }
+  }
+
+
+  /**
+    * Like doobie's Composite, but only the getter part.
+    *
+    * @tparam A
+    */
+  trait CompositeGetter[A] extends ((Row, Int) => A) {
+
+    val length: Int
+
+  }
+
+  /**
+    * Use any Getters in scope to create a Getter for multiple columns.
+    */
+  object CompositeGetter extends LowerPriorityCompositeGetter {
+    def apply[A](implicit getter: CompositeGetter[A]): CompositeGetter[A] = getter
+
+    implicit def optionFromGetter[A](implicit g: Getter[A]): CompositeGetter[Option[A]] = {
+      new CompositeGetter[Option[A]] {
+        override val length: Int = 1
+
+        override def apply(v1: Row, v2: Int): Option[A] = {
           g(v1, v2)
         }
       }
     }
+
+    implicit def fromGetter[A](implicit g: Getter[A]): CompositeGetter[A] =
+      new CompositeGetter[A] {
+        override def apply(v1: Row, v2: Int): A = {
+          g(v1, v2).get
+        }
+
+        override val length: Int = 1
+      }
+
+    implicit def recordComposite[
+      H,
+      T <: HList,
+      K <: Symbol
+    ](implicit
+      H: CompositeGetter[H],
+      T: CompositeGetter[T]
+    ): CompositeGetter[FieldType[K, H] :: T] =
+      new CompositeGetter[FieldType[K, H] :: T] {
+        override def apply(row: Row, ix: Int): FieldType[K, H] :: T = {
+          val head = H(row, ix)
+          val tail = T(row, ix + H.length)
+
+          field[K](head) :: tail
+        }
+
+        override val length: Int = H.length + T.length
+      }
   }
 
-  trait LowerPriorityGetter {
+  trait LowerPriorityCompositeGetter {
 
     implicit def product[H, T <: HList](implicit
-      H: Getter[H],
-      T: Getter[T]
-    ): Getter[H :: T] =
-      new Getter[H :: T] {
-        override def apply(row: Row, ix: Index): H :: T = {
+      H: CompositeGetter[H],
+      T: CompositeGetter[T]
+    ): CompositeGetter[H :: T] =
+      new CompositeGetter[H :: T] {
+        override def apply(row: Row, ix: Int): H :: T = {
           val head = H(row, ix)
           val tail = T(row, ix + H.length)
           head :: tail
@@ -56,9 +127,9 @@ trait Getter {
         override val length: Int = H.length + T.length
       }
 
-    implicit val emptyProduct: Getter[HNil] =
-      new Getter[HNil] {
-        override def apply(v1: Row, v2: Index): HNil = {
+    implicit val emptyProduct: CompositeGetter[HNil] =
+      new CompositeGetter[HNil] {
+        override def apply(v1: Row, v2: Int): HNil = {
           HNil
         }
 
@@ -67,10 +138,10 @@ trait Getter {
 
     implicit def generic[F, G](implicit
       gen: Generic.Aux[F, G],
-      G: Lazy[Getter[G]]
-    ): Getter[F] =
-      new Getter[F] {
-        override def apply(row: Row, ix: Index): F = {
+      G: Lazy[CompositeGetter[G]]
+    ): CompositeGetter[F] =
+      new CompositeGetter[F] {
+        override def apply(row: Row, ix: Int): F = {
           gen.from(G.value(row, ix))
         }
 
@@ -78,5 +149,5 @@ trait Getter {
       }
 
   }
-  
+
 }

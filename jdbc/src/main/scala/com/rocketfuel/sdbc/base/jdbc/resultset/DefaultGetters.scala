@@ -1,5 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc.resultset
 
+import com.rocketfuel.sdbc.base.Getter
 import com.rocketfuel.sdbc.base.jdbc._
 
 trait DefaultGetters

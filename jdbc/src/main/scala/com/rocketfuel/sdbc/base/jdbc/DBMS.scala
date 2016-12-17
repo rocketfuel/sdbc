@@ -1,6 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 import com.rocketfuel.sdbc.base
+import com.rocketfuel.sdbc.base.{Getter, RowConverter}
 import com.rocketfuel.sdbc.base.jdbc.resultset._
 import com.rocketfuel.sdbc.base.jdbc.statement.{ParameterValue, StatementConverter}
 import java.sql
@@ -24,10 +25,8 @@ trait DBMS
   with StatementConverter
   with Getter
   with Updater
-  with Row
   with ImmutableRow
   with ConnectedRow
-  with CompositeGetter
   with RowConverter
   with QueryMethods
   with StreamUtils {
@@ -66,5 +65,14 @@ trait DBMS
   type SQLWarning = sql.SQLWarning
 
   type Struct = sql.Struct
+
+  type Row = ConnectedRow
+
+  protected def ofVal[T <: AnyVal](valGetter: (ConnectedRow, Int) => T): Getter[T] = {
+    (row: ConnectedRow, ix: Int) =>
+      val value = valGetter(row, ix)
+      if (row.wasNull) None
+      else Some(value)
+  }
 
 }

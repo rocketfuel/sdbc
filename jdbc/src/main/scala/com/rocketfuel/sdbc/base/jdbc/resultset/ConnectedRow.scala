@@ -15,7 +15,7 @@ trait ConnectedRow {
     val underlying: ResultSet,
     override val columnNames: IndexedSeq[String],
     override val columnIndexes: Map[String, Int]
-  ) extends Row()
+  ) extends com.rocketfuel.sdbc.base.jdbc.resultset.Row()
     with ResultSet {
 
     protected var updatedRows = 0L
@@ -25,7 +25,7 @@ trait ConnectedRow {
     protected var deletedRows = 0L
 
     def apply[T](columnIndex: Index)(implicit getter: CompositeGetter[T]): T = {
-      getter(this, columnIndex)
+      getter(this, columnIndex(this))
     }
 
     override def toSeq: IndexedSeq[Option[Any]] = Row.toSeq(underlying)
@@ -509,64 +509,6 @@ trait ConnectedRow {
     def iterator(row: ConnectedRow): CloseableIterator[ConnectedRow]  = {
       row.underlying.iterator().map(Function.const(row))
     }
-  }
-
-  class UpdatableRow private[sdbc](
-    underlying: ResultSet,
-    columnNames: IndexedSeq[String],
-    columnIndexes: Map[String, Int]
-  ) extends ConnectedRow(underlying, columnNames, columnIndexes) {
-
-    def update[T](columnIndex: Index, x: T)(implicit updater: Updater[T]): Unit = {
-      updater.update(this, columnIndex(this), x)
-    }
-
-    def summary: UpdatableRow.Summary =
-      UpdatableRow.Summary(
-        deletedRows = this.deletedRows,
-        insertedRows = this.insertedRows,
-        updatedRows = this.updatedRows
-      )
-
-  }
-
-  object UpdatableRow {
-    def apply(resultSet: ResultSet): UpdatableRow = {
-      val columnNames = Row.columnNames(resultSet.getMetaData)
-      val columnIndexes = Row.columnIndexes(columnNames)
-
-      new UpdatableRow(
-        underlying = resultSet,
-        columnNames = columnNames,
-        columnIndexes = columnIndexes
-      )
-    }
-
-    def iterator(resultSet: ResultSet): CloseableIterator[UpdatableRow]  = {
-      val row = UpdatableRow(resultSet)
-      resultSet.iterator().map(Function.const(row))
-    }
-
-    def iterator(row: UpdatableRow): CloseableIterator[UpdatableRow]  = {
-      row.underlying.iterator().map(Function.const(row))
-    }
-
-    /**
-      *
-      * @param deletedRows how many times deleteRow() was called
-      * @param insertedRows how many times insertRow() was called
-      * @param updatedRows how many times updateRow() was called
-      */
-    case class Summary(
-      deletedRows: Long = 0L,
-      insertedRows: Long = 0L,
-      updatedRows: Long = 0L
-    )
-
-    object Summary {
-      lazy val empty = Summary()
-    }
-
   }
 
 }

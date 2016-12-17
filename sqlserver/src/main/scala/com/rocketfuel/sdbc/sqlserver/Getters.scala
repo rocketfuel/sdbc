@@ -23,8 +23,8 @@ trait Getters
     (asString: String) => HierarchyId.fromString(asString)
 
   implicit val XmlGetterImmutable: Getter[Node] =
-    (row: Row, ix: Index) =>
-      Option(row.getString(ix(row))).map(XML.loadString)
+    (row: Row, ix: Int) =>
+      Option(row.getString(ix)).map(XML.loadString)
 
   /**
    * JTDS sometimes fails to parse timestamps, so we use our own parser.

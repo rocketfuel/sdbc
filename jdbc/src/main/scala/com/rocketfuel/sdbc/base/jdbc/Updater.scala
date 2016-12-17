@@ -13,17 +13,11 @@ import scala.xml.NodeSeq
 import scodec.bits.ByteVector
 
 trait Updater {
-  self: ConnectedRow
-    with ParameterValue =>
+  self: DBMS with SelectForUpdate with Connection =>
 
   trait Updater[-T] {
 
     def update(row: UpdatableRow, columnIndex: Int, x: T): Unit
-
-    def update(row: UpdatableRow, columnLabel: String, x: T): Unit = {
-      val columnIndex = row.findColumn(columnLabel)
-      update(row, columnIndex, x)
-    }
 
   }
 
@@ -63,6 +57,7 @@ trait Updater {
 
 trait LongUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -83,6 +78,7 @@ trait LongUpdater {
 
 trait IntUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -102,6 +98,7 @@ trait IntUpdater {
 
 trait ShortUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -120,6 +117,7 @@ trait ShortUpdater {
 
 trait ByteUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -138,6 +136,7 @@ trait ByteUpdater {
 
 trait BytesUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -169,6 +168,7 @@ trait BytesUpdater {
 
 trait DoubleUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -187,6 +187,7 @@ trait DoubleUpdater {
 
 trait FloatUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow =>
 
   implicit val FloatUpdater = new Updater[Float] {
@@ -204,6 +205,7 @@ trait FloatUpdater {
 
 trait BigDecimalUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -223,6 +225,7 @@ trait BigDecimalUpdater {
 
 trait TimestampUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -235,6 +238,7 @@ trait TimestampUpdater {
 
 trait DateUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -247,6 +251,7 @@ trait DateUpdater {
 
 trait TimeUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -259,6 +264,7 @@ trait TimeUpdater {
 
 trait LocalDateTimeUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -271,6 +277,7 @@ trait LocalDateTimeUpdater {
 
 trait InstantUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -283,6 +290,7 @@ trait InstantUpdater {
 
 trait LocalDateUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -295,6 +303,7 @@ trait LocalDateUpdater {
 
 trait LocalTimeUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -307,6 +316,7 @@ trait LocalTimeUpdater {
 
 trait BooleanUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -325,6 +335,7 @@ trait BooleanUpdater {
 
 trait StringUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -337,6 +348,7 @@ trait StringUpdater {
 
 trait UUIDUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -350,6 +362,7 @@ trait UUIDUpdater {
 
 trait InputStreamUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -362,6 +375,7 @@ trait InputStreamUpdater {
 
 trait ReaderUpdater {
   self: Updater
+    with SelectForUpdate
     with ConnectedRow
     with ParameterValue =>
 
@@ -374,7 +388,8 @@ trait ReaderUpdater {
 
 trait XmlUpdater {
   self: Updater
-  with ConnectedRow
+  with SelectForUpdate
+    with ConnectedRow
   with ParameterValue =>
 
   implicit val NodeSeqUpdater: Updater[NodeSeq] = new Updater[NodeSeq] {
