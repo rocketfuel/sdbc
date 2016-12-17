@@ -31,11 +31,8 @@ trait Setters
   implicit val HierarchyIdParameter: Parameter[HierarchyId] =
     DerivedParameter.toString[HierarchyId]
 
-  implicit val UUIDParameter: Parameter[UUID] = {
-    (uuid: UUID) =>
-      val asString = uuid.toString
-      StringParameter.set(asString)
-  }
+  implicit val UUIDParameter: Parameter[UUID] =
+    DerivedParameter.toString[UUID]
 
   implicit val XmlElemParameter: Parameter[Elem] =
     DerivedParameter.toString[Elem]
