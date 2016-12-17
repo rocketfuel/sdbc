@@ -54,12 +54,8 @@ trait ParameterValue
       statement.setDate(parameterIndex, value)
   }
 
-  implicit val JavaLocalDateParameter: Parameter[java.time.LocalDate] = {
-    DerivedParameter[java.time.LocalDate, LocalDate](
-      conversion0 = l => LocalDate.fromMillisSinceEpoch(TimeUnit.DAYS.toMillis(l.toEpochDay)),
-      baseParameter0 = LocalDateParameter
-    )
-  }
+  implicit val JavaLocalDateParameter: Parameter[java.time.LocalDate] =
+    DerivedParameter.converted[java.time.LocalDate, LocalDate](l => LocalDate.fromMillisSinceEpoch(TimeUnit.DAYS.toMillis(l.toEpochDay)))
 
   implicit val DateParameter: Parameter[Date] = {
     implicit def dateToLocalDate(d: Date): LocalDate =
