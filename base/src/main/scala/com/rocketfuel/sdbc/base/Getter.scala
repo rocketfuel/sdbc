@@ -32,7 +32,7 @@ trait Getter {
     * Instead, the row decomposes into parts, which then compose into yet another
     * non-primitive value. Row => elements => case class or product
     */
-  trait Getter[A] extends ((Row, Int) => Option[A]) {
+  trait Getter[+A] extends ((Row, Int) => Option[A]) {
 
     val length: Int
 
