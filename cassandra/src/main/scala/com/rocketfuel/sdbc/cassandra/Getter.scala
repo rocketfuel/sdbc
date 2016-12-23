@@ -2,13 +2,14 @@ package com.rocketfuel.sdbc.cassandra
 
 import com.datastax.driver.core.{LocalDate, UDTValue}
 import com.google.common.reflect.TypeToken
+import com.rocketfuel.sdbc.base
 import java.net.InetAddress
 import java.util.{Date, UUID}
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 import scodec.bits.ByteVector
 
-trait Getter extends com.rocketfuel.sdbc.base.Getter with com.rocketfuel.sdbc.base.RowConverter {
+trait Getter extends base.Getter with base.RowConverter {
 
   override type Row = com.datastax.driver.core.Row
 
