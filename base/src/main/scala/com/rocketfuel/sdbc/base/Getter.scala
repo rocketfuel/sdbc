@@ -9,21 +9,6 @@ import shapeless.labelled.{FieldType, field}
 trait Getter {
   self: RowConverter =>
 
-  trait RowConverters {
-    /**
-      * Automatically generated row converters are to be used
-      * only if there isn't an explicit row converter.
-      */
-    implicit def fromCompositeGetter[A](implicit
-      converter: CompositeGetter[A]
-    ): RowConverter[A] =
-      new RowConverter[A] {
-        override def apply(row: Row): A = {
-          converter(row, 0)
-        }
-      }
-  }
-
   /**
     * Getters provide a uniform interface for any value that might be stored
     * in a row, when indexed by a String or Int.

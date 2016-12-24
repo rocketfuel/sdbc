@@ -8,7 +8,6 @@ class ParameterizedQuerySpec
   with ParameterizedQuery {
 
   override type PreparedStatement = Nothing
-  override type Connection = Nothing
 
   override protected def setNone(
     preparedStatement: PreparedStatement,
