@@ -10,7 +10,7 @@ trait Ignore {
   self: DBMS with Connection =>
 
   trait IgnorableQuery[Self <: IgnorableQuery[Self]]
-    extends ParameterizedQuery[Self] {
+    extends CompiledParameterizedQuery[Self] {
 
     def ignore()(implicit connection: Connection): Unit = {
       Ignore.ignore(statement, parameters)

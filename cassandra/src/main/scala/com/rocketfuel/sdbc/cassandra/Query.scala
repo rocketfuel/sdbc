@@ -23,7 +23,7 @@ case class Query[A](
   override val parameters: Parameters = Parameters.empty,
   queryOptions: QueryOptions = QueryOptions.default
 )(implicit val converter: RowConverter[A]
-) extends ParameterizedQuery[Query[A]] {
+) extends CompiledParameterizedQuery[Query[A]] {
   q =>
 
   override protected def subclassConstructor(parameters: Parameters): Query[A] = {

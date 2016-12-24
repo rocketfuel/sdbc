@@ -14,14 +14,10 @@ trait Getter extends base.Getter with base.RowConverter {
   override type Row = com.datastax.driver.core.Row
 
   def functionToGetter[T](getter: Row => Int => T): Getter[T] = {
-    new Getter[T] {
-      override def apply(row: Row, ix: Int): Option[T] = {
-        if (row.isNull(ix))
-          None
-        else Some(getter(row)(ix))
-      }
-      override val length: Int = 1
-    }
+    (row: Row, ix: Int) =>
+      if (row.isNull(ix))
+        None
+      else Some(getter(row)(ix))
   }
 
   implicit val BooleanGetter: Getter[Boolean] = functionToGetter[Boolean](row => ix => row.getBool(ix))

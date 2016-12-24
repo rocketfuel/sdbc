@@ -5,7 +5,7 @@ import org.scalatest.FunSuite
 class ParameterizedQuerySpec
   extends FunSuite
   with ParameterValue
-  with ParameterizedQuery {
+  with CompiledParameterizedQuery {
 
   override type PreparedStatement = Nothing
 
@@ -17,7 +17,7 @@ class ParameterizedQuerySpec
   case class Query(
     override val statement: CompiledStatement,
     override val parameters: Parameters = Parameters.empty
-  ) extends ParameterizedQuery[Query] {
+  ) extends CompiledParameterizedQuery[Query] {
     override protected def subclassConstructor(parameters: Parameters): Query =
       copy(parameters = parameters)
   }

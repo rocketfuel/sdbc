@@ -5,7 +5,7 @@ import java.sql
 
 trait ParameterValue
   extends base.ParameterValue
-  with base.ParameterizedQuery {
+  with base.CompiledParameterizedQuery {
 
   override type PreparedStatement = sql.PreparedStatement
 

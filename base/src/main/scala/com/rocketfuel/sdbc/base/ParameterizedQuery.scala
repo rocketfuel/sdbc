@@ -13,20 +13,9 @@ trait ParameterizedQuery {
 
     override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.ParameterizedQuery]
 
-    def statement: CompiledStatement
-
     def parameters: Parameters
 
-    /**
-      * The query text with name parameters replaced with positional parameters.
-      *
-      * @return
-      */
-    def queryText: String = statement.queryText
-
-    def originalQueryText: String = statement.originalQueryText
-
-    def parameterPositions: ParameterPositions = statement.parameterPositions
+    def parameterPositions: ParameterPositions
 
     /**
       * Parameters that you must set before running the query.

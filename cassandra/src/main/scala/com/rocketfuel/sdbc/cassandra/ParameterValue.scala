@@ -18,7 +18,7 @@ import shapeless.ops.product.ToHList
 
 trait ParameterValue
   extends base.ParameterValue
-  with base.ParameterizedQuery {
+  with base.CompiledParameterizedQuery {
 
   type PreparedStatement = core.BoundStatement
 

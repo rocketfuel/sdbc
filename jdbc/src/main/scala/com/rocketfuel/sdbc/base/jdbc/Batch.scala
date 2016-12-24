@@ -33,7 +33,7 @@ trait Batch {
     statement: CompiledStatement,
     defaultParameters: Parameters = Parameters.empty,
     batches: ParameterBatches = Vector.empty[Parameters]
-  ) extends ParameterizedQuery[Batch] {
+  ) extends CompiledParameterizedQuery[Batch] {
     q =>
 
     override def parameters: Parameters = defaultParameters

@@ -12,6 +12,9 @@ import java.util.function.BiFunction
 
 object StreamUtils extends Logger {
 
+  implicit def toIgnore[F[_]](something: F[_]): Ignore[F] =
+    new Ignore(something)
+
   /**
     * Create a stream from a managed Cluster.
     */
@@ -25,7 +28,7 @@ object StreamUtils extends Logger {
       c.init()
     }
     def release(cluster: Cluster): F[Unit] = {
-      toAsync(cluster.closeAsync()).map(Function.const(()))
+      toAsync(cluster.closeAsync()).ignore()
     }
     Stream.bracket(req)(use, release)
   }
@@ -40,7 +43,7 @@ object StreamUtils extends Logger {
   ): Stream[F, O] = {
     val req = toAsync(cluster.connectAsync())
     def release(session: Session): F[Unit] = {
-      async.map(toAsync(session.closeAsync()))(Function.const(()))
+      toAsync(session.closeAsync()).ignore()
     }
     Stream.bracket(req)(use, release)
   }
@@ -128,9 +131,14 @@ object StreamUtils extends Logger {
           for (session <- sessions) yield {
             toAsync(session.closeAsync())
           }
-        closers.sequence.map(Function.const(()))
+        closers.sequence.ignore()
       }
     )
   }
 
+}
+
+class Ignore[F[_]](val something: F[_]) extends AnyVal {
+  def ignore()(implicit async: Async[F]): F[Unit] =
+    something.map(Function.const(()))
 }
