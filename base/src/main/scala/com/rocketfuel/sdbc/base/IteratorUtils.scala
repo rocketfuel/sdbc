@@ -3,7 +3,7 @@ package com.rocketfuel.sdbc.base
 import fs2.Stream
 import fs2.util.Async
 
-private[sdbc] object IteratorUtils {
+object IteratorUtils {
 
   def fromIterator[F[_], A](i: F[Iterator[A]])(implicit a: Async[F]): Stream[F, A] = {
     for {
@@ -17,7 +17,7 @@ private[sdbc] object IteratorUtils {
   }
 
   def fromCloseableIterator[F[_], A](i: F[CloseableIterator[A]])(implicit a: Async[F]): Stream[F, A] = {
-    Stream.bracket[F, CloseableIterator[A], A](i)(i => fromIterator[F, A](a.pure(i.toIterator)), i => a.delay(i.close()))
+    Stream.bracket[F, CloseableIterator[A], A](i)(i => fromIterator[F, A](a.delay(i.toIterator)), i => a.delay(i.close()))
   }
 
 }
