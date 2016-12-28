@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.{Logger, IteratorUtils}
+import com.rocketfuel.sdbc.base.{CloseableIterator, IteratorUtils, Logger}
 import fs2.{Stream, pipe}
 import fs2.util.Async
 import shapeless.ops.record.{MapValues, ToMap}
@@ -153,7 +153,7 @@ trait Select {
       connection: Connection,
       rowConverter: RowConverter[A]
     ): Stream[F, A] = {
-      IteratorUtils.fromCloseableIterator(async.delay(iterator[A](statement, parameterValues)))
+      CloseableIterator.toStream(async.delay(iterator[A](statement, parameterValues)))
     }
 
     case class Pipe[F[_], A](

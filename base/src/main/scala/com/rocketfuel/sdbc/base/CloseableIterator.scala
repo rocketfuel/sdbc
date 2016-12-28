@@ -1,5 +1,7 @@
 package com.rocketfuel.sdbc.base
 
+import fs2.Stream
+import fs2.util.Async
 import java.io.Closeable
 import scala.collection.GenTraversableOnce
 
@@ -161,7 +163,7 @@ abstract class CloseableIterator[+A](
 
   override def isTraversableAgain: Boolean = underlying.isTraversableAgain
 
-  override def toStream: Stream[A] = underlying.toStream
+  override def toStream: scala.Stream[A] = underlying.toStream
 
   override def toIterator: Iterator[A] = underlying
 
@@ -176,4 +178,8 @@ object CloseableIterator {
     */
   implicit def toIterator[A](i: CloseableIterator[A]): Iterator[A] =
     i.toIterator
+
+  def toStream[F[_], A](i: F[CloseableIterator[A]])(implicit a: Async[F]): Stream[F, A] = {
+    Stream.bracket[F, CloseableIterator[A], A](i)(i => IteratorUtils.toStream[F, A](a.delay(i)), i => a.delay(i.close()))
+  }
 }

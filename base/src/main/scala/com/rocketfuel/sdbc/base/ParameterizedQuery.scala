@@ -79,7 +79,6 @@ trait ParameterizedQuery {
 
     protected def subclassConstructor(parameters: Parameters): Self
 
-
     //Subtractable implementation
     override def -(parameterName: String): Self =
       subclassConstructor(parameters = parameters - parameterName)
