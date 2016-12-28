@@ -1,8 +1,20 @@
 # Adding a dialect
 
+## Principles
+
+SDBC is not necessarily purely functional. A particular dialect of SDBC can be more or less pure according to the tastes of the author. In the official dialects, only certain methods on queries or connection pools perform IO, but they are not typed specially to distinguish them from other methods.
+
+A class should be created for each kind of query the DBMS supports. JDBC allows calling `.updateCount()` on a `ResultSet` that is a `SELECT` statement, which is absurd. Instead, create a query with methods that make sense for each query type.
+
+For each query class, create a type class. The query classes should provide factory methods for type classes.
+
+SDBC queries should provide support for FS2 streams, pipes, and sinks.
+
+A SDBC-like API does not necessarily have to rely on a SDBC library, but the base and jdbc packages provide utilities that can make the task easier.
+
 ## Basic Components
 
-The essence of SDBC is provided by several classes and type classes. They are:
+SDBC provides several classes and type classes. They are:
 
 ### ParameterizedQuery
 
@@ -24,17 +36,9 @@ RowConverters are functions which convert the raw result from the DBMS into a us
 
 Any type in the Getter type class can be used as part of a product or record
 
-## Principles
-
-SDBC is not necessarily purely functional. A particular dialect of SDBC can be more or less pure according to the tastes of the author. In the official dialects, only certain methods on queries or connection pools perform IO, but they are not typed specially to distinguish them from other methods.
-
-A class should be created for each kind of query the DBMS supports. JDBC allows calling `.updateCount()` on a `ResultSet` that is a `SELECT` statement, which is absurd. Instead, create a query with methods that make sense for each query type.
-
-SDBC queries should provide support for FS2 streams.
-
 ## Example
 
-This example covers making an SDBC API for an imaginary DBMS, which stores JSON documents that are indexed by a Long, or you can query for JSON documents that intersect a given document. For instance,
+This example covers making an SDBC API for an imaginary DBMS, which stores JSON documents. You can query for JSON documents that intersect a given document. For instance,
 
 ```javascript
 {"a":3}
@@ -52,52 +56,186 @@ but not
 {"message":"hi"}
 ```
 
-The basic case allows only one or no documents to be returned, so one query method returning an Option is sufficient. Querying by intersection is more complex, as there could be zero or more results. Additionally, 
-
 ```scala
-import com.rocketfuel.sdbc.base.IteratorUtils
-import fs2.Stream
+import argonaut._
+import com.rocketfuel.sdbc.base.CloseableIterator
+import fs2.{Pipe, Sink, Stream}
 import fs2.util.Async
-import org.json4s._
+import java.io.Closeable
+
+trait Connection extends Closeable
+
+trait ConnectionPool {
+  def get(): Connection
+}
 
 object Select {
 
-  def get[A](key: Long)(implicit format: JsonFormat[A], connection: Connection): Option[A] = ???
-
-  def get[
-    A,
-    B
-  ](query: A
-  )(implicit aFormat: JsonFormat[A],
-    bFormat: JsonFormat[B],
-    connection: Connection
-  ): Option[A] = ???
+  def iterator(query: Json)(implicit connection: Connection): CloseableIterator[Json] = ???
 
   def iterator[
     Query,
     Result
   ](query: Query
-  )(implicit aFormat: JsonFormat[Query],
-    bFormat: JsonFormat[Result],
+  )(implicit queryEnc: EncodeJson[Query],
+    resultDec: DecodeJson[Result],
     connection: Connection
-  ): CloseableIterator[Result] = ???
-  
+  ): CloseableIterator[Result] =
+    for {
+      result <- iterator(queryEnc(query))
+    } yield resultDec.decodeJson(result).value.get
+
   def stream[
     F[_],
     Query,
     Result
   ](query: Query
-  )(implicit aFormat: JsonFormat[Query],
-    bFormat: JsonFormat[Result],
-    connection: Connection,
+  )(implicit queryEnc: EncodeJson[Query],
+    resultDec: DecodeJson[Result],
+    pool: ConnectionPool,
     a: Async[F]
-  ): Iterator[Result] = {
-    IteratorUtils.fromCloseableIterator(a.delay(iterator(query)))
+  ): Stream[F, Result] = {
+    Stream.bracket[F, Connection, Result](a.delay(pool.get()))(implicit connection => stream(query), connection => a.delay(connection.close()))
   }
-  
+
+  def pipe[
+    F[_],
+    Query,
+    Result
+  ](implicit queryEnc: EncodeJson[Query],
+    resultDec: DecodeJson[Result],
+    pool: ConnectionPool,
+    a: Async[F]
+  ): Pipe[F, Query, Stream[F, Result]] =
+    (queries: Stream[F, Query]) =>
+      for {
+        query <- queries
+      } yield stream(query)
+}
+
+object Insert {
+  def insert(
+    value: Json
+  )(implicit connection: Connection
+  ): Unit = ???
+
+  def insert[A](
+    value: A
+  )(implicit enc: EncodeJson[A],
+    connection: Connection
+  ): Unit =
+    insert(enc(value))
+
+  def sink[F[_], A](
+    implicit a: Async[F],
+    enc: EncodeJson[A],
+    pool: ConnectionPool
+  ): Sink[F, A] =
+    (values: Stream[F, A]) =>
+      for {
+        value <- values
+        _ <- Stream.bracket[F, Connection, Unit](a.delay(pool.get()))(implicit connection => Stream.eval(a.delay(insert(value))), connection => a.delay(connection.close()))
+      } yield ()
+}
+```
+
+With the basic functionality in place, we can add type classes.
+
+```scala
+
+case class Select[
+  Query,
+  Result
+](query: Query
+)(implicit queryEnc: EncodeJson[Query],
+  resultDec: DecodeJson[Result]
+) {
+
+  def iterator()(implicit connection: Connection): CloseableIterator[Result] =
+    Select.iterator(query)
+
+  def stream[F[_]]()(implicit pool: ConnectionPool, a: Async[F]): Stream[F, Result] =
+    Select.stream(query)
 
 }
 
-case class Insert[A](key: Key, value: A)
+trait Selectable[Query, Result] {
+  def select(
+    query: Query
+  ): Select[Query, Result]
+}
 
+object Selectable {
+
+  implicit def apply[
+    Query,
+    Result
+  ](implicit queryEnc: EncodeJson[Query],
+    resultDec: DecodeJson[Result]
+  ) =
+    new Selectable[Query, Result] {
+      override def select(query: Query): Select[Query, Result] =
+        Select[Query, Result](query)
+    }
+
+}
+
+case class Insert[A](
+  value: A
+)(implicit enc: EncodeJson[A]
+) {
+  def insert()(implicit connection: Connection): Unit =
+    Insert.insert(value)
+}
+
+trait Insertable[Key, A] {
+  def insert(key: Key)(implicit enc: EncodeJson[A]): Insert[A]
+}
+```
+
+Then, given some Pirates,
+
+```scala
+case class Pirate(
+  ship: String,
+  name: String,
+  battleCry: String,
+  shoulderPet: String
+)
+
+object Pirate {
+  implicit val PirateCodecJson: CodecJson[Pirate] =
+    casecodec4(Pirate.apply, Pirate.unapply)("ship", "name", "battleCry", "shoulderPet")
+}
+
+//Thanks to http://gangstaname.com/names/pirate and http://www.seventhsanctum.com/generate.php?Genname=pirateshipnamer
+val pirates =
+  Set(
+    Pirate("Killer's Fall", "Fartin' Garrick Hellion", "yar", "Cap'n Laura Cannonballs"),
+    Pirate("Pirate's Shameful Poison", "Pirate Ann Marie the Well-Tanned", "arrr", "Cheatin' Louise Bonny")
+  )
+```
+
+we can insert them.
+
+```scala
+Stream(pirates.toSeq: _*).covary[Task].to(Insert.sink).run.unsafeRun()
+```
+
+Then, we can query for the crew members of Killer's Fall, and print them to the stdout.
+
+```scala
+case class Ship(
+  ship: String
+)
+
+object Ship {
+  implicit val ShipCodecJson: CodecJson[Ship] =
+    casecodec1(Ship.apply, Ship.unapply)("ship")
+}
+
+val killersFallCrewMembers: Stream[Task, Pirate] =
+  Select.stream[Task, Ship, Pirate](Ship("Killer's Fall"))
+
+killersFallCrewMembers.through(pirateLines).to(fs2.io.stdout).run.unsafeRun()
 ```
