@@ -4,8 +4,7 @@ import java.sql.SQLFeatureNotSupportedException
 import com.rocketfuel.sdbc.base.Logger
 import fs2._
 import fs2.util.Async
-import shapeless.ops.record.{MapValues, ToMap}
-import shapeless.{HList, LabelledGeneric}
+import shapeless.HList
 
 trait Batch {
   self: DBMS with Connection =>

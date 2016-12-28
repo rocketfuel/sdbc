@@ -3,8 +3,7 @@ package com.rocketfuel.sdbc.base.jdbc
 import com.rocketfuel.sdbc.base.Logger
 import fs2.util.Async
 import fs2.Stream
-import shapeless.ops.record.{MapValues, ToMap}
-import shapeless.{HList, LabelledGeneric}
+import shapeless.HList
 
 trait Update {
   self: DBMS with Connection =>

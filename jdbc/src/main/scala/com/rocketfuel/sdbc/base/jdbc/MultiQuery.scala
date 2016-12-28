@@ -5,8 +5,7 @@ import com.rocketfuel.sdbc.base.jdbc.statement.MultiResultConverter
 import fs2.Stream
 import fs2.util.Async
 import java.sql.ResultSet
-import shapeless.ops.record.{MapValues, ToMap}
-import shapeless.{HList, LabelledGeneric}
+import shapeless.HList
 
 /**
   * Add support for queries with multiple result sets, for use with DBMSs
