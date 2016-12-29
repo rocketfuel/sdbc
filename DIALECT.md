@@ -257,8 +257,9 @@ implicit class SelectSyntax[Query](
 )(implicit queryEnc: EncodeJson[Query]
 ) {
   def iterator[
-    Result]()(implicit resultDec: DecodeJson[Result],
-  connection: Connection
+    Result
+  ]()(implicit resultDec: DecodeJson[Result],
+    connection: Connection
   ): CloseableIterator[Result] = {
     Select.iterator(query)
   }
