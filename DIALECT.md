@@ -6,7 +6,7 @@ SDBC is not necessarily purely functional. A particular dialect of SDBC can be m
 
 A class should be created for each kind of query the DBMS supports. JDBC allows calling `.updateCount()` on a `ResultSet` that is a `SELECT` statement, which is absurd. Instead, create a query with methods that make sense for each query type.
 
-For each query class, create a type class. The query classes should provide factory methods for type classes.
+For each query class, create a type class. The query classes should provide factory methods for type classes. There should be optional syntax on types which are members of query type classes. For instance, if there is a `Selectable[Int, Value]` in scope, then `3.option()` should get the `Value` whose primary key is `3`.
 
 SDBC queries should provide support for FS2 streams, pipes, and sinks.
 
@@ -47,7 +47,7 @@ This example covers making an SDBC API for an imaginary DBMS, which stores JSON 
 would match
 
 ```javascript
-{"message":"hi","a":3"}
+{"message":"hi","a":3}
 ```
 
 but not
@@ -95,7 +95,11 @@ object Select {
     pool: ConnectionPool,
     a: Async[F]
   ): Stream[F, Result] = {
-    Stream.bracket[F, Connection, Result](a.delay(pool.get()))(implicit connection => stream(query), connection => a.delay(connection.close()))
+    Stream.bracket[F, Connection, Result](
+      a.delay(pool.get())
+    )(implicit connection => stream(query),
+      connection => a.delay(connection.close())
+    )
   }
 
   def pipe[
@@ -134,7 +138,12 @@ object Insert {
     (values: Stream[F, A]) =>
       for {
         value <- values
-        _ <- Stream.bracket[F, Connection, Unit](a.delay(pool.get()))(implicit connection => Stream.eval(a.delay(insert(value))), connection => a.delay(connection.close()))
+        _ <-
+          Stream.bracket[F, Connection, Unit](
+            a.delay(pool.get())
+          )(implicit connection => Stream.eval(a.delay(insert(value))),
+            connection => a.delay(connection.close())
+          )
       } yield ()
 }
 ```
@@ -193,14 +202,14 @@ trait Insertable[Key, A] {
 }
 ```
 
-Then, given some Pirates,
+We can use the API to manage a database of pirates.
 
 ```scala
 case class Pirate(
   ship: String,
   name: String,
   battleCry: String,
-  shoulderPet: String
+  shoulderPet: String //A pirate's pet always sits on its owner's shoulder.
 )
 
 object Pirate {
@@ -216,7 +225,7 @@ val pirates =
   )
 ```
 
-we can insert them.
+We can insert them.
 
 ```scala
 Stream(pirates.toSeq: _*).covary[Task].to(Insert.sink).run.unsafeRun()
@@ -238,4 +247,49 @@ val killersFallCrewMembers: Stream[Task, Pirate] =
   Select.stream[Task, Ship, Pirate](Ship("Killer's Fall"))
 
 killersFallCrewMembers.through(pirateLines).to(fs2.io.stdout).run.unsafeRun()
+```
+
+The last thing any SDBC API should provide is convenience methods for values in query type classes. For this example DBMS, the type class for a query is `EncodeJson`, and the type class for a result is `DecodeJson`.
+
+```scala
+implicit class SelectSyntax[Query](
+  query: Query
+)(implicit queryEnc: EncodeJson[Query]
+) {
+  def iterator[
+    Result]()(implicit resultDec: DecodeJson[Result],
+  connection: Connection
+  ): CloseableIterator[Result] = {
+    Select.iterator(query)
+  }
+
+  def stream[
+    F[_],
+    Result
+  ](query: Query
+  )(implicit resultDec: DecodeJson[Result],
+    pool: ConnectionPool,
+    a: Async[F]
+  ): Stream[F, Result] = {
+    Select.stream(query)
+  }
+}
+
+implicit class InsertSyntax[
+  A
+](value: A
+)(implicit enc: EncodeJson[A]
+) {
+  def insert()(implicit connection: Connection): Unit =
+    Insert.insert(value)
+}
+```
+
+This lets us do things like,
+
+```scala
+for (pirate <- pirates)
+  pirate.insert()
+
+killersFall.iterator[Pirate]()
 ```

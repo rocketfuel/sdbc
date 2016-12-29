@@ -51,14 +51,23 @@ object Main {
     val inserts: Stream[Task, Unit] =
       Stream(pirates.toSeq: _*).covary[Task].to(Insert.sink)
 
+    val killersFall = Ship("Killer's Fall")
+
     val killersFallCrewMembers: Stream[Task, Pirate] =
-      Select.stream[Task, Ship, Pirate](Ship("Killer's Fall"))
+      Select.stream[Task, Ship, Pirate](killersFall)
 
     //run the insert
     inserts.run.unsafeRun()
 
     //run select and print the pirates
     killersFallCrewMembers.through(pirateLines).to(fs2.io.stdout).run.unsafeRun()
+
+    //demonstrate cool syntax
+    import syntax._
+    implicit val connection: Connection = ???
+    pirates.foreach(_.insert())
+    killersFall.iterator[Pirate]()
   }
+  //TODO: Copy to DIALECT.md
 
 }

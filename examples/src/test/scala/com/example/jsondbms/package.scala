@@ -40,7 +40,11 @@ package object jsondbms {
       pool: ConnectionPool,
       a: Async[F]
     ): Stream[F, Result] = {
-      Stream.bracket[F, Connection, Result](a.delay(pool.get()))(implicit connection => stream(query), connection => a.delay(connection.close()))
+      Stream.bracket[F, Connection, Result](
+        a.delay(pool.get())
+      )(implicit connection => stream(query),
+        connection => a.delay(connection.close())
+      )
     }
 
     def pipe[
@@ -56,6 +60,34 @@ package object jsondbms {
         for {
           query <- queries
         } yield stream(query)
+
+    trait syntax {
+      implicit class SelectSyntax[Query](
+        query: Query
+      )(implicit queryEnc: EncodeJson[Query]
+      ) {
+        def iterator[
+          Result]()(implicit resultDec: DecodeJson[Result],
+          connection: Connection
+        ): CloseableIterator[Result] = {
+          Select.iterator(query)
+        }
+
+        def stream[
+          F[_],
+          Result
+        ](query: Query
+        )(implicit resultDec: DecodeJson[Result],
+          pool: ConnectionPool,
+          a: Async[F]
+        ): Stream[F, Result] = {
+          Select.stream(query)
+        }
+      }
+    }
+
+    object syntax extends syntax
+
   }
 
   object Insert {
@@ -79,8 +111,26 @@ package object jsondbms {
       (values: Stream[F, A]) =>
         for {
           value <- values
-          _ <- Stream.bracket[F, Connection, Unit](a.delay(pool.get()))(implicit connection => Stream.eval(a.delay(insert(value))), connection => a.delay(connection.close()))
+          _ <-
+            Stream.bracket[F, Connection, Unit](
+              a.delay(pool.get())
+            )(implicit connection => Stream.eval(a.delay(insert(value))),
+              connection => a.delay(connection.close())
+            )
         } yield ()
+
+    trait syntax {
+      implicit class InsertSyntax[
+        A
+      ](value: A
+      )(implicit enc: EncodeJson[A]
+      ) {
+        def insert()(implicit connection: Connection): Unit =
+          Insert.insert(value)
+      }
+    }
+
+    object syntax extends syntax
   }
 
   case class Select[
@@ -90,34 +140,11 @@ package object jsondbms {
   )(implicit queryEnc: EncodeJson[Query],
     resultDec: DecodeJson[Result]
   ) {
-
     def iterator()(implicit connection: Connection): CloseableIterator[Result] =
       Select.iterator(query)
 
     def stream[F[_]]()(implicit pool: ConnectionPool, a: Async[F]): Stream[F, Result] =
       Select.stream(query)
-
-  }
-
-  trait Selectable[Query, Result] {
-    def select(
-      query: Query
-    ): Select[Query, Result]
-  }
-
-  object Selectable {
-
-    implicit def apply[
-      Query,
-      Result
-    ](implicit queryEnc: EncodeJson[Query],
-      resultDec: DecodeJson[Result]
-    ) =
-      new Selectable[Query, Result] {
-        override def select(query: Query): Select[Query, Result] =
-          Select[Query, Result](query)
-      }
-
   }
 
   case class Insert[A](
@@ -128,8 +155,10 @@ package object jsondbms {
       Insert.insert(value)
   }
 
-  trait Insertable[Key, A] {
-    def insert(key: Key)(implicit enc: EncodeJson[A]): Insert[A]
-  }
+  trait syntax
+    extends Select.syntax
+    with Insert.syntax
+
+  object syntax extends syntax
 
 }
