@@ -73,6 +73,41 @@ trait Selectable {
     ): Ignore.Sink[F] = {
       selectable.select(key).sink[F]
     }
+
+    trait syntax {
+
+      implicit class SelectableSyntax[Key, Result](key: Key)(implicit selectable: Selectable[Key, Result]) {
+        def iterator()(implicit connection: Connection): CloseableIterator[Result] = {
+          Selectable.iterator(key)
+        }
+
+        def vector()(implicit connection: Connection): Seq[Result] = {
+          Selectable.vector(key)
+        }
+
+        def option()(implicit connection: Connection): Option[Result] = {
+          Selectable.option(key)
+        }
+
+        def one()(implicit connection: Connection): Result = {
+          Selectable.one(key)
+        }
+
+        def stream[F[_]](implicit connection: Connection, async: Async[F]): Stream[F, Result] = {
+          Selectable.stream(key)
+        }
+
+        def selectPipe[F[_]](implicit async: Async[F]): Select.Pipe[F, Result] = {
+          Selectable.pipe(key)
+        }
+
+        def selectSink[F[_]](implicit async: Async[F]): Ignore.Sink[F] = {
+          Selectable.sink(key)
+        }
+      }
+    }
+
+    object syntax extends syntax
   }
 
 }

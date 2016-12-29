@@ -45,6 +45,24 @@ trait SelectForUpdatable {
     ): Ignore.Sink[F] = {
       selectable.update(key).copy(rowUpdater = selectable.rowUpdater(key)).sink[F]
     }
+
+    trait syntax {
+      implicit class SelectForUpdatableSyntax[Key](key: Key)(implicit selectForUpdatable: SelectForUpdatable[Key]) {
+        def selectForUpdateUpdate()(implicit connection: Connection): UpdatableRow.Summary = {
+          SelectForUpdatable.update(key)
+        }
+
+        def selectForUpdatePipe[F[_]](implicit async: Async[F]): SelectForUpdate.Pipe[F] = {
+          SelectForUpdatable.pipe(key)
+        }
+
+        def selectForUpdateSink[F[_]](implicit async: Async[F]): Ignore.Sink[F] = {
+          SelectForUpdatable.sink(key)
+        }
+      }
+    }
+
+    object syntax extends syntax
   }
 
 }

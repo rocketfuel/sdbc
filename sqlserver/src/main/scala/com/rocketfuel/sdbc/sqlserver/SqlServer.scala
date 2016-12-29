@@ -33,4 +33,10 @@ trait SqlServer
 
   val HierarchyNode = com.rocketfuel.sdbc.sqlserver.HierarchyNode
 
+  trait syntax
+    extends super.syntax
+      with MultiQueryable.syntax
+
+  override val syntax = new syntax {}
+
 }

@@ -1,6 +1,7 @@
 package com.example
 
 import com.rocketfuel.sdbc.H2
+import com.rocketfuel.sdbc.H2.syntax._
 import org.scalatest.{BeforeAndAfterEach, _}
 
 class TestClassSpec
@@ -22,21 +23,21 @@ class TestClassSpec
   val after = "bye"
 
   test("insert and select works") {implicit connection =>
-    assertResult(1)(H2.Updatable.update(TestClass.Value(before)))
-    val rows = H2.Selectable.vector(TestClass.All)
+    assertResult(1)(TestClass.Value(before).update())
+    val rows = TestClass.All.vector()
     assert(rows.exists(_.value == before), "The row wasn't inserted.")
   }
 
   test("select for update works") {implicit connection =>
     //insert a row
-    assertResult(1)(H2.Updatable.update(TestClass.Value(before)))
+    assertResult(1)(TestClass.Value(before).update())
 
     //update all the values to "bye"
-    val summary = H2.SelectForUpdatable.update(TestClass.All(after))
+    val summary = TestClass.All(after).selectForUpdateUpdate()
     assertResult(H2.UpdatableRow.Summary(updatedRows = 1))(summary)
 
     //Make sure "hi" disappeared and "bye" exists.
-    val resultRows = H2.Selectable.vector(TestClass.All)
+    val resultRows = TestClass.All.vector()
     assert(resultRows.forall(_.value == after), "The value wasn't updated.")
   }
 

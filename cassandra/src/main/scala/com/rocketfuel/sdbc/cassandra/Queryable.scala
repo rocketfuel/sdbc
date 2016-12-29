@@ -85,4 +85,26 @@ object Queryable {
       }
   }
 
+  trait syntax {
+    implicit class QueryableSyntax[Key, Value](val key: Key)(implicit queryable: Queryable[Key, Value]) {
+      def iterator()(implicit session: Session): Iterator[Value] = {
+        Queryable.iterator(key)
+      }
+
+      def option()(implicit session: Session): Option[Value] = {
+        Queryable.option(key)
+      }
+
+      def one()(implicit session: Session): Value = {
+        Queryable.one(key)
+      }
+
+      def stream[F[_]](implicit session: Session, async: Async[F]): Stream[F, Value] = {
+        Queryable.stream(key)
+      }
+    }
+  }
+
+  object syntax extends syntax
+
 }

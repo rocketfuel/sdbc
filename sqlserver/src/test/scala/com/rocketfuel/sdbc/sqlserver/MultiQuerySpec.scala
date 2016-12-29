@@ -79,4 +79,12 @@ class MultiQuerySpec
     assertResult(Some(None))(results1.get)
   }
 
+  test("type class syntax works") {implicit connection =>
+    import com.rocketfuel.sdbc.SqlServer.syntax._
+    implicit def x: MultiQueryable[Int, Int] = ???
+    implicit def y: Selectable[Int, Int] = ???
+    assertCompiles("3.result()")
+    assertCompiles("3.iterator()")
+  }
+
 }

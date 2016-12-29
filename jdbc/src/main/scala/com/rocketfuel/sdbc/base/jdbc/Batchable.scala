@@ -39,6 +39,24 @@ trait Batchable {
     ): Batch.Sink[F] = {
       batchable.batch(key).sink[F]
     }
+
+    trait syntax {
+      implicit class BatchSyntax[Key](key: Key)(implicit batchable: Batchable[Key]) {
+        def batch()(implicit connection: Connection): IndexedSeq[Long] = {
+          Batchable.batch(key)
+        }
+
+        def batchPipe[F[_]](implicit async: Async[F]): Batch.Pipe[F] = {
+          Batchable.pipe(key)
+        }
+
+        def batchSink[F[_]](implicit async: Async[F]): Batch.Sink[F] = {
+          Batchable.sink(key)
+        }
+      }
+    }
+
+    object syntax extends syntax
   }
 
 }

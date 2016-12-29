@@ -31,6 +31,21 @@ trait Ignorable {
     ): Ignore.Sink[F] = {
       ignorable.ignore(key).sink[F]
     }
+
+    trait syntax {
+
+      implicit class IgnorableSyntax[Key](key: Key)(implicit ignorable: Ignorable[Key]) {
+        def ignore()(implicit connection: Connection): Unit = {
+          Ignorable.ignore(key)
+        }
+
+        def ignoreSink[F[_]](implicit async: Async[F]): Ignore.Sink[F] = {
+          Ignorable.sink(key)
+        }
+      }
+    }
+
+    object syntax extends syntax
   }
 
 }

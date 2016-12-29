@@ -75,4 +75,13 @@ trait DBMS
       else Some(value)
   }
 
+  trait syntax
+    extends Batchable.syntax
+      with Ignorable.syntax
+      with Selectable.syntax
+      with SelectForUpdatable.syntax
+      with Updatable.syntax
+
+  val syntax = new syntax {}
+
 }

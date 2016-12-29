@@ -39,6 +39,24 @@ trait Updatable {
     ): Ignore.Sink[F] = {
       updatable.update(key).sink[F]
     }
+
+    trait syntax {
+      implicit class UpdatableSyntax[Key](key: Key)(implicit updatable: Updatable[Key]) {
+        def update()(implicit connection: Connection): Long = {
+          Updatable.update(key)
+        }
+
+        def updatePipe[F[_]](implicit async: Async[F]): Update.Pipe[F] = {
+          Updatable.pipe(key)
+        }
+
+        def updateSink[F[_]](implicit async: Async[F]): Ignore.Sink[F] = {
+          Updatable.sink(key)
+        }
+      }
+    }
+
+    object syntax extends syntax
   }
 
 }

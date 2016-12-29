@@ -87,4 +87,6 @@ object Cassandra
 
   }
 
+  object syntax extends Queryable.syntax
+
 }

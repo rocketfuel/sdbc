@@ -67,10 +67,7 @@ trait Select {
         Selectable(Function.const(q))
 
       def parameters(toParameters: Key => Parameters): Selectable[Key, A] =
-        new Selectable[Key, A] {
-          override def select(key: Key): Select[A] =
-            q.onParameters(toParameters(key))
-        }
+        Selectable[Key, A](key => q.onParameters(toParameters(key)))
 
       def product[
         Repr <: HList,

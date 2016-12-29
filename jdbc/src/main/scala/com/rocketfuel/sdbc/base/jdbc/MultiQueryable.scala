@@ -39,6 +39,24 @@ trait MultiQueryable {
     ): Ignore.Sink[F] = {
       multiQueryable.multiQuery(key).sink[F]
     }
+
+    trait syntax {
+      implicit class MultiQueryableSyntax[Key, Result](key: Key)(implicit multiQueryable: MultiQueryable[Key, Result]) {
+        def result()(implicit connection: Connection): Result = {
+          MultiQueryable.result(key)
+        }
+
+        def multiQueryPipe[F[_]](implicit async: Async[F]): MultiQuery.Pipe[F, Result] = {
+          MultiQueryable.pipe(key)
+        }
+
+        def multiQuerySink[F[_]](implicit async: Async[F]): Ignore.Sink[F] = {
+          MultiQueryable.sink(key)
+        }
+      }
+    }
+
+    object syntax extends syntax
   }
 
 }
