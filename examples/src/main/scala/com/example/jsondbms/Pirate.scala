@@ -1,7 +1,7 @@
 package com.example.jsondbms
 
-import argonaut._
 import argonaut.Argonaut._
+import argonaut._
 import com.example.jsondbms.syntax._
 import fs2._
 import fs2.util.Async

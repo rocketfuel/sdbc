@@ -12,13 +12,13 @@ A class should be created for each kind of query the DBMS supports. JDBC allows 
 
 For each query class, there should be a type class. If appropriate, query classes should provide factory methods for type classes. There should be optional syntax on types which are members of query type classes. For instance, if there is a `Selectable[Int, Value]` in scope, then `3.option[Value]()` can get the `Value` whose primary key is `3`.
 
-SDBC queries should provide support for FS2 streams, pipes, and sinks.
+SDBC queries should provide support for [FS2](https://github.com/functional-streams-for-scala/fs2) streams, pipes, and sinks.
 
-A SDBC-like API does not necessarily have to rely on a SDBC library, but the base and jdbc packages provide utilities that can make the task easier.
+An SDBC-like API does not necessarily have to rely on an SDBC library, but the base and jdbc packages provide utilities that can make the task easier.
 
 ## Example
 
-This example covers making an SDBC API for an imaginary DBMS, which stores JSON documents. You can query for JSON documents that intersect a given document. For instance,
+This example covers making an SDBC API for a simple DBMS, which stores JSON documents. You can query for JSON documents that intersect a given document. For instance,
 
 ```javascript
 {"a":3}
@@ -43,14 +43,14 @@ This implementation does not provide classes for Select or Insert. The equivalen
 ### Imports
 
 ```scala
-import argonaut._
 import argonaut.JsonIdentity._
 import argonaut.JsonScalaz._
+import argonaut._
 import com.rocketfuel.sdbc.base.IteratorUtils
-import fs2.{Pipe, Sink, Stream}
 import fs2.util.Async
-import scalaz.syntax.equal._
+import fs2.{Pipe, Sink, Stream}
 import scala.collection.JavaConverters._
+import scalaz.syntax.equal._
 ```
 
 ### Select

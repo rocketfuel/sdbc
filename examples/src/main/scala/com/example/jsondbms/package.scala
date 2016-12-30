@@ -2,14 +2,14 @@ package com.example
 
 package object jsondbms {
 
-  import argonaut._
   import argonaut.JsonIdentity._
   import argonaut.JsonScalaz._
+  import argonaut._
   import com.rocketfuel.sdbc.base.IteratorUtils
-  import fs2.{Pipe, Sink, Stream}
   import fs2.util.Async
-  import scalaz.syntax.equal._
+  import fs2.{Pipe, Sink, Stream}
   import scala.collection.JavaConverters._
+  import scalaz.syntax.equal._
 
   class JsonDb {
     pool =>
