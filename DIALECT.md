@@ -125,7 +125,7 @@ object Insert {
 
 ### Type Classes
 
-We don't have to provide the type classes, since Argonaut provides them. Anything that is insertable or can be a select key is an EncodeJson, and any select result is a DecodeJson.
+We don't have to provide the type classes, since Argonaut provides them. Anything that is insertable or can be a select key is an `EncodeJson`, and any select result is a `DecodeJson`.
 
 ### Syntax
 
@@ -213,4 +213,10 @@ Then, we can query for the crew members of Hades' Pearl, and print them to the s
 
 ```scala
 hadesPearl.stream[Task, Pirate].through(printPirates).to(fs2.io.stdout)
+```
+
+The output from running Pirate.scala is
+```
+Pirate(Hades' Pearl,Fartin' Garrick Hellion,Cap'n Laura Cannonballs)
+Pirate(Hades' Pearl,Pirate Ann Marie the Well-Tanned,Cheatin' Louise Bonny)
 ```
