@@ -10,7 +10,7 @@ SDBC is not an ORM.
 
 A class should be created for each kind of query the DBMS supports. JDBC allows calling `.updateCount()` on a `ResultSet` that is a `SELECT` statement, which is absurd. Instead, create a query with methods that make sense for each query type.
 
-For each query class, there should be a type class. The query classes should provide factory methods for type classes. There should be optional syntax on types which are members of query type classes. For instance, if there is a `Selectable[Int, Value]` in scope, then `3.option[Value]()` can get the `Value` whose primary key is `3`.
+For each query class, there should be a type class. If appropriate, query classes should provide factory methods for type classes. There should be optional syntax on types which are members of query type classes. For instance, if there is a `Selectable[Int, Value]` in scope, then `3.option[Value]()` can get the `Value` whose primary key is `3`.
 
 SDBC queries should provide support for FS2 streams, pipes, and sinks.
 
@@ -36,22 +36,25 @@ but not
 {"message":"hi"}
 ```
 
+The code for the example is out of order and incomplete for demonstration purposes. For the full runnable example, see [jsondbms](/examples/src/main/scala/com/example/jsondbms/).
+
+### Imports
+
 ```scala
 import argonaut._
-import com.rocketfuel.sdbc.base.CloseableIterator
+import argonaut.JsonIdentity._
+import argonaut.JsonScalaz._
+import com.rocketfuel.sdbc.base.IteratorUtils
 import fs2.{Pipe, Sink, Stream}
 import fs2.util.Async
-import java.io.Closeable
+import scalaz.syntax.equal._
+import scala.collection.JavaConverters._
+```
 
-trait Connection extends Closeable
+### Select
 
-trait ConnectionPool {
-  def get(): Connection
-}
-
+```scala
 object Select {
-
-  def iterator(query: Json)(implicit connection: Connection): CloseableIterator[Json] = ???
 
   def iterator[
     Query,
@@ -59,11 +62,11 @@ object Select {
   ](query: Query
   )(implicit queryEnc: EncodeJson[Query],
     resultDec: DecodeJson[Result],
-    connection: Connection
-  ): CloseableIterator[Result] =
+    connection: JsonDb
+  ): Iterator[Result] =
     for {
-      result <- iterator(queryEnc(query))
-    } yield resultDec.decodeJson(result).value.get
+      result <- connection.select(query.asJson)
+    } yield result.as[Result].value.get
 
   def stream[
     F[_],
@@ -72,14 +75,10 @@ object Select {
   ](query: Query
   )(implicit queryEnc: EncodeJson[Query],
     resultDec: DecodeJson[Result],
-    pool: ConnectionPool,
+    pool: JsonDb,
     a: Async[F]
   ): Stream[F, Result] = {
-    Stream.bracket[F, Connection, Result](
-      a.delay(pool.get())
-    )(implicit connection => stream(query),
-      connection => a.delay(connection.close())
-    )
+    IteratorUtils.toStream(a.delay(iterator(query)))
   }
 
   def pipe[
@@ -88,7 +87,7 @@ object Select {
     Result
   ](implicit queryEnc: EncodeJson[Query],
     resultDec: DecodeJson[Result],
-    pool: ConnectionPool,
+    pool: JsonDb,
     a: Async[F]
   ): Pipe[F, Query, Stream[F, Result]] =
     (queries: Stream[F, Query]) =>
@@ -96,140 +95,39 @@ object Select {
         query <- queries
       } yield stream(query)
 }
+```
 
+### Insert
+
+```scala
 object Insert {
-  def insert(
-    value: Json
-  )(implicit connection: Connection
-  ): Unit = ???
-
   def insert[A](
     value: A
   )(implicit enc: EncodeJson[A],
-    connection: Connection
+    connection: JsonDb
   ): Unit =
-    insert(enc(value))
+    connection.insert(value.asJson)
 
   def sink[F[_], A](
     implicit a: Async[F],
     enc: EncodeJson[A],
-    pool: ConnectionPool
+    pool: JsonDb
   ): Sink[F, A] =
     (values: Stream[F, A]) =>
       for {
         value <- values
-        _ <-
-          Stream.bracket[F, Connection, Unit](
-            a.delay(pool.get())
-          )(implicit connection => Stream.eval(a.delay(insert(value))),
-            connection => a.delay(connection.close())
-          )
+        _ <- Stream.eval(a.delay(insert(value)))
       } yield ()
 }
 ```
 
-With the basic functionality in place, we can add type classes.
+### Type Classes
 
-```scala
+We don't have to provide the type classes, since Argonaut provides them. Anything that is insertable or can be a select key is an EncodeJson, and any select result is a DecodeJson.
 
-case class Select[
-  Query,
-  Result
-](query: Query
-)(implicit queryEnc: EncodeJson[Query],
-  resultDec: DecodeJson[Result]
-) {
+### Syntax
 
-  def iterator()(implicit connection: Connection): CloseableIterator[Result] =
-    Select.iterator(query)
-
-  def stream[F[_]]()(implicit pool: ConnectionPool, a: Async[F]): Stream[F, Result] =
-    Select.stream(query)
-
-}
-
-trait Selectable[Query, Result] {
-  def select(
-    query: Query
-  ): Select[Query, Result]
-}
-
-object Selectable {
-
-  implicit def apply[
-    Query,
-    Result
-  ](implicit queryEnc: EncodeJson[Query],
-    resultDec: DecodeJson[Result]
-  ) =
-    new Selectable[Query, Result] {
-      override def select(query: Query): Select[Query, Result] =
-        Select[Query, Result](query)
-    }
-
-}
-
-case class Insert[A](
-  value: A
-)(implicit enc: EncodeJson[A]
-) {
-  def insert()(implicit connection: Connection): Unit =
-    Insert.insert(value)
-}
-
-trait Insertable[Key, A] {
-  def insert(key: Key)(implicit enc: EncodeJson[A]): Insert[A]
-}
-```
-
-We can use the API to manage a database of pirates.
-
-```scala
-case class Pirate(
-  ship: String,
-  name: String,
-  battleCry: String,
-  shoulderPet: String //A pirate's pet always sits on its owner's shoulder.
-)
-
-object Pirate {
-  implicit val PirateCodecJson: CodecJson[Pirate] =
-    casecodec4(Pirate.apply, Pirate.unapply)("ship", "name", "battleCry", "shoulderPet")
-}
-
-//Thanks to http://gangstaname.com/names/pirate and http://www.seventhsanctum.com/generate.php?Genname=pirateshipnamer
-val pirates =
-  Set(
-    Pirate("Killer's Fall", "Fartin' Garrick Hellion", "yar", "Cap'n Laura Cannonballs"),
-    Pirate("Pirate's Shameful Poison", "Pirate Ann Marie the Well-Tanned", "arrr", "Cheatin' Louise Bonny")
-  )
-```
-
-We can insert them.
-
-```scala
-Stream(pirates.toSeq: _*).covary[Task].to(Insert.sink).run.unsafeRun()
-```
-
-Then, we can query for the crew members of Killer's Fall, and print them to the stdout.
-
-```scala
-case class Ship(
-  ship: String
-)
-
-object Ship {
-  implicit val ShipCodecJson: CodecJson[Ship] =
-    casecodec1(Ship.apply, Ship.unapply)("ship")
-}
-
-val killersFallCrewMembers: Stream[Task, Pirate] =
-  Select.stream[Task, Ship, Pirate](Ship("Killer's Fall"))
-
-killersFallCrewMembers.through(pirateLines).to(fs2.io.stdout).run.unsafeRun()
-```
-
-An SDBC API should provide convenience methods for values in query type classes. For this example DBMS, the type class for a query is `EncodeJson`, and the type class for a result is `DecodeJson`.
+An SDBC API should provide convenience methods for values in query type classes. You could also add the ability to run query operations directly on `Json`s.
 
 ```scala
 implicit class SelectSyntax[Query](
@@ -239,8 +137,8 @@ implicit class SelectSyntax[Query](
   def iterator[
     Result
   ]()(implicit resultDec: DecodeJson[Result],
-    connection: Connection
-  ): CloseableIterator[Result] = {
+    connection: JsonDb
+  ): Iterator[Result] = {
     Select.iterator(query)
   }
 
@@ -248,7 +146,7 @@ implicit class SelectSyntax[Query](
     F[_],
     Result
   ]()(implicit resultDec: DecodeJson[Result],
-    pool: ConnectionPool,
+    pool: JsonDb,
     a: Async[F]
   ): Stream[F, Result] = {
     Select.stream(query)
@@ -260,16 +158,57 @@ implicit class InsertSyntax[
 ](value: A
 )(implicit enc: EncodeJson[A]
 ) {
-  def insert()(implicit connection: Connection): Unit =
+  def insert()(implicit connection: JsonDb): Unit =
     Insert.insert(value)
 }
 ```
 
-This lets us do things like,
+### Example Use
+
+We can use the API to manage a database of pirates.
 
 ```scala
-for (pirate <- pirates)
-  pirate.insert()
+case class Pirate(
+  ship: String,
+  name: String,
+  shoulderPet: String //every pirate needs some animal on his or her shoulder
+)
 
-killersFall.iterator[Pirate]()
+object Pirate {
+  implicit val PirateCodecJson: CodecJson[Pirate] =
+    casecodec3(Pirate.apply, Pirate.unapply)("ship", "name", "shoulderPet")
+}
+
+case class Ship(
+  ship: String
+)
+
+object Ship {
+  implicit val ShipCodecJson: CodecJson[Ship] =
+    casecodec1(Ship.apply, Ship.unapply)("ship")
+}
+
+//Thanks http://www.seventhsanctum.com/generate.php?Genname=pirateshipnamer
+val hadesPearl = Ship("Hades' Pearl")
+val oceansEvilPoison = Ship("Ocean's Evil Poison")
+
+//Thanks to http://gangstaname.com/names/pirate
+val pirates =
+  Seq(
+    Pirate(hadesPearl.ship, "Fartin' Garrick Hellion", "Cap'n Laura Cannonballs"),
+    Pirate(hadesPearl.ship, "Pirate Ann Marie the Well-Tanned", "Cheatin' Louise Bonny"),
+    Pirate(oceansEvilPoison.ship, "Fish Breath Rupert", "Rancid Dick Scabb")
+  )
+```
+
+We can insert them.
+
+```scala
+Stream(pirates: _*).covary[Task].to(Insert.sink).run.unsafeRun()
+```
+
+Then, we can query for the crew members of Hades' Pearl, and print them to the stdout.
+
+```scala
+hadesPearl.stream[Task, Pirate].through(printPirates).to(fs2.io.stdout)
 ```
