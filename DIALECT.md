@@ -2,39 +2,19 @@
 
 ## Principles
 
+The original goal of SDBC was to create a clean abstraction layer over JDBC for Scala. Now the focus is on being able to perform query operations on any value that you would like to use as the basis of a query. For JDBC this is usually a `String` with some parameters. Or maybe you have a case class that represents a row or lookup key. You should be able to query from those as well.
+
 SDBC is not necessarily purely functional. A particular dialect of SDBC can be more or less pure according to the tastes of the author. In the official dialects, only certain methods on queries or connection pools perform IO, but they are not typed specially to distinguish them from other methods.
+
+SDBC is not an ORM.
 
 A class should be created for each kind of query the DBMS supports. JDBC allows calling `.updateCount()` on a `ResultSet` that is a `SELECT` statement, which is absurd. Instead, create a query with methods that make sense for each query type.
 
-For each query class, create a type class. The query classes should provide factory methods for type classes. There should be optional syntax on types which are members of query type classes. For instance, if there is a `Selectable[Int, Value]` in scope, then `3.option()` should get the `Value` whose primary key is `3`.
+For each query class, there should be a type class. The query classes should provide factory methods for type classes. There should be optional syntax on types which are members of query type classes. For instance, if there is a `Selectable[Int, Value]` in scope, then `3.option[Value]()` can get the `Value` whose primary key is `3`.
 
 SDBC queries should provide support for FS2 streams, pipes, and sinks.
 
 A SDBC-like API does not necessarily have to rely on a SDBC library, but the base and jdbc packages provide utilities that can make the task easier.
-
-## Basic Components
-
-SDBC provides several classes and type classes. They are:
-
-### ParameterizedQuery
-
-Your query class should extend ParameterizedQuery if it has named parameters but the query itself is not a String.
-
-#### CompiledParameterizedQuery
-
-Your query class should extend ParameterizedQuery if it has named parameters and the query itself is a String that must have positional parameters that are '?'. For instance, a CompiledParameterizedQuery created from "@x @x" will create the query "? ?" with the parameter positions Map("x" -> Set(0, 1)).
-
-### Parameter
-
-A type in the Parameter type class can be used to set parameter values. That is to say, any type `A` having a `Parameter[A]` in implicit scope can be used as an argument or part of an argument to the various `ParameterizedQuery#on` methods.
-
-### RowConverter
-
-RowConverters are functions which convert the raw result from the DBMS into a useful Scala type. Any type in the RowConverter type class can be selected, or any product or record made up of types in the Getter type class can be selected.
-
-### Getter
-
-Any type in the Getter type class can be used as part of a product or record
 
 ## Example
 
@@ -249,7 +229,7 @@ val killersFallCrewMembers: Stream[Task, Pirate] =
 killersFallCrewMembers.through(pirateLines).to(fs2.io.stdout).run.unsafeRun()
 ```
 
-The last thing any SDBC API should provide is convenience methods for values in query type classes. For this example DBMS, the type class for a query is `EncodeJson`, and the type class for a result is `DecodeJson`.
+An SDBC API should provide convenience methods for values in query type classes. For this example DBMS, the type class for a query is `EncodeJson`, and the type class for a result is `DecodeJson`.
 
 ```scala
 implicit class SelectSyntax[Query](
@@ -267,8 +247,7 @@ implicit class SelectSyntax[Query](
   def stream[
     F[_],
     Result
-  ](query: Query
-  )(implicit resultDec: DecodeJson[Result],
+  ]()(implicit resultDec: DecodeJson[Result],
     pool: ConnectionPool,
     a: Async[F]
   ): Stream[F, Result] = {

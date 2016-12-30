@@ -67,7 +67,8 @@ package object jsondbms {
       )(implicit queryEnc: EncodeJson[Query]
       ) {
         def iterator[
-          Result]()(implicit resultDec: DecodeJson[Result],
+          Result
+        ]()(implicit resultDec: DecodeJson[Result],
           connection: Connection
         ): CloseableIterator[Result] = {
           Select.iterator(query)
@@ -76,8 +77,7 @@ package object jsondbms {
         def stream[
           F[_],
           Result
-        ](query: Query
-        )(implicit resultDec: DecodeJson[Result],
+        ]()(implicit resultDec: DecodeJson[Result],
           pool: ConnectionPool,
           a: Async[F]
         ): Stream[F, Result] = {
