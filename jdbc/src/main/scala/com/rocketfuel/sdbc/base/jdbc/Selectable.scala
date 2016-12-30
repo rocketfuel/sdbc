@@ -52,7 +52,7 @@ trait Selectable {
     def stream[F[_], Key, Result](
       key: Key
     )(implicit selectable: Selectable[Key, Result],
-      connection: Connection,
+      pool: Pool,
       async: Async[F]
     ): Stream[F, Result] = {
       selectable.select(key).stream[F]
@@ -93,7 +93,7 @@ trait Selectable {
           Selectable.one(key)
         }
 
-        def stream[F[_], Result](implicit connection: Connection, async: Async[F], selectable: Selectable[Key, Result]): Stream[F, Result] = {
+        def stream[F[_], Result](implicit pool: Pool, async: Async[F], selectable: Selectable[Key, Result]): Stream[F, Result] = {
           Selectable.stream(key)
         }
 

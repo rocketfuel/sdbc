@@ -48,7 +48,7 @@ trait Select {
 
     def stream[F[_]](implicit
       async: Async[F],
-      connection: Connection
+      pool: Pool
     ): Stream[F, A] = {
       Select.stream[F, A](statement, parameters)
     }
@@ -146,10 +146,16 @@ trait Select {
       statement: CompiledStatement,
       parameterValues: Parameters = Parameters.empty
     )(implicit async: Async[F],
-      connection: Connection,
+      pool: Pool,
       rowConverter: RowConverter[A]
     ): Stream[F, A] = {
-      CloseableIterator.toStream(async.delay(iterator[A](statement, parameterValues)))
+      Stream.bracket[F, Connection, A](
+        r = async.delay(pool.getConnection())
+      )(use = {implicit connection: Connection =>
+          CloseableIterator.toStream(async.delay(iterator[A](statement, parameterValues)))
+      },
+        release = (connection: Connection) => async.delay(connection.close())
+      )
     }
 
     case class Pipe[F[_], A](
@@ -163,9 +169,7 @@ trait Select {
       def parameters(implicit pool: Pool): fs2.Pipe[F, Parameters, Stream[F, A]] = {
         parameterPipe.combine(defaultParameters).andThen(
           pipe.lift[F, Parameters, Stream[F, A]] { params =>
-            StreamUtils.connection {implicit connection =>
-              stream(statement, params)
-            }
+            stream(statement, params)
           }
         )
       }
