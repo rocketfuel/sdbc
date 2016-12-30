@@ -76,32 +76,36 @@ trait Selectable {
 
     trait syntax {
 
-      implicit class SelectableSyntax[Key, Result](key: Key)(implicit selectable: Selectable[Key, Result]) {
-        def iterator()(implicit connection: Connection): CloseableIterator[Result] = {
+      implicit class SelectableSyntax[Key](key: Key) {
+        def iterator[Result]()(implicit connection: Connection, selectable: Selectable[Key, Result]): CloseableIterator[Result] = {
           Selectable.iterator(key)
         }
 
-        def vector()(implicit connection: Connection): Seq[Result] = {
+        def vector[Result]()(implicit connection: Connection, selectable: Selectable[Key, Result]): Seq[Result] = {
           Selectable.vector(key)
         }
 
-        def option()(implicit connection: Connection): Option[Result] = {
+        def option[Result]()(implicit connection: Connection, selectable: Selectable[Key, Result]): Option[Result] = {
           Selectable.option(key)
         }
 
-        def one()(implicit connection: Connection): Result = {
+        def one[Result]()(implicit connection: Connection, selectable: Selectable[Key, Result]): Result = {
           Selectable.one(key)
         }
 
-        def stream[F[_]](implicit connection: Connection, async: Async[F]): Stream[F, Result] = {
+        def stream[F[_], Result](implicit connection: Connection, async: Async[F], selectable: Selectable[Key, Result]): Stream[F, Result] = {
           Selectable.stream(key)
         }
 
-        def selectPipe[F[_]](implicit async: Async[F]): Select.Pipe[F, Result] = {
+        def selectPipe[F[_], Result](implicit async: Async[F], selectable: Selectable[Key, Result]): Select.Pipe[F, Result] = {
           Selectable.pipe(key)
         }
 
-        def selectSink[F[_]](implicit async: Async[F]): Ignore.Sink[F] = {
+        /**
+          *
+          * @tparam Result is only used to get the correct Selectable.
+          */
+        def selectSink[F[_], Result](implicit async: Async[F], selectable: Selectable[Key, Result]): Ignore.Sink[F] = {
           Selectable.sink(key)
         }
       }
