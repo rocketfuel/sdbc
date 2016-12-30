@@ -7,6 +7,8 @@ It currently supports [Apache Cassandra](http://cassandra.apache.org/), [H2](htt
 
 JDBC connection pools are provided by [HikariCP](https://github.com/brettwooldridge/HikariCP). The pools can be created with a [HikariConfig](https://github.com/brettwooldridge/HikariCP) or [Typesafe Config](https://github.com/typesafehub/config) object.
 
+## [Adding a dialect](/DIALECT.md)
+
 ## Requirements
 
 * Java 8
@@ -48,8 +50,6 @@ Packages exist on Maven Central for Scala 2.11 and 2.12.
 ```scala
 "com.rocketfuel.sdbc" %% "postgresql-jdbc" % "2.0-RC0"
 ```
-
-#### [Adding a dialect](/DIALECT.md)
 
 ## License
 
