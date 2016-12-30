@@ -38,7 +38,7 @@ but not
 
 The code for the example is out of order and incomplete for demonstration purposes. For the full runnable example, see [jsondbms](/examples/src/main/scala/com/example/jsondbms/).
 
-This implementation does not provide classes for Select or Insert. The equivalent functionality is already provided by Argonaut.
+This implementation does not provide classes for Select or Insert. The equivalent functionality is already provided by [Argonaut](http://argonaut.io/), a JSON library for Scala.
 
 ### Imports
 
