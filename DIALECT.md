@@ -2,7 +2,7 @@
 
 ## Principles
 
-The original goal of SDBC was to create a clean abstraction layer over JDBC for Scala. Now the focus is on being able to perform query operations on any value that you would like to use as the basis of a query. For JDBC this is usually a `String` with some parameters. Or maybe you have a case class that represents a row or lookup key. You should be able to query from those as well.
+The original goal of SDBC was to create a clean abstraction layer over JDBC for Scala. Now the focus is on being able to perform query operations on any value that you would like to use as the basis of a query. For JDBC this is usually a `String` with some parameters. Or maybe you have a class that represents a row or lookup key. You should be able to query from those as well.
 
 SDBC is not necessarily purely functional. A particular dialect of SDBC can be more or less pure according to the tastes of the author. In the official dialects, only certain methods on queries or connection pools perform IO, but they are not typed specially to distinguish them from other methods.
 
