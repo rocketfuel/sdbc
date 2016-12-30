@@ -54,7 +54,7 @@ object Main {
     implicit val db: JsonDb = new JsonDb
 
     val inserts: Stream[Task, Unit] =
-      Stream(pirates.toSeq: _*).covary[Task].to(Insert.sink)
+      Stream[Task, Pirate](pirates.toSeq: _*).to(Insert.sink)
 
     val hadesPearlCrew =
       hadesPearl.stream[Task, Pirate].through(printPirates).to(fs2.io.stdout)

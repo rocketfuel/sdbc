@@ -8,7 +8,7 @@ SDBC is not necessarily purely functional. A particular dialect of SDBC can be m
 
 SDBC is not an ORM.
 
-A class should be created for each kind of query the DBMS supports. JDBC allows calling `.updateCount()` on a `ResultSet` that is a `SELECT` statement, which is absurd. Instead, create a query with methods that make sense for each query type.
+A class should be created for each kind of query the DBMS supports. JDBC allows calling `.updateCount()` on a `ResultSet` that is a `SELECT` statement, which is absurd. Instead, create classes for each query type.
 
 For each query class, there should be a type class. If appropriate, query classes should provide factory methods for type classes. There should be optional syntax on types which are members of query type classes. For instance, if there is a `Selectable[Int, Value]` in scope, then `3.option[Value]()` can get the `Value` whose primary key is `3`.
 
@@ -206,7 +206,7 @@ val pirates =
 We can insert them.
 
 ```scala
-Stream(pirates: _*).covary[Task].to(Insert.sink).run.unsafeRun()
+Stream[Task, Pirate](pirates: _*).to(Insert.sink)
 ```
 
 Then, we can query for the crew members of Hades' Pearl, and print them to the stdout.
