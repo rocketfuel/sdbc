@@ -150,40 +150,50 @@ gotten (i.e. "$id" in the example below), such parameters are given consecutive 
 starting at 0.
 
 ```scala
-val example2 = {
+object StringContextParametersExample {
   import com.rocketfuel.sdbc.H2._
 
   val id = 1
 
   val query = select"SELECT * FROM table WHERE id = $id"
-
-  //yields Map(0 -> ParameterValue(Some(1)))
-  query.parameters
 }
+
+//yields Map(0 -> ParameterValue(Some(1)))
+StringContextParametersExample.query.parameters
 ```
 
 If you want to set the `id` value in the above query to a different value, you use the parameter "0".
 
 ```scala
-val example3 = {
+object OverrideStringContextParametersExample {
   import com.rocketfuel.sdbc.H2._
 
   val id = 1
 
-  val query = select"SELECT * FROM table WHERE id = $id"
+  val query0 = select"SELECT * FROM table WHERE id = $id"
 
-  //yields Map(0 -> ParameterValue(Some(3)))
-  query.on("0" -> 3).parameters
+  val query1 = query0.on("0" -> 3)
 }
+
+//yields Map(0 -> ParameterValue(Some(1)))
+OverrideStringContextParametersExample.query0.parameters
+
+//yields Map(0 -> ParameterValue(Some(3)))
+OverrideStringContextParametersExample.query1.parameters
 ```
 
 You can use interpolated parameters and named parameters in the same query.
 
 ```scala
-val example4 = {
+object InterpolatedAndNamedParametersExample {
   import com.rocketfuel.sdbc.H2._
-  select"SELECT * FROM table WHERE id = $id AND something = @something".on("something" -> "hello")
+  
+  val id = 1
+  val query = select"SELECT * FROM table WHERE id = $id AND something = @something".on("something" -> "hello")
 }
+
+//yields Map(0 -> ParameterValue(Some(1)), something -> ParameterValue(Some(hello)))
+InterpolatedAndNamedParametersExample.query.parameters
 ```
 
 ## Reuse a query with different parameter values
@@ -191,7 +201,7 @@ val example4 = {
 The query classes, such as Select, are immutable. Adding a parameter value returns a new object with that parameter set, leaving the old object untouched.
 
 ```scala
-object Example5 {
+object QueryReuseExample {
   import java.time.LocalDateTime
   import java.time.temporal.TemporalAdjusters
   import java.time.temporal.ChronoUnit
@@ -225,12 +235,12 @@ object Example5 {
 }
 
 //yields Map(2017-01-01T00:00 -> Vector(), 2016-12-25T00:00 -> Vector(1))
-Example5.results
+QueryReuseExample.results
 ```
 
 ## Update
 ```scala
-object Example6 {
+object UpdateExample {
   import com.rocketfuel.sdbc.H2._
 
   val query = Update("UPDATE tbl SET unique_id = @uuid WHERE id = @id")
@@ -250,7 +260,7 @@ object Example6 {
   }
 }
 
-Example6.updatedRowCount
+UpdateExample.updatedRowCount
 ```
 
 ## Add a column type
@@ -259,7 +269,7 @@ Example6.updatedRowCount
 
 The following will not work, because the requested type is not supported natively by H2.
 ```scala
-object Example7Failure {
+object NewColumnTypeExampleFailure {
   import com.rocketfuel.sdbc.H2._
   import scala.concurrent.duration._
 
@@ -270,20 +280,21 @@ object Example7Failure {
 gives
 
 ```
-error: Define an implicit function from ConnectedRow to A, or create the missing Getters for parts of your product or record.
+error: Define an implicit function from Row to A, or create the missing Getters for parts of your product or record.
 Error occurred in an application involving default arguments.
-         Select[Duration]("SELECT duration from table")
+         Select[Duration]("")
+                         ^
 ```
 
 To resolve this, provide a Getter for Duration. SDBC will then be able to create a converter from a row to a Duration.
 
 ```scala
-object Example7Success {
+object NewColumnTypeExampleSuccess {
   import com.rocketfuel.sdbc.H2._
   import scala.concurrent.duration._
 
   implicit val DurationGetter: Getter[Duration] =
-    Getter.ofParser[Duration](Duration(_))
+    Getter.converted[Duration, String](Duration(_))
 
   Select[Duration]("")
 }
@@ -292,12 +303,12 @@ object Example7Success {
 Providing a Getter also allows Duration to be selected as part of a product (case class or tuple) or shapeless record.
 
 ```scala
-object Example7Product {
+object NewColumnTypeToProductExample {
   import com.rocketfuel.sdbc.H2._
   import scala.concurrent.duration._
 
   implicit val DurationGetter: Getter[Duration] =
-    Getter.ofParser[Duration](Duration(_))
+    Getter.converted[Duration, String](Duration(_))
 
   case class UserDuration(user: String, duration: Duration)
 
@@ -310,13 +321,13 @@ object Example7Product {
 The following will not work, because the parameter's type, Duration, is not supported natively by H2.
 
 ```scala
-object Example8Failure {
+object NewParameterTypeExampleFailure {
   import com.rocketfuel.sdbc.H2._
   import scala.concurrent.duration._
 
   val duration = 5.seconds
 
-  Update("").on("duration" -> duration)
+  Update("@duration").on("duration" -> duration)
 }
 ```
 
@@ -326,35 +337,37 @@ gives
 error: type mismatch;
  found   : scala.concurrent.duration.FiniteDuration
  required: com.rocketfuel.sdbc.H2.ParameterValue
+         Update("").on("duration" -> duration)
+                                     ^
 ```
 
 To resolve this, provide an implicit `Parameter[Duration]`. For example, maybe we want to insert durations as strings.
 
 ```scala
-object Example8Success0 {
+object NewParameterTypeExampleSuccess0 {
   import com.rocketfuel.sdbc.H2._
   import scala.concurrent.duration._
 
-  implicit val durationParameter: Parameter[Duration] =
-    new Parameter[Duration] {
-      override val set = {
-        (value) => (statement, parameterIndex) =>
-          //Note the + 1, which converts SDBC's 0-based index to JDBC's 1-based index.
-          statement.setString(parameterIndex + 1, value.toString)
-          statement
-      }
-    }
+  implicit val durationParameter: Parameter[Duration] = {
+    (value: Duration) => (statement: PreparedStatement, parameterIndex: Int) =>
+      //Note the + 1, which converts SDBC's 0-based index to JDBC's 1-based index.
+      statement.setString(parameterIndex + 1, value.toString)
+      statement
+  }
 
   val duration = 5.seconds
 
-  Update("").on("duration" -> duration)
+  val query = Update("@duration").on("duration" -> duration)
 }
+
+//yields Map(duration -> ParameterValue(Some(5 seconds)))
+NewParameterTypeExampleSuccess0.query.parameters
 ```
 
 Another possibility is that we want to store durations as milliseconds. This example uses the existing `Parameter[Long]` along with the convenience DerivedParameter trait.
 
 ```scala
-object Example8Success1 {
+object NewParameterTypeExampleSuccess1 {
   import com.rocketfuel.sdbc.H2._
   import scala.concurrent.duration._
 
@@ -365,8 +378,11 @@ object Example8Success1 {
 
   val duration = 5.seconds
 
-  Update("").on("duration" -> duration)
+  val query = Update("@duration").on("duration" -> duration)
 }
+
+//yields Map(duration -> ParameterValue(Some(5 seconds))). The "5 seconds" will be converted to Long when the query parameters are set.
+NewParameterTypeExampleSuccess1.query.parameters
 ```
 
 Unfortunately, if you use an unsupported parameter in string interpolation, the error is not helpful.
@@ -390,7 +406,7 @@ error: could not find implicit value for parameter mapper: shapeless.ops.hlist.M
 
 ## Update rows in a result set
 ```scala
-object Example9 {
+object SelectForUpdateExample {
   import com.rocketfuel.sdbc.H2._
 
   def addGoldToRow(accountId: Int, amount: Int)(row: UpdatableRow): Unit = {
@@ -415,15 +431,15 @@ object Example9 {
 }
 
 //yields Summary(0,0,1)
-Example9.selectedRowCount
+SelectForUpdateExample.selectedRowCount
 ```
 
-## Streaming with managed resources
+## Streaming from JDBC
 
 There are StreamUtils objects in each DBMS, which assist with creating safe FS2 Streams.
 
 ```scala
-object Example10_0 {
+object StreamingH2Example {
   import com.rocketfuel.sdbc.H2._
   import com.zaxxer.hikari.HikariConfig
   import fs2.Stream
@@ -434,8 +450,14 @@ object Example10_0 {
       Select.stream[F, Int]("query")
     }
 }
+```
 
-object Example10_1 {
+## Streaming from Cassandra
+
+The following examples requires that the SDBC Cassandra driver is in your class path.
+
+```scala
+object StreamingCassandraExample0 {
   import com.datastax.driver.core.Cluster
   import com.rocketfuel.sdbc.Cassandra._
   import fs2.Stream
@@ -458,7 +480,7 @@ from different Sessions while only ever opening one Session per keyspace. In oth
 the Session for each keyspace is memoized, and on stream completion they are all closed.
 
 ```scala
-object Example11 {
+object StreamingCassandraExample1 {
   import com.datastax.driver.core.Cluster
   import com.rocketfuel.sdbc.Cassandra._
   import fs2.{Pipe, Stream}
