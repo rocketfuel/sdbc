@@ -43,7 +43,7 @@ trait PGobjectParameter {
     }
 
   implicit def isPGobjectParameter[A](implicit toPGobject: A => PGobject): Parameter[A] =
-    DerivedParameter[A, PGobject]
+    Parameter.derived[A, PGobject]
 
 }
 
@@ -57,6 +57,6 @@ trait HStoreParameter {
     }
 
   implicit val HStoreScalaParameter: Parameter[Map[String, String]] =
-    DerivedParameter.converted[Map[String, String], java.util.Map[String, String]](_.asJava)
+    _.asJava
 
 }

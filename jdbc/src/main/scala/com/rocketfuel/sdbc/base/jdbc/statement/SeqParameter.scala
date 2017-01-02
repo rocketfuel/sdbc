@@ -29,16 +29,9 @@ trait SeqParameter {
       parameter: Parameter[T],
       arrayType: ArrayTypeName[Seq[T]]
     ): SeqParameter[T] = {
-      val mapF: T => AnyRef = parameter match {
-        case p: DerivedParameter[_, _] =>
-          elem => box(p.convert(elem))
-        case _ =>
-          elem => box(elem)
-      }
-
       SeqParameter[T](
         arrayType = arrayType,
-        toArray = seq => seq.map(mapF).toArray
+        toArray = seq => seq.map(box).toArray
       )
     }
 
@@ -46,12 +39,8 @@ trait SeqParameter {
       parameter: Parameter[T],
       arrayType: ArrayTypeName[Seq[Option[T]]]
     ): SeqParameter[Option[T]] = {
-      val mapF: Option[T] => AnyRef = parameter match {
-        case p: DerivedParameter[_, _] =>
-          elem => elem.map(p.convert _ andThen box).orNull
-        case _ =>
-          elem => elem.map(box).orNull
-      }
+      val mapF: Option[T] => AnyRef =
+        elem => elem.map(box).orNull
 
       SeqParameter[Option[T]](
         arrayType = arrayType,
@@ -63,12 +52,8 @@ trait SeqParameter {
       parameter: Parameter[T],
       arrayType: ArrayTypeName[Seq[Some[T]]]
     ): SeqParameter[Some[T]] = {
-      val mapF: Some[T] => AnyRef = parameter match {
-        case p: DerivedParameter[_, _] =>
-          elem => elem.map(p.convert _ andThen box).orNull
-        case _ =>
-          elem => elem.map(box).orNull
-      }
+      val mapF: Some[T] => AnyRef =
+        elem => elem.map(box).orNull
 
       SeqParameter[Some[T]](
         arrayType = arrayType,

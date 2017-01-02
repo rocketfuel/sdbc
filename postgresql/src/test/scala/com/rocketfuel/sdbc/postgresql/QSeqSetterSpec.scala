@@ -10,7 +10,6 @@ class QSeqSetterSpec extends FunSuite {
   }
 
   test("implicit Seq[Option[Int]] conversion works") {
-    Seq(1,2,3).map(Some.apply): ParameterValue
     assertCompiles("Seq(1,2,3).map(Some.apply): ParameterValue")
   }
 

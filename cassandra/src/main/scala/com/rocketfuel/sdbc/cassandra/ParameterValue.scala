@@ -32,7 +32,7 @@ trait ParameterValue
       statement.setBool(ix, value)
   }
 
-  implicit val BoxedBooleanParameter: Parameter[lang.Boolean] = DerivedParameter[lang.Boolean, Boolean]
+  implicit val BoxedBooleanParameter: Parameter[lang.Boolean] = Parameter.derived[lang.Boolean, Boolean]
 
   //We're using ByteVectors, since they're much more easily testable than Array[Byte].
   //IE equality actually works. Also, they're immutable.
@@ -43,11 +43,11 @@ trait ParameterValue
         statement.setBytes(parameterIndex, bufferValue)
   }
 
-  implicit val ByteBufferParameter: Parameter[ByteBuffer] = DerivedParameter[ByteBuffer, ByteVector](ByteVector.apply, ByteVectorParameter)
+  implicit val ByteBufferParameter: Parameter[ByteBuffer] = Parameter.converted[ByteBuffer, ByteVector](ByteVector(_))
 
-  implicit val ArrayByteParameter: Parameter[Array[Byte]] = DerivedParameter[Array[Byte], ByteVector](ByteVector.apply, ByteVectorParameter)
+  implicit val ArrayByteParameter: Parameter[Array[Byte]] = Parameter.converted[Array[Byte], ByteVector](ByteVector(_))
 
-  implicit val SeqByteParameter: Parameter[Seq[Byte]] = DerivedParameter[Seq[Byte], ByteVector](ByteVector.apply, ByteVectorParameter)
+  implicit val SeqByteParameter: Parameter[Seq[Byte]] = Parameter.converted[Seq[Byte], ByteVector](ByteVector(_))
 
   implicit val LocalDateParameter: Parameter[LocalDate] = {
     (value: LocalDate) => (statement: PreparedStatement, parameterIndex: Int) =>
@@ -55,18 +55,14 @@ trait ParameterValue
   }
 
   implicit val JavaLocalDateParameter: Parameter[java.time.LocalDate] =
-    DerivedParameter.converted[java.time.LocalDate, LocalDate](l => LocalDate.fromMillisSinceEpoch(TimeUnit.DAYS.toMillis(l.toEpochDay)))
+    Parameter.converted[java.time.LocalDate, LocalDate](l => LocalDate.fromMillisSinceEpoch(TimeUnit.DAYS.toMillis(l.toEpochDay)))
 
   implicit val DateParameter: Parameter[Date] = {
-    implicit def dateToLocalDate(d: Date): LocalDate =
-      LocalDate.fromMillisSinceEpoch(d.getTime)
-    DerivedParameter[Date, LocalDate]
+    Parameter.converted[Date, LocalDate](d => LocalDate.fromMillisSinceEpoch(d.getTime))
   }
 
   implicit val InstantParameter: Parameter[Instant] = {
-    implicit def instantToLocalDate(i: Instant): LocalDate =
-      LocalDate.fromMillisSinceEpoch(i.toEpochMilli)
-    DerivedParameter[Instant, LocalDate]
+    Parameter.converted[Instant, LocalDate](i => LocalDate.fromMillisSinceEpoch(i.toEpochMilli))
   }
 
   implicit val JavaBigDecimalParameter: Parameter[java.math.BigDecimal] = {
@@ -74,21 +70,22 @@ trait ParameterValue
       statement.setDecimal(parameterIndex, value)
   }
 
-  implicit val BigDecimalParameter: Parameter[BigDecimal] = DerivedParameter[BigDecimal, java.math.BigDecimal](_.underlying(), JavaBigDecimalParameter)
+  implicit val BigDecimalParameter: Parameter[BigDecimal] =
+    Parameter.converted[BigDecimal, java.math.BigDecimal](_.underlying())
 
   implicit val DoubleParameter: Parameter[Double] = {
     (value: Double) => (statement: PreparedStatement, ix: Int) =>
       statement.setDouble(ix, value)
   }
 
-  implicit val BoxedDoubleParameter: Parameter[lang.Double] = DerivedParameter[lang.Double, Double]
+  implicit val BoxedDoubleParameter: Parameter[lang.Double] = Parameter.derived[lang.Double, Double]
 
   implicit val FloatParameter: Parameter[Float] = {
     (value: Float) => (statement: PreparedStatement, ix: Int) =>
       statement.setFloat(ix, value)
   }
 
-  implicit val BoxedFloatParameter: Parameter[lang.Float] = DerivedParameter[lang.Float, Float]
+  implicit val BoxedFloatParameter: Parameter[lang.Float] = Parameter.derived[lang.Float, Float]
 
   implicit val InetAddressParameter: Parameter[InetAddress] = {
     (value: InetAddress) => (statement: PreparedStatement, ix: Int) =>
@@ -100,7 +97,7 @@ trait ParameterValue
       statement.setInt(ix, value)
   }
 
-  implicit val BoxedIntParameter: Parameter[Integer] = DerivedParameter[Integer, Int]
+  implicit val BoxedIntParameter: Parameter[Integer] = Parameter.derived[Integer, Int]
 
   implicit def JavaSeqParameter[T]: Parameter[java.util.List[T]] = {
     (value: java.util.List[T]) => (statement: PreparedStatement, ix: Int) =>
@@ -119,7 +116,7 @@ trait ParameterValue
       statement.setLong(ix, value)
   }
 
-  implicit val BoxedLongParameter: Parameter[lang.Long] = DerivedParameter[lang.Long, Long]
+  implicit val BoxedLongParameter: Parameter[lang.Long] = Parameter.derived[lang.Long, Long]
 
   implicit def JavaMapParameter[Key, Value]: Parameter[java.util.Map[Key, Value]] = {
     (value: java.util.Map[Key, Value]) => (statement: PreparedStatement, ix: Int) =>

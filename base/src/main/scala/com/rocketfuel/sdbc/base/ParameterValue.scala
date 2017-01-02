@@ -39,30 +39,22 @@ trait ParameterValue {
       override def apply(v1: A): (PreparedStatement, Int) => PreparedStatement = set0(v1)
     }
 
-  }
+    def derived[A, B](implicit convert: A => B, baseParameter: Parameter[B]): Parameter[A] = {
+      converted[A, B](convert)
+    }
 
-  trait DerivedParameter[-A, +B] extends Parameter[A] {
-    def convert(value: A): B
-  }
-
-  object DerivedParameter {
-    implicit def apply[A, B](implicit convert0: A => B, baseParameter: Parameter[B]): DerivedParameter[A, B] =
-      new DerivedParameter[A, B] {
-        override def convert(value: A): B = convert0(value)
-
-        override def apply(v1: A): (PreparedStatement, Int) => PreparedStatement = {
-          val converted = convert(v1)
-          baseParameter(converted)
-        }
+    implicit def converted[A, B](convert: A => B)(implicit baseParameter: Parameter[B]): Parameter[A] = {
+      (v1: A) => {
+        val converted = convert(v1)
+        (preparedStatement: PreparedStatement, ix: Int) =>
+          baseParameter(converted)(preparedStatement, ix)
       }
-
-    implicit def converted[A, B](convert: A => B)(implicit baseParameter: Parameter[B]): DerivedParameter[A, B] = {
-      apply[A, B](convert, baseParameter)
     }
 
-    def toString[A](implicit baseParameter: Parameter[String]): DerivedParameter[A, String] = {
-      apply[A, String](_.toString, baseParameter)
+    def toString[A](implicit baseParameter: Parameter[String]): Parameter[A] = {
+      converted[A, String](_.toString)
     }
+
   }
 
   case class ParameterValue private[sdbc] (

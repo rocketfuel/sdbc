@@ -20,7 +20,7 @@ trait LongParameter {
   }
 
   implicit val BoxedLongParameter: Parameter[lang.Long] =
-    DerivedParameter[lang.Long, Long]
+    Parameter.derived[lang.Long, Long]
 
 }
 
@@ -34,7 +34,7 @@ trait IntParameter {
   }
 
   implicit val BoxedIntParameter: Parameter[lang.Integer] =
-    DerivedParameter[Integer, Int]
+    Parameter.derived[Integer, Int]
 
 }
 
@@ -48,7 +48,7 @@ trait ShortParameter {
   }
 
   implicit val BoxedShortParameter: Parameter[lang.Short] =
-    DerivedParameter[lang.Short, Short]
+    Parameter.derived[lang.Short, Short]
 
 }
 
@@ -62,7 +62,7 @@ trait ByteParameter {
     }
 
   implicit val BoxedByteParameter: Parameter[lang.Byte] =
-    DerivedParameter[lang.Byte, Byte]
+    Parameter.derived[lang.Byte, Byte]
 
 }
 
@@ -81,13 +81,13 @@ trait BytesParameter {
   }
 
   implicit val ByteBufferParameter: Parameter[ByteBuffer] =
-    DerivedParameter.converted((bytes: ByteBuffer) => ByteVector(bytes))
+    (bytes: ByteBuffer) => ByteVector(bytes)
 
   implicit val ArrayByteParameter: Parameter[Array[Byte]] =
-    DerivedParameter.converted((bytes: Array[Byte]) => ByteVector(bytes))
+    (bytes: Array[Byte]) => ByteVector(bytes)
 
   implicit val SeqByteParameter: Parameter[Seq[Byte]] =
-    DerivedParameter.converted((bytes: Seq[Byte]) => ByteVector(bytes))
+    (bytes: Seq[Byte]) => ByteVector(bytes)
 
 }
 
@@ -101,7 +101,7 @@ trait FloatParameter {
   }
 
   implicit val BoxedFloatParameter: Parameter[lang.Float] =
-    DerivedParameter[lang.Float, Float]
+    Parameter.derived[lang.Float, Float]
 
 }
 
@@ -115,7 +115,7 @@ trait DoubleParameter {
   }
 
   implicit val BoxedDoubleParameter: Parameter[lang.Double] =
-    DerivedParameter[lang.Double, Double]
+    Parameter.derived[lang.Double, Double]
 
 }
 
@@ -129,7 +129,7 @@ trait BigDecimalParameter {
   }
 
   implicit val BigDecimalParameter: Parameter[BigDecimal] =
-    DerivedParameter.converted[BigDecimal, java.math.BigDecimal](_.underlying())
+    _.underlying()
 
 }
 
@@ -162,16 +162,16 @@ trait DateParameter {
   }
 
   implicit val LocalDateParameter: Parameter[LocalDate] =
-    DerivedParameter.converted[LocalDate, Date](JdbcDate.valueOf)
+    JdbcDate.valueOf
 
   implicit val LocalTimeParameter: Parameter[LocalTime] =
-    DerivedParameter.converted[LocalTime, Time](Time.valueOf)
+    Time.valueOf
 
   implicit val InstantParameter: Parameter[Instant] =
-    DerivedParameter.converted[Instant, Timestamp](Timestamp.from)
+    Timestamp.from
 
   implicit val LocalDateTimeParameter: Parameter[LocalDateTime] =
-    DerivedParameter.converted[LocalDateTime, Timestamp](Timestamp.valueOf)
+    Timestamp.valueOf
 
 }
 
@@ -185,7 +185,7 @@ trait BooleanParameter {
   }
 
   implicit val BoxedBooleanParameter: Parameter[lang.Boolean] =
-    DerivedParameter[lang.Boolean, Boolean]
+    Parameter.derived[lang.Boolean, Boolean]
 
 }
 
@@ -257,7 +257,7 @@ trait SQLXMLParameter {
     * The PostgreSQL driver, for example, sends the XML as a string with the Oid set as Oid.XML.
     */
   implicit val XmlElemParameter: Parameter[Elem] =
-    DerivedParameter.toString[Elem]
+    Parameter.toString[Elem]
 
 }
 
