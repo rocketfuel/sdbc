@@ -9,6 +9,14 @@ import shapeless.HList
 trait Batch {
   self: DBMS with Connection =>
 
+  /*
+  Override this if the DBMS supports executeLargeBatch.
+  So far, none do.
+   */
+  protected def executeBatch(statement: PreparedStatement): IndexedSeq[Long] = {
+    statement.executeBatch().map(_.toLong)
+  }
+
   /**
     * Create and run a batch using a statement and a sequence of parameters.
     *
@@ -168,13 +176,8 @@ trait Batch {
 
       logRun(compiledStatement, batches)
 
-      val result = try {
-        prepared.executeLargeBatch()
-      } catch {
-        case _: UnsupportedOperationException |
-             _: SQLFeatureNotSupportedException =>
-          prepared.executeBatch().map(_.toLong)
-      }
+      val result = executeBatch(prepared)
+
       prepared.close()
       result.toVector
     }

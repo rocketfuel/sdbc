@@ -15,11 +15,13 @@ trait DBMS
   with Ignore
   with Update
   with Batch
+  with Insert
   with Selectable
   with SelectForUpdatable
   with Updatable
   with Batchable
   with Ignorable
+  with Insertable
   with StringContextMethods
   with ResultSetImplicits
   with StatementConverter
@@ -78,6 +80,7 @@ trait DBMS
   trait syntax
     extends Batchable.syntax
       with Ignorable.syntax
+      with Insertable.syntax
       with Selectable.syntax
       with SelectForUpdatable.syntax
       with Updatable.syntax
