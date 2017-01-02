@@ -85,6 +85,6 @@ class BatchBenchmarks {
 
 object BatchBenchmarks {
   def createBatch(values: Seq[TestTable]): Batch = {
-    values.foldLeft(TestTable.batchInsert){case (b, v) => b.addProduct(v)}
+    Batch(values.map(TestTable.insert.onProduct(_)))
   }
 }

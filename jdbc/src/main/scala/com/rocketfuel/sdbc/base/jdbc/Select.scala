@@ -64,10 +64,10 @@ trait Select {
 
     class ToSelectable[Key] {
       def constant: Selectable[Key, A] =
-        Selectable(Function.const(q))
+        Selectable(Function.const(q) _)
 
       def parameters(toParameters: Key => Parameters): Selectable[Key, A] =
-        Selectable[Key, A](key => q.onParameters(toParameters(key)))
+        Selectable[Key, A]((key: Key) => q.onParameters(toParameters(key)))
 
       def product[
         Repr <: HList,

@@ -5,13 +5,18 @@ import fs2.util.Async
 trait Ignorable {
   self: DBMS with Connection =>
 
-  trait Ignorable[Key] {
+  trait Ignorable[Key] extends Queryable[Ignore, Key] {
     def ignore(key: Key): Ignore
   }
 
   object Ignorable {
+    def apply[Key](implicit i: Ignorable[Key]): Ignorable[Key] = i
+
     def apply[Key](f: Key => Ignore): Ignorable[Key] =
       new Ignorable[Key] {
+        override def query(key: Key): Ignore =
+          f(key)
+
         override def ignore(key: Key): Ignore =
           f(key)
       }

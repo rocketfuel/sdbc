@@ -17,14 +17,12 @@ class RichResultSetSpec
     val randoms = Seq.fill(10)(util.Random.nextInt())
     Ignore.ignore("CREATE TABLE tbl (id identity PRIMARY KEY, x int)")
 
-    val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
-      case (batch, r) =>
-        batch.add("x" -> r)
-    }
+    val insert = Insert("INSERT INTO tbl (x) VALUES (@x)")
+    val inserts = randoms.map(x => insert.on("x" -> x))
 
-    val insertions = batch.batch()
+    val insertions = Batch.batch(Batch.toBatches(inserts))
 
-    assertResult(randoms.size)(insertions.sum)
+    assertResult(randoms.size)(insertions.values.flatten.sum)
 
     val results = Select[Int]("SELECT x FROM tbl ORDER BY id ASC").iterator().toSeq
 
@@ -36,12 +34,10 @@ class RichResultSetSpec
 
     Ignore.ignore("CREATE TABLE tbl (id identity PRIMARY KEY, x int)")
 
-    val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
-      case (batch, r) =>
-        batch.add("x" -> r)
-    }
+    val insert = Batch.Part("INSERT INTO tbl (x) VALUES (@x)")
+    val inserts = randoms.map(x => insert.on("x" -> x))
 
-    batch.batch()
+    Batch.batch(Batch.toBatches(inserts))
 
     SelectForUpdate("SELECT * FROM tbl", rowUpdater = {row => row("x") = row[Int]("x") + 1; row.updateRow()}).update()
 
@@ -57,12 +53,10 @@ class RichResultSetSpec
 
     Ignore.ignore("CREATE TABLE tbl (id identity PRIMARY KEY, x int)")
 
-    val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
-      case (batch, r) =>
-        batch.add("x" -> r)
-    }
+    val insert = Batch.Part("INSERT INTO tbl (x) VALUES (@x)")
+    val inserts = randoms.map(x => insert.on("x" -> x))
 
-    batch.batch()
+    Batch.batch(Batch.toBatches(inserts))
 
     val result = Select.vector[Int]("SELECT x FROM tbl ORDER BY id ASC")
 

@@ -94,7 +94,7 @@ trait SelectForUpdate {
 
     class ToSelectForUpdatable[Key] {
       def constant(rowUpdater: Key => UpdatableRow => Unit = Function.const(q.rowUpdater)): SelectForUpdatable[Key] =
-        SelectForUpdatable[Key](Function.const(q), rowUpdater)
+        SelectForUpdatable[Key](Function.const(q) _, rowUpdater)
 
       def parameters(toParameters: Key => Parameters, rowUpdater: Key => UpdatableRow => Unit = Function.const(q.rowUpdater)): SelectForUpdatable[Key] =
         SelectForUpdatable(key => q.onParameters(toParameters(key)), (key: Key) => rowUpdater(key))

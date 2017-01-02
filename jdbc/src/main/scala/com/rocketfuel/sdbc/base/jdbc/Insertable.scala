@@ -5,13 +5,17 @@ import fs2.util.Async
 trait Insertable {
   self: DBMS with Connection =>
 
-  trait Insertable[Key] {
+  trait Insertable[Key] extends Queryable[Insert, Key] {
     def insert(key: Key): Insert
   }
 
   object Insertable {
+    def apply[Key](implicit i: Insertable[Key]): Insertable[Key] = i
+
     def apply[Key](f: Key => Insert): Insertable[Key] =
       new Insertable[Key] {
+        override def query(key: Key): Insert = f(key)
+
         override def insert(key: Key): Insert =
           f(key)
       }

@@ -296,6 +296,4 @@ trait ParameterValue {
     }
   }
 
-  type ParameterBatches = Seq[Parameters]
-
 }

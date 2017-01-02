@@ -52,18 +52,8 @@ object TestTable {
     Update(queryText)
   }
 
-  val batchInsert = {
-    val queryText =
-      """INSERT INTO TEST
-        |(str1, uuid, str2)
-        |VALUES
-        |(@str1, @uuid, @str2)
-      """.stripMargin
-    Batch(queryText)
-  }
-
   val insertJdbc =
-    batchInsert.queryText
+    insert.queryText
 
   val select =
     Select[TestTable]("SELECT * FROM test;")

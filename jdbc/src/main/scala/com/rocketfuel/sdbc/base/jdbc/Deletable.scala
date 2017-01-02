@@ -5,13 +5,17 @@ import fs2.util.Async
 trait Deletable {
   self: DBMS with Connection =>
 
-  trait Deletable[Key] {
+  trait Deletable[Key] extends Queryable[Delete, Key] {
     def delete(key: Key): Delete
   }
 
   object Deletable {
+    def apply[Key](implicit d: Deletable[Key]): Deletable[Key] = d
+
     def apply[Key](f: Key => Delete): Deletable[Key] =
       new Deletable[Key] {
+        override def query(key: Key): Delete = f(key)
+
         override def delete(key: Key): Delete =
           f(key)
       }

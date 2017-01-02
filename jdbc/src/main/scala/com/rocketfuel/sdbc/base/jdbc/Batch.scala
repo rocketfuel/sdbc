@@ -1,10 +1,9 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import java.sql.SQLFeatureNotSupportedException
 import com.rocketfuel.sdbc.base.Logger
-import fs2._
+import fs2.{Pipe, Stream}
 import fs2.util.Async
-import shapeless.HList
+import scala.collection.parallel.immutable.ParMap
 
 trait Batch {
   self: DBMS with Connection =>
@@ -32,117 +31,68 @@ trait Batch {
     * simply disregard the `on` methods from [[ParameterizedQuery]], and use only the
     * `add` methods.
     *
-    * @param statement
-    * @param defaultParameters are parameters included in each batch.
-    * @param batches are parameters to add or replace the defaultParameters for each batch.
     */
   case class Batch(
-    statement: CompiledStatement,
-    defaultParameters: Parameters = Parameters.empty,
-    batches: ParameterBatches = Vector.empty[Parameters]
-  ) extends CompiledParameterizedQuery[Batch] {
-    q =>
+    queries: Map[CompiledStatement, Vector[Parameters]]
+  ) {
 
-    override def parameters: Parameters = defaultParameters
+    private def alter(query: CompiledParameterizedQuery[_], op: Vector[Parameters] => Vector[Parameters]): Batch = {
+      if (! query.isComplete)
+        throw new IllegalArgumentException("query must have all its parameters set before adding it to a batch")
 
-    def addParameters(batchParameters: Parameters): Batch = {
-      copy(batches = batches :+ batchParameters)
+      copy(queries = queries + (query.statement -> op(queries.getOrElse(query.statement, Vector.empty))))
     }
 
-    def add(additionalParameter: (String, ParameterValue), additionalParameters: (String, ParameterValue)*): Batch = {
-      addParameters(Map((additionalParameter +: additionalParameters): _*))
+    def prepend(query: CompiledParameterizedQuery[_]): Batch = {
+      alter(query, params => query.parameters +: params)
     }
 
-    def addProduct[
-      A,
-      Repr <: HList,
-      Key <: Symbol,
-      AsParameters <: HList
-    ](t: A
-    )(implicit p: Parameters.Products[A, Repr, Key, AsParameters]
-    ): Batch = {
-      addParameters(Parameters.product(t))
+    def append(query: CompiledParameterizedQuery[_]): Batch = {
+      alter(query, params =>  params :+ query.parameters)
     }
 
-    def addRecord[
-      Repr <: HList,
-      Key <: Symbol,
-      AsParameters <: HList
-    ](t: Repr
-    )(implicit r: Parameters.Records[Repr, Key, AsParameters]
-    ): Batch = {
-      addParameters(Parameters.record(t))
-    }
+    val +: : CompiledParameterizedQuery[_] => Batch = prepend
 
-    def batch()(implicit connection: Connection): IndexedSeq[Long] = {
-      Batch.batch(statement, defaultParameters, batches)
-    }
+    val :+ : CompiledParameterizedQuery[_] => Batch = append
 
-    def pipe[F[_]](implicit async: Async[F]): Batch.Pipe[F] =
-      Batch.Pipe[F](statement, parameters)
+    def ++(other: Batch) =
+      Batch(queries ++ other.queries)
 
-    def sink[F[_]](implicit async: Async[F]): Batch.Sink[F] =
-      Batch.Sink[F](statement, parameters)
+    def batch()(implicit connection: Connection): Map[CompiledStatement, IndexedSeq[Long]] =
+      Batch.batch(queries)
 
-    override protected def subclassConstructor(
-      parameters: Parameters
-    ): Batch = {
-      copy(defaultParameters = parameters)
-    }
-
-    /**
-      * Get helper methods for creating [[Batchable]]s from this query.
-      */
-    def batchable[Key]: ToBatchable[Key] =
-      new ToBatchable[Key]
-
-    class ToBatchable[Key] {
-      def constant: Batchable[Key] =
-        Batchable(Function.const(q))
-
-      def parameters(toParameters: Key => TraversableOnce[Parameters]): Batchable[Key] =
-        new Batchable[Key] {
-          override def batch(key: Key): Batch = {
-            val batches = toParameters(key)
-            batches.foldLeft(q) {
-              case (batchAccum, params) =>
-                batchAccum.addParameters(params)
-            }
-          }
-        }
-
-      def product[
-        P,
-        Repr <: HList,
-        HMapKey <: Symbol,
-        AsParameters <: HList
-      ](toProducts: Key => Traversable[P]
-      )(implicit p: Parameters.Products[P, Repr, HMapKey, AsParameters]
-      ): Batchable[Key] =
-        parameters((key: Key) => toProducts(key).map(Parameters.product(_)))
-
-      def record[
-        Repr <: HList,
-        HMapKey <: Symbol,
-        AsParameters <: HList
-      ](toRecords: Key => Traversable[Repr]
-      )(implicit p: Parameters.Records[Repr, HMapKey, AsParameters],
-        ev: Repr =:= Key
-      ): Batchable[Key] =
-        parameters((key: Key) => toRecords(key).map(Parameters.record(_)))
-    }
+    def stream[F[_]]()(implicit pool: Pool, async: Async[F]): Stream[F, (CompiledStatement, IndexedSeq[Long])] =
+      Batch.stream[F](queries.seq)
 
   }
 
-  object Batch
-    extends Logger {
+  object Batch extends Logger {
+    override protected def logClass = classOf[com.rocketfuel.sdbc.base.jdbc.Batch]
 
-    override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.jdbc.Batch]
+    def apply(queries: Seq[CompiledParameterizedQuery[_]]): Batch = {
+      Batch(toBatches(queries))
+    }
+
+    def toBatches(queries: Seq[CompiledParameterizedQuery[_]]): Map[CompiledStatement, Vector[Parameters]] = {
+      for {
+        (statement, queries) <- queries.groupBy(_.statement)
+      } yield (statement, queries.map(_.parameters).toVector)
+    }
+
+    /**
+      * A minimal query to assist in creating batches.
+      */
+    case class Part(
+      override val statement: CompiledStatement,
+      override val parameters: Parameters = Parameters.empty
+    ) extends CompiledParameterizedQuery[Part] {
+      override protected def subclassConstructor(parameters: Parameters): Part =
+        Part(statement, parameters)
+    }
 
     protected def prepare(
       compiledStatement: CompiledStatement,
-      defaultParameters: Parameters,
-      batches: ParameterBatches
+      batches: Vector[Parameters]
     )(implicit connection: Connection
     ): PreparedStatement = {
       val prepared = connection.prepareStatement(compiledStatement.queryText)
@@ -158,7 +108,6 @@ trait Batch {
       }
 
       for (batch <- batches) {
-        setParameters(defaultParameters)
         setParameters(batch)
         prepared.addBatch()
       }
@@ -166,102 +115,62 @@ trait Batch {
     }
 
     def batch(
-      compiledStatement: CompiledStatement,
-      defaultParameters: Parameters = Parameters.empty,
-      batches: ParameterBatches
+      queries: Map[CompiledStatement, Vector[Parameters]]
     )(implicit connection: Connection
-    ): IndexedSeq[Long] = {
-
-      val prepared = prepare(compiledStatement, defaultParameters, batches)
-
-      logRun(compiledStatement, batches)
-
-      val result = executeBatch(prepared)
-
-      prepared.close()
-      result.toVector
-    }
-
-    case class Sink[F[_]](
-      statement: CompiledStatement,
-      defaultParameters: Parameters = Parameters.empty
-    )(implicit async: Async[F]
-    ) {
-      def parameters(implicit pool: Pool): fs2.Pipe[F, Seq[Parameters], Unit] = {
-        paramStream =>
-          for {
-            params <- paramStream
-            result <- Stream.bracket[F, Connection, IndexedSeq[Long]](
-              r = async.delay(pool.getConnection())
-            )(use = {implicit connection: Connection => Stream.eval(async.delay(Batch.batch(statement, defaultParameters, params)))},
-              release = connection => async.delay(connection.close())
-            )
-          } yield ()
-      }
-
-      def products[
-        A,
-        Repr <: HList,
-        Key <: Symbol,
-        AsParameters <: HList
-      ](implicit pool: Pool,
-        p: Parameters.Products[A, Repr, Key, AsParameters]
-      ): fs2.Pipe[F, Seq[A], Unit] = {
-        _.map(_.map(Parameters.product[A, Repr, Key, AsParameters])).to(parameters)
-      }
-
-      def records[
-        Repr <: HList,
-        Key <: Symbol,
-        AsParameters <: HList
-      ](implicit pool: Pool,
-        r: Parameters.Records[Repr, Key, AsParameters]
-      ): fs2.Pipe[F, Seq[Repr], Unit] = {
-        _.map(_.map(Parameters.record[Repr, Key, AsParameters])).to(parameters)
-      }
-    }
-
-    case class Pipe[F[_]](
-      statement: CompiledStatement,
-      defaultParameters: Parameters = Parameters.empty
-    )(implicit async: Async[F]
-    ) {
-      def parameters(implicit pool: Pool): fs2.Pipe[F, Seq[Parameters], IndexedSeq[Long]] = {
-        pipe.lift[F, Seq[Parameters], IndexedSeq[Long]] { params =>
-          val withParams =
-            params.map(defaultParameters ++ _)
-
-          pool.withConnection { implicit connection =>
-            Batch.batch(statement, defaultParameters, withParams)
-          }
+    ): Map[CompiledStatement, IndexedSeq[Long]] = {
+      for {
+        (statement, params) <- queries
+      } yield {
+        statement -> {
+          logRun(statement, params)
+          val prepared = prepare(statement, params)
+          val result = executeBatch(prepared)
+          prepared.close()
+          result
         }
       }
-
-      def products[
-        A,
-        Repr <: HList,
-        Key <: Symbol,
-        AsParameters <: HList
-      ](implicit pool: Pool,
-        p: Parameters.Products[A, Repr, Key, AsParameters]
-      ): fs2.Pipe[F, Seq[A], IndexedSeq[Long]] = {
-        _.map(_.map(Parameters.product[A, Repr, Key, AsParameters])).through(parameters)
-      }
-
-      def records[
-        Repr <: HList,
-        Key <: Symbol,
-        AsParameters <: HList
-      ](implicit pool: Pool,
-        r: Parameters.Records[Repr, Key, AsParameters]
-      ): fs2.Pipe[F, Seq[Repr], IndexedSeq[Long]] = {
-        _.map(_.map(Parameters.record[Repr, Key, AsParameters])).through(parameters)
-      }
     }
+
+    def stream[F[_]](
+      queries: Map[CompiledStatement, Vector[Parameters]]
+    )(implicit async: Async[F],
+      pool: Pool
+    ): Stream[F, (CompiledStatement, IndexedSeq[Long])] = {
+      for {
+        statementParams <- Stream[F, (CompiledStatement, Vector[Parameters])](queries.toSeq: _*)
+        result <-
+          Stream.bracket[F, Connection, (CompiledStatement, IndexedSeq[Long])](
+            r = async.delay(pool.getConnection())
+          )(use = {implicit connection: Connection =>
+            Stream.bracket[F, PreparedStatement, (CompiledStatement, IndexedSeq[Long])](
+              r = async.delay(prepare(statementParams._1, statementParams._2))
+            )(use = statement => Stream(statementParams._1 -> executeBatch(statement)),
+              release = statement => async.delay(statement.close())
+            )
+          },
+            release = (connection: Connection) => async.delay(connection.close())
+          )
+      } yield result
+    }
+
+    /**
+      * Run queries by taking chunks from an input stream and batching them together.
+      * @param n is the maximum number of parameter sets to include in a chunk.
+      * @param allowFewer means the batch must have exactly n parameter sets.
+      */
+    def pipe[F[_]](
+      n: Int,
+      allowFewer: Boolean = true
+    )(implicit async: Async[F], pool: Pool
+    ): Pipe[F, CompiledParameterizedQuery[_], Stream[F, (CompiledStatement, IndexedSeq[Long])]] =
+      (queriesStream: Stream[F, CompiledParameterizedQuery[_]]) =>
+        for {
+          queries <- queriesStream.vectorChunkN(n, allowFewer)
+        } yield stream(toBatches(queries))
 
     private def logRun(
       compiledStatement: CompiledStatement,
-      batches: Seq[Parameters]
+      batches: Vector[Parameters]
     ): Unit = {
       log.debug(s"""query "${compiledStatement.originalQueryText}"""")
 

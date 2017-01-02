@@ -5,16 +5,19 @@ import fs2.util.Async
 trait SelectForUpdatable {
   self: DBMS with Connection =>
 
-  trait SelectForUpdatable[Key] {
+  trait SelectForUpdatable[Key] extends Queryable[SelectForUpdate, Key] {
     def update(key: Key): SelectForUpdate
 
     def rowUpdater(key: Key): UpdatableRow => Unit
   }
 
   object SelectForUpdatable {
+    def apply[Key](implicit s: SelectForUpdatable[Key]): SelectForUpdatable[Key] = s
 
     def apply[Key](f: Key => SelectForUpdate, g: Key => UpdatableRow => Unit): SelectForUpdatable[Key] =
       new SelectForUpdatable[Key] {
+        override def query(key: Key): SelectForUpdate = f(key)
+
         override def update(key: Key): SelectForUpdate =
           f(key)
 

@@ -33,7 +33,7 @@ trait Insert {
 
     class ToInsertable[Key] {
       def constant: Insertable[Key] =
-        Insertable(Function.const(q))
+        Insertable(Function.const(q) _)
 
       def parameters(toParameters: Key => Parameters): Insertable[Key] =
         Insertable(key => q.onParameters(toParameters(key)))

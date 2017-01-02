@@ -38,7 +38,7 @@ trait Ignore {
 
     class ToIgnorable[Key] {
       def constant: Ignorable[Key] =
-        Ignorable(Function.const(q))
+        Ignorable(Function.const(q) _)
 
       def parameters(toParameters: Key => Parameters): Ignorable[Key] =
         Ignorable(key => q.onParameters(toParameters(key)))

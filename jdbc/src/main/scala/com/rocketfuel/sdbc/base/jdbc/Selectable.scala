@@ -6,13 +6,17 @@ import fs2.util.Async
 trait Selectable {
   self: DBMS with Connection =>
 
-  trait Selectable[Key, Result] {
+  trait Selectable[Key, Result] extends Queryable[Select[Result], Key] {
     def select(key: Key): Select[Result]
   }
 
   object Selectable {
+    def apply[Key, Value](implicit s: Selectable[Key, Value]): Selectable[Key, Value] = s
+
     def apply[Key, Value](f: Key => Select[Value]): Selectable[Key, Value] =
       new Selectable[Key, Value] {
+        override def query(key: Key): Select[Value] = f(key)
+
         override def select(key: Key): Select[Value] =
           f(key)
       }
@@ -93,7 +97,7 @@ trait Selectable {
           Selectable.one(key)
         }
 
-        def stream[F[_], Result](implicit pool: Pool, async: Async[F], selectable: Selectable[Key, Result]): Stream[F, Result] = {
+        def selectStream[F[_], Result](implicit pool: Pool, async: Async[F], selectable: Selectable[Key, Result]): Stream[F, Result] = {
           Selectable.stream(key)
         }
 

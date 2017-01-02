@@ -5,13 +5,17 @@ import fs2.util.Async
 trait MultiQueryable {
   self: DBMS with Connection with MultiQuery =>
 
-  trait MultiQueryable[Key, Result] {
+  trait MultiQueryable[Key, Result] extends Queryable[MultiQuery[Result], Key] {
     def multiQuery(key: Key): MultiQuery[Result]
   }
 
   object MultiQueryable {
+    def apply[Key, Value](implicit m: MultiQueryable[Key, Value]): MultiQueryable[Key, Value] = m
+
     def apply[Key, Value](f: Key => MultiQuery[Value]): MultiQueryable[Key, Value] =
       new MultiQueryable[Key, Value] {
+        override def query(key: Key): MultiQuery[Value] = f(key)
+
         override def multiQuery(key: Key): MultiQuery[Value] =
           f(key)
       }

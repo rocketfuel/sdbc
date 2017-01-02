@@ -41,7 +41,7 @@ trait MultiQuery extends MultiResultConverter with MultiQueryable {
 
     class ToMultiQueryable[Key] {
       def constant: MultiQueryable[Key, A] =
-        MultiQueryable(Function.const(q))
+        MultiQueryable(Function.const(q) _)
 
       def parameters(toParameters: Key => Parameters): MultiQueryable[Key, A] =
         MultiQueryable(key => q.onParameters(toParameters(key)))

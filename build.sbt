@@ -36,13 +36,14 @@ scalaVersion in ThisBuild := "2.12.1"
 
 crossScalaVersions in ThisBuild := Seq("2.11.8")
 
-version in ThisBuild := "2.0-RC1"
+version in ThisBuild := "2.0-RC2"
 
 licenses in ThisBuild := Seq("The BSD 3-Clause License" -> url("http://opensource.org/licenses/BSD-3-Clause"))
 
 homepage in ThisBuild := Some(url("https://github.com/wdacom/"))
 
 (publishArtifact in Test) in ThisBuild := true
+(publishArtifact in Compile) in ThisBuild := true
 
 pomExtra in ThisBuild :=
   <developers>

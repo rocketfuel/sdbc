@@ -17,6 +17,7 @@ trait DBMS
   with Batch
   with Insert
   with Delete
+  with Queryable
   with Selectable
   with SelectForUpdatable
   with Updatable
