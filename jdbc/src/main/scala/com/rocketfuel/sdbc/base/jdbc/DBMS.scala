@@ -16,12 +16,14 @@ trait DBMS
   with Update
   with Batch
   with Insert
+  with Delete
   with Selectable
   with SelectForUpdatable
   with Updatable
   with Batchable
   with Ignorable
   with Insertable
+  with Deletable
   with StringContextMethods
   with ResultSetImplicits
   with StatementConverter
@@ -84,6 +86,7 @@ trait DBMS
       with Selectable.syntax
       with SelectForUpdatable.syntax
       with Updatable.syntax
+      with Deletable.syntax
 
   val syntax = new syntax {}
 
