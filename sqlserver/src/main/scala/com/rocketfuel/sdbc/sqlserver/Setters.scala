@@ -23,18 +23,18 @@ trait Setters
   self: SqlServer =>
 
   implicit val OffsetDateTimeParameter: Parameter[OffsetDateTime] =
-    DerivedParameter.converted[OffsetDateTime, String](offsetDateTimeFormatter.format)
+    Parameter.converted[OffsetDateTime, String](offsetDateTimeFormatter.format)
 
   override implicit val InstantParameter: Parameter[Instant] =
-    DerivedParameter.converted[Instant, String](i => offsetDateTimeFormatter.format(i.atOffset(ZoneOffset.UTC)))
+    Parameter.converted[Instant, String](i => offsetDateTimeFormatter.format(i.atOffset(ZoneOffset.UTC)))
 
   implicit val HierarchyIdParameter: Parameter[HierarchyId] =
-    DerivedParameter.toString[HierarchyId]
+    Parameter.toString[HierarchyId]
 
   implicit val UUIDParameter: Parameter[UUID] =
-    DerivedParameter.toString[UUID]
+    Parameter.toString[UUID]
 
   implicit val XmlElemParameter: Parameter[Elem] =
-    DerivedParameter.toString[Elem]
+    Parameter.toString[Elem]
 
 }
