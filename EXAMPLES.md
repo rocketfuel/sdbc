@@ -502,10 +502,13 @@ The remaining examples do not work in the Scala REPL.
 ```scala
 import com.rocketfuel.sdbc.H2._
 
+val u = Update("UPDATE tbl SET x = @x WHERE id = @id")
+
 val batchUpdate =
-  Batch("UPDATE tbl SET x = @x WHERE id = @id").
-    add("x" -> 3, "id" -> 10).
-    add("x" -> 4, "id" -> 11)
+  Batch(
+    u.on("x" -> 3, "id" -> 10),
+    u.on("x" -> 4, "id" -> 11)
+  )
 
 val updatedRowCount = Connection.using("...") {implicit connection =>
   batchUpdate.batch().sum
