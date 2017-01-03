@@ -39,7 +39,7 @@ class SelectBenchmarks {
   def setup(): Unit = {
     values = createValues()
     TestTable.create.ignore()
-    BatchBenchmarks.createBatch(values).batch()
+    BatchBenchmarks.createSdbcBatch(values).batch()
   }
 
   @TearDown(Level.Iteration)

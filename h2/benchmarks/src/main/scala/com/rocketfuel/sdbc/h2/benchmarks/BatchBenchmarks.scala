@@ -1,6 +1,7 @@
 package com.rocketfuel.sdbc.h2.benchmarks
 
 import com.rocketfuel.sdbc.H2._
+import doobie.imports.ConnectionIO
 import java.util.UUID
 import org.openjdk.jmh.annotations.{BenchmarkMode, OutputTimeUnit, Setup, _}
 import java.util.concurrent.TimeUnit
@@ -19,9 +20,9 @@ class BatchBenchmarks {
 
   var values: Vector[TestTable] = _
 
-  var valuesDoobie: Vector[(String, UUID, String)] = _
+  var sdbcBatch: Batch = _
 
-  var batch: Batch = _
+  var doobieBatch: ConnectionIO[Int] = _
 
   def createValues(): Vector[TestTable] = {
     val r = new util.Random()
@@ -44,8 +45,8 @@ class BatchBenchmarks {
   @Setup(Level.Iteration)
   def setup(): Unit = {
     values = createValues()
-    valuesDoobie = values.map(_.drop(1))
-    batch = BatchBenchmarks.createBatch(values)
+    doobieBatch = BatchBenchmarks.createDoobieBatch(values.map(_.drop(1)))
+    sdbcBatch = BatchBenchmarks.createSdbcBatch(values)
     TestTable.create.ignore()
   }
 
@@ -69,22 +70,25 @@ class BatchBenchmarks {
   @BenchmarkMode(Array(Mode.AverageTime))
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
   def sdbc(): Unit = {
-    batch.batch()
+    sdbcBatch.batch()
   }
 
   @Benchmark
   @BenchmarkMode(Array(Mode.AverageTime))
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
   def doobie(): Unit = {
-    TestTable.doobieMethods.insert.
-      updateMany(valuesDoobie).
-      transK[IO].run(connection).unsafePerformIO()
+    doobieBatch.transK[IO].run(connection).unsafePerformIO()
   }
 
 }
 
 object BatchBenchmarks {
-  def createBatch(values: Seq[TestTable]): Batch = {
-    Batch(values.map(TestTable.insert.onProduct(_)))
+  def createSdbcBatch(values: Seq[TestTable]): Batch = {
+    Batch(values.map(TestTable.insert.onProduct(_)): _*)
+  }
+
+  def createDoobieBatch(values: Vector[(String, UUID, String)]): ConnectionIO[Int] = {
+    TestTable.doobieMethods.insert.
+      updateMany(values)
   }
 }

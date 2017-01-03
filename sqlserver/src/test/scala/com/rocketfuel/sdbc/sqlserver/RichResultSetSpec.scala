@@ -17,10 +17,12 @@ class RichResultSetSpec
     val randoms = Seq.fill(10)(util.Random.nextInt())
     Ignore.ignore("CREATE TABLE tbl (x int)")
 
-    val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
-      case (batch, r) =>
-        batch.add("x" -> r)
-    }
+    val insert = Insert("INSERT INTO tbl (x) VALUES (@x)")
+
+    val inserts =
+      randoms.map(r => insert.on("x" -> r))
+
+    val batch = Batch(inserts: _*)
 
     val insertions = batch.batch()
 
@@ -35,12 +37,12 @@ class RichResultSetSpec
 
     Ignore.ignore("CREATE TABLE tbl (id int IDENTITY(1,1) PRIMARY KEY, x int)")
 
-    val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
-      case (batch, r) =>
-        batch.add("x" -> r)
-    }
+    val insert = Insert("INSERT INTO tbl (x) VALUES (@x)")
 
-    batch.batch()
+    val inserts =
+      randoms.map(r => insert.on("x" -> r))
+
+    val batch = Batch(inserts: _*)
 
     val select =
       Select[Int]("SELECT x FROM tbl ORDER BY id ASC")

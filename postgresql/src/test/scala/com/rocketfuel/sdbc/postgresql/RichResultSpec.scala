@@ -37,33 +37,31 @@ class RichResultSpec
   }
 
   test("seq() works on several results") {implicit connection =>
-    val randoms = Seq.fill(10)(util.Random.nextInt())
+    val randoms = Vector.fill(10)(util.Random.nextInt())
     Ignore("CREATE TABLE tbl (x int)").ignore()
 
-    val batch = randoms.foldLeft(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
-      case (batch, r) =>
-        batch.add("x" -> r)
-    }
+    val insert = Insert("INSERT INTO tbl (x) VALUES (@x)")
+
+    val batch = Batch(randoms.map(r => insert.on("x" -> r)))
 
     val insertions = batch.batch()
 
-    assertResult(randoms.size)(insertions.sum[Long])
+    assertResult(randoms.size)(insertions.sum)
 
     val results = Select[Int]("SELECT x FROM tbl").vector()
     assertResult(randoms)(results)
   }
 
   test("using SelectForUpdate to update a value works") {implicit connection =>
-    val randoms = Seq.fill(10)(util.Random.nextInt()).sorted
+    val randoms = Vector.fill(10)(util.Random.nextInt()).sorted
 
     Ignore("CREATE TABLE tbl (id serial PRIMARY KEY, x int)").ignore()
 
     val incrementedRandoms = randoms.map(_+1)
 
-    val batch = randoms.foldRight(Batch("INSERT INTO tbl (x) VALUES (@x)")) {
-      case (r, batch) =>
-        batch.add("x" -> r)
-    }
+    val insert = Insert("INSERT INTO tbl (x) VALUES (@x)")
+
+    val batch = Batch(randoms.map(r => insert.on("x" -> r)))
 
     batch.batch()
 

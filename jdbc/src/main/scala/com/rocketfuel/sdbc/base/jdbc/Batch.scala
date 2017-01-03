@@ -3,7 +3,6 @@ package com.rocketfuel.sdbc.base.jdbc
 import com.rocketfuel.sdbc.base.Logger
 import fs2.{Pipe, Stream}
 import fs2.util.Async
-import scala.collection.parallel.immutable.ParMap
 
 trait Batch {
   self: DBMS with Connection =>
@@ -32,15 +31,18 @@ trait Batch {
     * `add` methods.
     *
     */
-  case class Batch(
-    queries: Map[CompiledStatement, Vector[Parameters]]
+  class Batch private (
+    val batches: Map[CompiledStatement, Vector[Parameters]]
   ) {
 
-    private def alter(query: CompiledParameterizedQuery[_], op: Vector[Parameters] => Vector[Parameters]): Batch = {
+    private def alter(
+      query: CompiledParameterizedQuery[_],
+      op: Vector[Parameters] => Vector[Parameters]
+    ): Batch = {
       if (! query.isComplete)
         throw new IllegalArgumentException("query must have all its parameters set before adding it to a batch")
 
-      copy(queries = queries + (query.statement -> op(queries.getOrElse(query.statement, Vector.empty))))
+      new Batch(batches + (query.statement -> op(batches.getOrElse(query.statement, Vector.empty))))
     }
 
     def prepend(query: CompiledParameterizedQuery[_]): Batch = {
@@ -55,25 +57,47 @@ trait Batch {
 
     val :+ : CompiledParameterizedQuery[_] => Batch = append
 
-    def ++(other: Batch) =
-      Batch(queries ++ other.queries)
+    def ++(other: Batch): Batch = {
+      new Batch(
+        other.batches.foldLeft(batches) {
+          case (result, (statement, otherParams)) =>
+            result + (statement -> (result.getOrElse(statement, Vector.empty) ++ otherParams))
+        }
+      )
+    }
 
-    def batch()(implicit connection: Connection): Map[CompiledStatement, IndexedSeq[Long]] =
-      Batch.batch(queries)
+    def batch()(implicit connection: Connection): Batch.Results =
+      Batch.batch(batches)
 
-    def stream[F[_]]()(implicit pool: Pool, async: Async[F]): Stream[F, (CompiledStatement, IndexedSeq[Long])] =
-      Batch.stream[F](queries.seq)
+    def stream[F[_]]()(implicit pool: Pool, async: Async[F]): Stream[F, Batch.Result] =
+      Batch.stream[F](batches)
 
   }
 
   object Batch extends Logger {
-    override protected def logClass = classOf[com.rocketfuel.sdbc.base.jdbc.Batch]
 
-    def apply(queries: Seq[CompiledParameterizedQuery[_]]): Batch = {
-      Batch(toBatches(queries))
+    def apply(queries: CompiledParameterizedQuery[_]*): Batch = {
+      queries.foreach(check)
+      new Batch(toBatches(queries))
     }
 
+    def apply(queries: Vector[CompiledParameterizedQuery[_]]): Batch = {
+      apply(queries: _*)
+    }
+
+    def unapply(b: Batch): Option[Map[CompiledStatement, Vector[Parameters]]] =
+      Some(b.batches)
+
+    private def check(query: CompiledParameterizedQuery[_]): Unit = {
+      if (!query.isComplete) {
+        throw new IllegalArgumentException("query must have all its parameters set before adding it to a batch")
+      }
+    }
+
+    val empty = new Batch(Map.empty)
+
     def toBatches(queries: Seq[CompiledParameterizedQuery[_]]): Map[CompiledStatement, Vector[Parameters]] = {
+      Stream.emits(queries).groupBy(_.statement)
       for {
         (statement, queries) <- queries.groupBy(_.statement)
       } yield (statement, queries.map(_.parameters).toVector)
@@ -88,6 +112,54 @@ trait Batch {
     ) extends CompiledParameterizedQuery[Part] {
       override protected def subclassConstructor(parameters: Parameters): Part =
         Part(statement, parameters)
+    }
+
+    case class Result(
+      statement: CompiledStatement,
+      updateCounts: Vector[(Parameters, Long)]
+    ) {
+      lazy val sum: Long =
+        updateCounts.map(_._2).sum
+
+      def parts: Vector[Part] =
+        for {
+          (parameters, _) <- updateCounts
+        } yield Part(statement, parameters)
+    }
+
+    case class Results(
+      results: Map[CompiledStatement, Vector[(Parameters, Long)]]
+    ) {
+      lazy val sum: Long = {
+        for {
+          (_, _, count) <- unzip
+        } yield count
+      }.sum
+
+      def sumByStatement: Map[CompiledStatement, Long] =
+        for {
+          (statement, statementResults) <- results
+        } yield statement -> statementResults.map(_._2).sum
+
+      def unzip: Iterable[(CompiledStatement, Parameters, Long)] =
+        for {
+          (statement, statementResults) <- results
+          (params, count) <- statementResults
+        } yield (statement, params, count)
+
+      /**
+        * Reconstruct the queries that created this batch result.
+        */
+      def queries: Iterable[Part] =
+        for {
+          (statement, params, _) <- unzip
+        } yield Part(statement, params)
+
+      /**
+        * Reconstruct the batch that created this batch result.
+        */
+      def batch: Batch =
+        Batch(queries.toVector)
     }
 
     protected def prepare(
@@ -114,65 +186,99 @@ trait Batch {
       prepared
     }
 
-    def batch(
-      queries: Map[CompiledStatement, Vector[Parameters]]
+    private def prepareAndRun(
+      statement: CompiledStatement,
+      batches: Vector[Parameters]
     )(implicit connection: Connection
-    ): Map[CompiledStatement, IndexedSeq[Long]] = {
-      for {
-        (statement, params) <- queries
-      } yield {
-        statement -> {
-          logRun(statement, params)
-          val prepared = prepare(statement, params)
-          val result = executeBatch(prepared)
-          prepared.close()
-          result
-        }
-      }
+    ): IndexedSeq[Long] = {
+      val preparedStatement = prepare(statement, batches)
+      try {
+        logRun(statement, batches)
+        executeBatch(preparedStatement)
+      } finally preparedStatement.close()
+    }
+
+    def batch(
+      queries: CompiledParameterizedQuery[_]*
+    )(implicit connection: Connection
+    ): Results = {
+      batch(toBatches(queries))
+    }
+
+    def batch(
+      batches: Map[CompiledStatement, Vector[Parameters]]
+    )(implicit connection: Connection
+    ): Results = {
+      val results =
+        for {
+          (statement, batches) <- batches
+        } yield statement -> batches.zip(prepareAndRun(statement, batches))
+      Results(results)
     }
 
     def stream[F[_]](
-      queries: Map[CompiledStatement, Vector[Parameters]]
+      queries: CompiledParameterizedQuery[_]*
     )(implicit async: Async[F],
       pool: Pool
-    ): Stream[F, (CompiledStatement, IndexedSeq[Long])] = {
+    ): Stream[F, Result] = {
+      stream(toBatches(queries))
+    }
+
+    def stream[F[_]](
+      batches: Map[CompiledStatement, Vector[Parameters]]
+    )(implicit async: Async[F],
+      pool: Pool
+    ): Stream[F, Result] = {
       for {
-        statementParams <- Stream[F, (CompiledStatement, Vector[Parameters])](queries.toSeq: _*)
+        statementAndBatches <- Stream[F, (CompiledStatement, Vector[Parameters])](batches.toSeq: _*)
+        (statement, batches) = statementAndBatches
         result <-
-          Stream.bracket[F, Connection, (CompiledStatement, IndexedSeq[Long])](
-            r = async.delay(pool.getConnection())
-          )(use = {implicit connection: Connection =>
-            Stream.bracket[F, PreparedStatement, (CompiledStatement, IndexedSeq[Long])](
-              r = async.delay(prepare(statementParams._1, statementParams._2))
-            )(use = statement => Stream(statementParams._1 -> executeBatch(statement)),
-              release = statement => async.delay(statement.close())
-            )
-          },
-            release = (connection: Connection) => async.delay(connection.close())
+          Stream.eval(
+            async.delay {
+              pool.withConnection {implicit connection =>
+                try {
+                  Result(statement, batches.zip(prepareAndRun(statement, batches)))
+                } finally connection.close()
+              }
+            }
           )
       } yield result
     }
 
     /**
-      * Run queries by taking chunks from an input stream and batching them together.
-      * @param n is the maximum number of parameter sets to include in a chunk.
-      * @param allowFewer means the batch must have exactly n parameter sets.
+      * Run queries by taking chunks from an input stream and batching parameters with
+      * common statements together.
+      *
+      * Use the various `chunk` methods on your input stream to group the appropriate
+      * number of queries together for batching. See [[fs2.pipe.groupBy]].
       */
-    def pipe[F[_]](
-      n: Int,
-      allowFewer: Boolean = true
-    )(implicit async: Async[F], pool: Pool
-    ): Pipe[F, CompiledParameterizedQuery[_], Stream[F, (CompiledStatement, IndexedSeq[Long])]] =
+    def pipe[
+      F[_]
+    ](implicit async: Async[F],
+      pool: Pool
+    ): Pipe[F, CompiledParameterizedQuery[_], Result] =
       (queriesStream: Stream[F, CompiledParameterizedQuery[_]]) =>
         for {
-          queries <- queriesStream.vectorChunkN(n, allowFewer)
-        } yield stream(toBatches(queries))
+          statementAndBatches <- queriesStream.groupBy(_.statement)
+          (statement, statementBatches) = statementAndBatches
+          batches = statementBatches.map(_.parameters)
+          result <-
+            Stream.eval(
+              async.delay {
+                pool.withConnection {implicit connection =>
+                  Result(statement, batches.zip(prepareAndRun(statement, batches)))
+                }
+              }
+            )
+        } yield result
+
+    override protected def logClass = classOf[com.rocketfuel.sdbc.base.jdbc.Batch]
 
     private def logRun(
       compiledStatement: CompiledStatement,
       batches: Vector[Parameters]
     ): Unit = {
-      log.debug(s"""query "${compiledStatement.originalQueryText}"""")
+      log.debug(s"""query "${compiledStatement.originalQueryText}, ${batches.size} batches"""")
 
       if (batches.isEmpty)
         log.warn("Executing a batch query without any batches.")

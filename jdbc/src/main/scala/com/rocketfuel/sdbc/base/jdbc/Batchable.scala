@@ -23,7 +23,7 @@ trait Batchable {
       key: Key
     )(implicit batchable: Batchable[Key],
       connection: Connection
-    ): Map[CompiledStatement, IndexedSeq[Long]] = {
+    ): Batch.Results = {
       batchable.batch(key).batch()
     }
 
@@ -32,31 +32,28 @@ trait Batchable {
     )(implicit batchable: Batchable[Key],
       pool: Pool,
       async: Async[F]
-    ): Stream[F, (CompiledStatement, IndexedSeq[Long])] =
+    ): Stream[F, Batch.Result] =
       batchable.batch(key).stream()
 
     def query[TC <: Queryable[Q, Key], Q <: CompiledParameterizedQuery[Q], Key](
-      keys: Seq[Key]
+      keys: Vector[Key]
     )(implicit q: TC,
       connection: Connection
-    ): Map[CompiledStatement, IndexedSeq[Long]] = {
-      val queries = Batch.toBatches(keys.map(q.query))
-      Batch.batch(queries)
+    ): Batch.Results = {
+      Batch.batch(keys.map(q.query): _*)
     }
 
-    def queryPipe[
+    def pipe[
       F[_],
       TC <: Queryable[Q, Key],
       Q <: CompiledParameterizedQuery[Q],
       Key
-    ](n: Int,
-      allowFewer: Boolean = true
-    )(implicit async: Async[F],
+    ](implicit async: Async[F],
       q: TC,
       pool: Pool
-    ): Pipe[F, Key, Stream[F, (CompiledStatement, IndexedSeq[Long])]] =
+    ): Pipe[F, Key, Batch.Result] =
       (keys: Stream[F, Key]) =>
-        keys.map(q.query).through(Batch.pipe(n, allowFewer))
+        keys.map(q.query).through(Batch.pipe)
 
 //    def delete[Key](
 //      keys: Seq[Key]
@@ -162,13 +159,14 @@ trait Batchable {
 
     trait syntax {
       implicit class BatchSyntax[Key](key: Key)(implicit batchable: Batchable[Key]) {
-        def batch()(implicit connection: Connection): Map[CompiledStatement, IndexedSeq[Long]] =
+        def batch()(implicit connection: Connection): Batch.Results =
           Batchable.batch(key)
 
-        def batchStream[F[_]](
-        )(implicit pool: Pool,
+        def batchStream[
+          F[_]
+        ]()(implicit pool: Pool,
           async: Async[F]
-        ): Stream[F, (CompiledStatement, IndexedSeq[Long])] =
+        ): Stream[F, Batch.Result] =
           Batchable.stream(key)
       }
 
@@ -180,17 +178,16 @@ trait Batchable {
       )(implicit tc: TC,
         q: Queryable[Q, Key]
       ) {
-        def batches()(implicit connection: Connection): Map[CompiledStatement, IndexedSeq[Long]] = {
-          Batchable.query[TC, Q, Key](keys)
+        def batches()(implicit connection: Connection): Batch.Results = {
+          Batchable.query[TC, Q, Key](keys.toVector)
         }
 
-        def streams[F[_]](
-          n: Int,
-          allowFewer: Boolean = true
-        )(implicit async: Async[F],
+        def streams[
+          F[_]
+        ](implicit async: Async[F],
           pool: Pool
-        ): Stream[F, Stream[F, (CompiledStatement, IndexedSeq[Long])]] = {
-          Stream[F, Key](keys: _*).through(Batchable.queryPipe[F, TC, Q, Key](n, allowFewer))
+        ): Stream[F, Batch.Result] = {
+          Stream[F, Key](keys: _*).through(Batchable.pipe[F, TC, Q, Key])
         }
       }
 //
