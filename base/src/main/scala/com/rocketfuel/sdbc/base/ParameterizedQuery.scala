@@ -55,7 +55,7 @@ trait ParameterizedQuery {
     ](t: A
     )(implicit p: Parameters.Products[A, Repr, Key, AsParameters]
     ): Self = {
-      subclassConstructor(Parameters.product(t))
+      subclassConstructor(setParameters(Parameters.product(t)))
     }
 
     def onRecord[
@@ -65,7 +65,7 @@ trait ParameterizedQuery {
     ](t: Repr
     )(implicit r: Parameters.Records[Repr, Key, AsParameters]
     ): Self = {
-      subclassConstructor(Parameters.record(t))
+      subclassConstructor(setParameters(Parameters.record(t)))
     }
 
     protected def filter(p: Parameters): Parameters = {
