@@ -20,7 +20,7 @@ case class TestTable(
 
 object TestTable {
 
-  implicit def apply(row: ResultSet): TestTable = {
+  def apply(row: ResultSet): TestTable = {
     val id = row.getLong("id")
     val str1 = row.getString("str1")
     val uuid = row.getObject("uuid").asInstanceOf[UUID]
@@ -49,7 +49,7 @@ object TestTable {
         |VALUES
         |(@str1, @uuid, @str2)
       """.stripMargin
-    Update(queryText)
+    Insert(queryText)
   }
 
   val insertJdbc =

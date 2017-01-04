@@ -1,10 +1,11 @@
 package com.rocketfuel.sdbc.h2.benchmarks
 
 import com.rocketfuel.sdbc.H2._
-import doobie.imports.ConnectionIO
+import java.sql.{Connection => JdbcConnection}
 import java.util.UUID
-import org.openjdk.jmh.annotations.{BenchmarkMode, OutputTimeUnit, Setup, _}
 import java.util.concurrent.TimeUnit
+import org.openjdk.jmh.annotations._
+import scalaz.Kleisli
 import scalaz.effect.IO
 import scalaz.std.vector._
 import shapeless.syntax.std.tuple._
@@ -22,7 +23,7 @@ class BatchBenchmarks {
 
   var sdbcBatch: Batch = _
 
-  var doobieBatch: ConnectionIO[Int] = _
+  var doobieBatch: Kleisli[IO, JdbcConnection, Int] = _
 
   def createValues(): Vector[TestTable] = {
     val r = new util.Random()
@@ -77,7 +78,7 @@ class BatchBenchmarks {
   @BenchmarkMode(Array(Mode.AverageTime))
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
   def doobie(): Unit = {
-    doobieBatch.transK[IO].run(connection).unsafePerformIO()
+    doobieBatch.run(connection).unsafePerformIO()
   }
 
 }
@@ -87,8 +88,7 @@ object BatchBenchmarks {
     Batch(values.map(TestTable.insert.onProduct(_)): _*)
   }
 
-  def createDoobieBatch(values: Vector[(String, UUID, String)]): ConnectionIO[Int] = {
-    TestTable.doobieMethods.insert.
-      updateMany(values)
+  def createDoobieBatch(values: Vector[(String, UUID, String)]): Kleisli[IO, JdbcConnection, Int] = {
+    TestTable.doobieMethods.insert.updateMany(values).transK[IO]
   }
 }
