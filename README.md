@@ -112,6 +112,7 @@ Starting with 2.0, there are benchmarks to ensure that some common operations do
 * No longer supports Scala 2.10.
 * Moved database objects to `com.rocketfuel.sdbc.{Cassandra, H2, PostgreSql, SqlServer}`.
 * Renamed Execute to Ignore.
+* Added Insert, Delete, and their type classes.
 * Typeclass methods are now in their respective companion objects. For example, `Selectable.select`.
 * There are objects you can import to have type class methods added to type class members. For example `import com.rocketfuel.sdbc.PostgreSql.syntax._` would let you do something like `Person.Name(3, "Judy").update()` to update the name of record 3 to Judy.
 * SelectForUpdate takes the update function as an argument. It returns a summary of the number of rows deleted, inserted, and updated.
