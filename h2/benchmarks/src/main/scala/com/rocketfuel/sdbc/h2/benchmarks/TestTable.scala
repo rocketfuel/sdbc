@@ -31,7 +31,7 @@ object TestTable {
 
   val create = {
     val queryText =
-      s"""CREATE TABLE test (
+      s"""CREATE TABLE IF NOT EXISTS test (
           |  id bigserial PRIMARY KEY,
           |  str1 text,
           |  uuid uuid,
@@ -59,7 +59,7 @@ object TestTable {
     Select[TestTable]("SELECT * FROM test;")
 
   val drop =
-    Ignore("DROP TABLE test;")
+    Ignore("DROP TABLE IF EXISTS test;")
 
   val truncate =
     Ignore("TRUNCATE TABLE test;")

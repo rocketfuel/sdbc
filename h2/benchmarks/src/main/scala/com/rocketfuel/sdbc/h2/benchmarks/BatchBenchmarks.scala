@@ -48,12 +48,12 @@ class BatchBenchmarks {
     values = createValues()
     doobieBatch = BatchBenchmarks.createDoobieBatch(values.map(_.drop(1)))
     sdbcBatch = BatchBenchmarks.createSdbcBatch(values)
-    TestTable.create.ignore()
   }
 
-  @TearDown(Level.Iteration)
-  def teardown(): Unit = {
-    TestTable.drop.ignore()
+  @Setup(Level.Invocation)
+  def setupTable(): Unit = {
+    TestTable.create.ignore()
+    TestTable.truncate.ignore()
   }
 
   @Benchmark
