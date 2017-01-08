@@ -118,16 +118,6 @@ trait Batch {
         Part(statement, parameters)
     }
 
-    trait syntax {
-      implicit class QuerySeqMethods(queries: Seq[CompiledParameterizedQuery[_]]) {
-        def batches()(implicit connection: Connection): Results = {
-          Batch.batch(queries: _*)
-        }
-      }
-    }
-
-    object syntax extends syntax
-
     trait Partable[Key] extends (Key => Part)
 
     object Partable {
@@ -139,6 +129,16 @@ trait Batch {
             f(key)
         }
     }
+
+    trait syntax {
+      implicit class QuerySeqMethods(queries: Seq[CompiledParameterizedQuery[_]]) {
+        def batches()(implicit connection: Connection): Results = {
+          Batch.batch(queries: _*)
+        }
+      }
+    }
+
+    object syntax extends syntax
 
     case class Result(
       statement: CompiledStatement,
