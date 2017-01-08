@@ -10,4 +10,13 @@ trait MariaDb
     with DefaultParameters
     with DefaultUpdaters
     with MariaDbConnection
-    with MultiQuery
+    with MultiQuery {
+
+  trait syntax
+    extends super.syntax
+      with MultiQueryable.Partable
+      with MultiQueryable.syntax
+
+  override val syntax = new syntax {}
+
+}

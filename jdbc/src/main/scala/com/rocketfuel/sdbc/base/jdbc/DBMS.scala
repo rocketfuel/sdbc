@@ -17,7 +17,6 @@ trait DBMS
   with Batch
   with Insert
   with Delete
-  with Queryable
   with Selectable
   with SelectForUpdatable
   with Updatable
@@ -73,6 +72,8 @@ trait DBMS
 
   type Row = ConnectedRow
 
+  type ResultSetIterator = resultset.ResultSetIterator
+
   protected def ofVal[T <: AnyVal](valGetter: (ConnectedRow, Int) => T): Getter[T] = {
     (row: ConnectedRow, ix: Int) =>
       val value = valGetter(row, ix)
@@ -81,7 +82,14 @@ trait DBMS
   }
 
   trait syntax
-    extends Batchable.syntax
+    extends Batch.syntax
+      with Deletable.Partable
+      with Ignorable.Partable
+      with Insertable.Partable
+      with Selectable.Partable
+      with SelectForUpdatable.Partable
+      with Updatable.Partable
+      with Batchable.syntax
       with Ignorable.syntax
       with Insertable.syntax
       with Selectable.syntax

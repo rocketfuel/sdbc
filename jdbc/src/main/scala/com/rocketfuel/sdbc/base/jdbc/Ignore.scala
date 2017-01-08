@@ -38,10 +38,10 @@ trait Ignore {
 
     class ToIgnorable[Key] {
       def constant: Ignorable[Key] =
-        Ignorable(Function.const(q) _)
+        Function.const(q) _
 
       def parameters(toParameters: Key => Parameters): Ignorable[Key] =
-        Ignorable(key => q.onParameters(toParameters(key)))
+        key => q.onParameters(toParameters(key))
 
       def product[
         Repr <: HList,
@@ -130,6 +130,9 @@ trait Ignore {
     ): Unit = {
       log.debug(s"""query "${compiledStatement.originalQueryText}", parameters $parameters""")
     }
+
+    implicit val partable: Batch.Partable[Ignore] =
+      (q: Ignore) => Batch.Part(q.statement, q.parameters)
 
   }
 

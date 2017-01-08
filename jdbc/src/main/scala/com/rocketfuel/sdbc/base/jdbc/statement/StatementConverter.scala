@@ -10,7 +10,7 @@ trait StatementConverter {
 
     def update(v1: PreparedStatement): Long = {
       val count =
-        self.getUpdateCount(v1)
+        getUpdateCount(v1)
 
       if (count == -1L)
         throw new NoSuchElementException("query result is not an update count")

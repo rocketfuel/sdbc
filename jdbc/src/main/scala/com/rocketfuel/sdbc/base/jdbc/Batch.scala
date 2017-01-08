@@ -34,6 +34,11 @@ trait Batch {
   class Batch private (
     val batches: Map[CompiledStatement, Vector[Parameters]]
   ) {
+    q =>
+
+    def this() {
+      this(Map.empty)
+    }
 
     private def alter(
       query: CompiledParameterizedQuery[_],
@@ -97,7 +102,6 @@ trait Batch {
     val empty = new Batch(Map.empty)
 
     def toBatches(queries: Seq[CompiledParameterizedQuery[_]]): Map[CompiledStatement, Vector[Parameters]] = {
-      Stream.emits(queries).groupBy(_.statement)
       for {
         (statement, queries) <- queries.groupBy(_.statement)
       } yield (statement, queries.map(_.parameters).toVector)
@@ -112,6 +116,28 @@ trait Batch {
     ) extends CompiledParameterizedQuery[Part] {
       override protected def subclassConstructor(parameters: Parameters): Part =
         Part(statement, parameters)
+    }
+
+    trait syntax {
+      implicit class QuerySeqMethods(queries: Seq[CompiledParameterizedQuery[_]]) {
+        def batches()(implicit connection: Connection): Results = {
+          Batch.batch(queries: _*)
+        }
+      }
+    }
+
+    object syntax extends syntax
+
+    trait Partable[Key] extends (Key => Part)
+
+    object Partable {
+      def apply[Key](implicit p: Partable[Key]): Partable[Key] = p
+
+      implicit def create[Key](f: Key => Part): Partable[Key] =
+        new Partable[Key] {
+          override def apply(key: Key): Part =
+            f(key)
+        }
     }
 
     case class Result(

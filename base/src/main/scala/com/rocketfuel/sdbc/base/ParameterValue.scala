@@ -115,6 +115,9 @@ trait ParameterValue {
 
   object Parameters {
 
+    def apply(elems: (String, ParameterValue)*): Parameters =
+      Map(elems: _*)
+
     val empty: Parameters = Map.empty
 
     def isComplete(parameterValues: Parameters, parameterPositions: ParameterPositions): Boolean = {

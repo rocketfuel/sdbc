@@ -41,10 +41,10 @@ trait MultiQuery extends MultiResultConverter with MultiQueryable {
 
     class ToMultiQueryable[Key] {
       def constant: MultiQueryable[Key, A] =
-        MultiQueryable(Function.const(q) _)
+        Function.const(q) _
 
       def parameters(toParameters: Key => Parameters): MultiQueryable[Key, A] =
-        MultiQueryable(key => q.onParameters(toParameters(key)))
+        key => q.onParameters(toParameters(key))
 
       def product[
         Repr <: HList,
@@ -140,6 +140,9 @@ trait MultiQuery extends MultiResultConverter with MultiQueryable {
     ): Unit = {
       log.debug(s"""query "${compiledStatement.originalQueryText}" parameters $parameters""")
     }
+
+    implicit val partable: Batch.Partable[MultiQuery[_]] =
+      (q: MultiQuery[_]) => Batch.Part(q.statement, q.parameters)
 
   }
 

@@ -6,18 +6,14 @@ import fs2.util.Async
 trait Selectable {
   self: DBMS with Connection =>
 
-  trait Selectable[Key, Result] extends Queryable[Select[Result], Key] {
-    def select(key: Key): Select[Result]
-  }
+  trait Selectable[Key, Result] extends (Key => Select[Result])
 
   object Selectable {
     def apply[Key, Value](implicit s: Selectable[Key, Value]): Selectable[Key, Value] = s
 
-    def apply[Key, Value](f: Key => Select[Value]): Selectable[Key, Value] =
+    implicit def create[Key, Value](f: Key => Select[Value]): Selectable[Key, Value] =
       new Selectable[Key, Value] {
-        override def query(key: Key): Select[Value] = f(key)
-
-        override def select(key: Key): Select[Value] =
+        override def apply(key: Key): Select[Value] =
           f(key)
       }
 
@@ -26,7 +22,7 @@ trait Selectable {
     )(implicit selectable: Selectable[Key, Result],
       connection: Connection
     ): CloseableIterator[Result] = {
-      selectable.select(key).iterator()
+      selectable(key).iterator()
     }
 
     def vector[Key, Result](
@@ -34,7 +30,7 @@ trait Selectable {
     )(implicit selectable: Selectable[Key, Result],
       connection: Connection
     ): Seq[Result] = {
-      selectable.select(key).iterator().toVector
+      selectable(key).iterator().toVector
     }
 
     def option[Key, Result](
@@ -42,7 +38,7 @@ trait Selectable {
     )(implicit selectable: Selectable[Key, Result],
       connection: Connection
     ): Option[Result] = {
-      selectable.select(key).option()
+      selectable(key).option()
     }
 
     def one[Key, Result](
@@ -50,7 +46,7 @@ trait Selectable {
     )(implicit selectable: Selectable[Key, Result],
       connection: Connection
     ): Result = {
-      selectable.select(key).one()
+      selectable(key).one()
     }
 
     def stream[F[_], Key, Result](
@@ -59,7 +55,7 @@ trait Selectable {
       pool: Pool,
       async: Async[F]
     ): Stream[F, Result] = {
-      selectable.select(key).stream[F]
+      selectable(key).stream[F]
     }
 
     def pipe[F[_], Key, Result](
@@ -67,7 +63,7 @@ trait Selectable {
     )(implicit selectable: Selectable[Key, Result],
       async: Async[F]
     ): Select.Pipe[F, Result] = {
-      selectable.select(key).pipe[F]
+      selectable(key).pipe[F]
     }
 
     def sink[F[_], Key](
@@ -75,7 +71,15 @@ trait Selectable {
     )(implicit selectable: Selectable[Key, _],
       async: Async[F]
     ): Ignore.Sink[F] = {
-      selectable.select(key).sink[F]
+      selectable(key).sink[F]
+    }
+
+    trait Partable {
+      implicit def selectablePartable[Key](implicit selectable: Selectable[Key, _]): Batch.Partable[Key] = {
+        (key: Key) =>
+          val query = selectable(key)
+          Select.partable(query)
+      }
     }
 
     trait syntax {

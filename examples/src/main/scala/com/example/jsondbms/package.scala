@@ -12,8 +12,6 @@ package object jsondbms {
   import scalaz.syntax.equal._
 
   class JsonDb {
-    pool =>
-
     private val db =
       new java.util.concurrent.ConcurrentLinkedQueue[Json]()
 

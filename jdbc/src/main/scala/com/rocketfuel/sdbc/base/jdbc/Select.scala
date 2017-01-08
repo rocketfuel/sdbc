@@ -64,10 +64,10 @@ trait Select {
 
     class ToSelectable[Key] {
       def constant: Selectable[Key, A] =
-        Selectable(Function.const(q) _)
+        Function.const(q)
 
       def parameters(toParameters: Key => Parameters): Selectable[Key, A] =
-        Selectable[Key, A]((key: Key) => q.onParameters(toParameters(key)))
+        key => q.onParameters(toParameters(key))
 
       def product[
         Repr <: HList,
@@ -203,6 +203,9 @@ trait Select {
     ): Unit = {
       log.debug(s"""query "${compiledStatement.originalQueryText}" parameters $parameters""")
     }
+
+    implicit val partable: Batch.Partable[Select[_]] =
+      (q: Select[_]) => Batch.Part(q.statement, q.parameters)
 
   }
 

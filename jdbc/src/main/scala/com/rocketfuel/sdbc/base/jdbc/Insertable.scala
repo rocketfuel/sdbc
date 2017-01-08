@@ -5,43 +5,47 @@ import fs2.util.Async
 trait Insertable {
   self: DBMS with Connection =>
 
-  trait Insertable[Key] extends Queryable[Insert, Key] {
-    def insert(key: Key): Insert
-  }
+  trait Insertable[Key] extends (Key => Insert)
 
   object Insertable {
     def apply[Key](implicit i: Insertable[Key]): Insertable[Key] = i
 
-    def apply[Key](f: Key => Insert): Insertable[Key] =
+    implicit def create[Key](f: Key => Insert): Insertable[Key] =
       new Insertable[Key] {
-        override def query(key: Key): Insert = f(key)
-
-        override def insert(key: Key): Insert =
+        override def apply(key: Key): Insert =
           f(key)
       }
 
     def insert[Key](
       key: Key
-    )(implicit Insertable: Insertable[Key],
+    )(implicit insertable: Insertable[Key],
       connection: Connection
     ): Long = {
-      Insertable.insert(key).insert()
+      insertable(key).insert()
     }
 
     def pipe[F[_], Key](
       key: Key
     )(implicit async: Async[F],
-      Insertable: Insertable[Key]
+      insertable: Insertable[Key]
     ): Insert.Pipe[F] = {
-      Insertable.insert(key).pipe[F]
+      insertable(key).pipe[F]
     }
 
     def sink[F[_], Key](
       key: Key
     )(implicit async: Async[F],
-      Insertable: Insertable[Key]
+      insertable: Insertable[Key]
     ): Ignore.Sink[F] = {
-      Insertable.insert(key).sink[F]
+      insertable(key).sink[F]
+    }
+
+    trait Partable {
+      implicit def insertablePartable[Key](implicit insertable: Insertable[Key]): Batch.Partable[Key] = {
+        (key: Key) =>
+          val query = insertable(key)
+          Insert.partable(query)
+      }
     }
 
     trait syntax {

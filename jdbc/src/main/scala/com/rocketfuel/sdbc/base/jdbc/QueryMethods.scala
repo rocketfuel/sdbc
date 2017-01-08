@@ -2,10 +2,10 @@ package com.rocketfuel.sdbc.base.jdbc
 
 import java.sql.ResultSet
 
-private[jdbc] trait QueryMethods {
+trait QueryMethods {
   self: DBMS with Connection =>
 
-  private[jdbc] object QueryMethods {
+  object QueryMethods {
     def bind(
       preparedStatement: PreparedStatement,
       compiledStatement: CompiledStatement,

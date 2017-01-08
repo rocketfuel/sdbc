@@ -5,43 +5,47 @@ import fs2.util.Async
 trait Deletable {
   self: DBMS with Connection =>
 
-  trait Deletable[Key] extends Queryable[Delete, Key] {
-    def delete(key: Key): Delete
-  }
+  trait Deletable[Key] extends (Key => Delete)
 
   object Deletable {
     def apply[Key](implicit d: Deletable[Key]): Deletable[Key] = d
 
-    def apply[Key](f: Key => Delete): Deletable[Key] =
+    implicit def create[Key](f: Key => Delete): Deletable[Key] =
       new Deletable[Key] {
-        override def query(key: Key): Delete = f(key)
-
-        override def delete(key: Key): Delete =
+        override def apply(key: Key): Delete =
           f(key)
       }
 
     def delete[Key](
       key: Key
-    )(implicit Deletable: Deletable[Key],
+    )(implicit deletable: Deletable[Key],
       connection: Connection
     ): Long = {
-      Deletable.delete(key).delete()
+      deletable(key).delete()
     }
 
     def pipe[F[_], Key](
       key: Key
     )(implicit async: Async[F],
-      Deletable: Deletable[Key]
+      deletable: Deletable[Key]
     ): Delete.Pipe[F] = {
-      Deletable.delete(key).pipe[F]
+      deletable(key).pipe[F]
     }
 
     def sink[F[_], Key](
       key: Key
     )(implicit async: Async[F],
-      Deletable: Deletable[Key]
+      deletable: Deletable[Key]
     ): Ignore.Sink[F] = {
-      Deletable.delete(key).sink[F]
+      deletable(key).sink[F]
+    }
+
+    trait Partable {
+      implicit def deletablePartable[Key](implicit deletable: Deletable[Key]): Batch.Partable[Key] = {
+        (key: Key) =>
+          val query = deletable(key)
+          Delete.partable(query)
+      }
     }
 
     trait syntax {

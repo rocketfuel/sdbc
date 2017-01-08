@@ -33,10 +33,10 @@ trait Insert {
 
     class ToInsertable[Key] {
       def constant: Insertable[Key] =
-        Insertable(Function.const(q) _)
+        Function.const(q) _
 
       def parameters(toParameters: Key => Parameters): Insertable[Key] =
-        Insertable(key => q.onParameters(toParameters(key)))
+        key => q.onParameters(toParameters(key))
 
       def product[
         Repr <: HList,
@@ -137,6 +137,10 @@ trait Insert {
     ): Unit = {
       log.debug(s"""query "${compiledStatement.originalQueryText}", parameters $parameters""")
     }
+
+    implicit val partable: Batch.Partable[Insert] =
+      (q: Insert) => Batch.Part(q.statement, q.parameters)
+
   }
 
 }

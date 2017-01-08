@@ -93,30 +93,28 @@ trait SelectForUpdate {
       new ToSelectForUpdatable[Key]
 
     class ToSelectForUpdatable[Key] {
-      def constant(rowUpdater: Key => UpdatableRow => Unit = Function.const(q.rowUpdater)): SelectForUpdatable[Key] =
-        SelectForUpdatable[Key](Function.const(q) _, rowUpdater)
+      def constant(): SelectForUpdatable[Key] =
+        SelectForUpdatable[Key](Function.const(q) _)
 
-      def parameters(toParameters: Key => Parameters, rowUpdater: Key => UpdatableRow => Unit = Function.const(q.rowUpdater)): SelectForUpdatable[Key] =
-        SelectForUpdatable(key => q.onParameters(toParameters(key)), (key: Key) => rowUpdater(key))
+      def parameters(toParameters: Key => Parameters): SelectForUpdatable[Key] =
+        SelectForUpdatable(key => q.onParameters(toParameters(key)))
 
       def product[
         Repr <: HList,
         HMapKey <: Symbol,
         AsParameters <: HList
-      ](rowUpdater: Key => UpdatableRow => Unit = Function.const(q.rowUpdater)
-      )(implicit p: Parameters.Products[Key, Repr, HMapKey, AsParameters]
+      ](implicit p: Parameters.Products[Key, Repr, HMapKey, AsParameters]
       ): SelectForUpdatable[Key] =
-        parameters(Parameters.product(_), key => rowUpdater(key))
+        parameters(Parameters.product(_))
 
       def record[
         Repr <: HList,
         HMapKey <: Symbol,
         AsParameters <: HList
-      ](rowUpdater: Key => UpdatableRow => Unit = Function.const(q.rowUpdater)
-      )(implicit p: Parameters.Records[Repr, HMapKey, AsParameters],
+      ](implicit p: Parameters.Records[Repr, HMapKey, AsParameters],
         ev: Repr =:= Key
       ): SelectForUpdatable[Key] =
-        parameters(key => Parameters.record(key.asInstanceOf[Repr]), key => rowUpdater(key))
+        parameters(key => Parameters.record(key.asInstanceOf[Repr]))
     }
 
   }
@@ -126,13 +124,13 @@ trait SelectForUpdate {
 
     override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.jdbc.SelectForUpdate]
 
-    val defaultUpdater =
-      Function.const[Unit, UpdatableRow](()) _
+    val defaultUpdater: UpdatableRow => Unit =
+      Function.const(())
 
     def update[A](
       statement: CompiledStatement,
       parameterValues: Parameters = Parameters.empty,
-      rowUpdater: UpdatableRow => Unit
+      rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
     )(implicit connection: Connection
     ): UpdatableRow.Summary = {
       logRun(statement, parameterValues, rowUpdater)
@@ -143,7 +141,7 @@ trait SelectForUpdate {
     def pipe[F[_]](
       statement: CompiledStatement,
       parameters: Parameters = Parameters.empty,
-      updater: UpdatableRow => Unit
+      updater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
     )(implicit async: Async[F]
     ): Pipe[F] =
       Pipe(statement, parameters, updater)
@@ -151,7 +149,7 @@ trait SelectForUpdate {
     def sink[F[_]](
       statement: CompiledStatement,
       parameters: Parameters = Parameters.empty,
-      updater: UpdatableRow => Unit
+      updater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
     )(implicit async: Async[F]
     ): Ignore.Sink[F] =
       Ignore.Sink(statement, parameters)
@@ -159,7 +157,7 @@ trait SelectForUpdate {
     case class Pipe[F[_]](
       statement: CompiledStatement,
       defaultParameters: Parameters = Parameters.empty,
-      updater: UpdatableRow => Unit
+      updater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
     )(implicit async: Async[F]
     ) {
       private val parameterPipe = Parameters.Pipe[F]
@@ -215,6 +213,9 @@ trait SelectForUpdate {
       if (update eq defaultUpdater)
         log.warn("Update function was not set.")
     }
+
+    implicit val partable: Batch.Partable[SelectForUpdate] =
+      (q: SelectForUpdate) => Batch.Part(q.statement, q.parameters)
 
   }
 

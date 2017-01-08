@@ -41,10 +41,10 @@ trait Update {
 
     class ToUpdatable[Key] {
       def constant: Updatable[Key] =
-        Updatable(Function.const(q) _)
+        Function.const(q)
 
       def parameters(toParameters: Key => Parameters): Updatable[Key] =
-        Updatable(key => q.onParameters(toParameters(key)))
+        key => q.onParameters(toParameters(key))
 
       def product[
         Repr <: HList,
@@ -145,6 +145,9 @@ trait Update {
     ): Unit = {
       log.debug(s"""query "${compiledStatement.originalQueryText}", parameters $parameters""")
     }
+
+    implicit val partable: Batch.Partable[Update] =
+      (q: Update) => Batch.Part(q.statement, q.parameters)
 
   }
 

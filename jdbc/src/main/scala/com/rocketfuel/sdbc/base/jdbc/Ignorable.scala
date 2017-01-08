@@ -5,19 +5,14 @@ import fs2.util.Async
 trait Ignorable {
   self: DBMS with Connection =>
 
-  trait Ignorable[Key] extends Queryable[Ignore, Key] {
-    def ignore(key: Key): Ignore
-  }
+  trait Ignorable[Key] extends (Key => Ignore)
 
   object Ignorable {
     def apply[Key](implicit i: Ignorable[Key]): Ignorable[Key] = i
 
-    def apply[Key](f: Key => Ignore): Ignorable[Key] =
+    implicit def create[Key](f: Key => Ignore): Ignorable[Key] =
       new Ignorable[Key] {
-        override def query(key: Key): Ignore =
-          f(key)
-
-        override def ignore(key: Key): Ignore =
+        override def apply(key: Key): Ignore =
           f(key)
       }
 
@@ -26,7 +21,7 @@ trait Ignorable {
     )(implicit ignorable: Ignorable[Key],
       connection: Connection
     ): Unit = {
-      ignorable.ignore(key).ignore()
+      ignorable(key).ignore()
     }
 
     def sink[F[_], Key](
@@ -34,7 +29,15 @@ trait Ignorable {
     )(implicit async: Async[F],
       ignorable: Ignorable[Key]
     ): Ignore.Sink[F] = {
-      ignorable.ignore(key).sink[F]
+      ignorable(key).sink[F]
+    }
+
+    trait Partable {
+      implicit def ignorablePartable[Key](implicit ignorable: Ignorable[Key]): Batch.Partable[Key] = {
+        (key: Key) =>
+          val query = ignorable(key)
+          Ignore.partable(query)
+      }
     }
 
     trait syntax {

@@ -5,19 +5,14 @@ import fs2.util.Async
 trait Updatable {
   self: DBMS with Connection =>
 
-  trait Updatable[Key] extends Queryable[Update, Key] {
-    def update(key: Key): Update
-  }
+  trait Updatable[Key] extends (Key => Update)
 
   object Updatable {
     def apply[Key](implicit u: Updatable[Key]): Updatable[Key] = u
 
-    def apply[Key](f: Key => Update): Updatable[Key] =
+    implicit def create[Key](f: Key => Update): Updatable[Key] =
       new Updatable[Key] {
-        override def query(key: Key): Update = f(key)
-
-        override def update(key: Key): Update =
-          f(key)
+        override def apply(key: Key): Update = f(key)
       }
 
     def update[Key](
@@ -25,7 +20,7 @@ trait Updatable {
     )(implicit updatable: Updatable[Key],
       connection: Connection
     ): Long = {
-      updatable.update(key).update()
+      updatable(key).update()
     }
 
     def pipe[F[_], Key](
@@ -33,7 +28,7 @@ trait Updatable {
     )(implicit async: Async[F],
       updatable: Updatable[Key]
     ): Update.Pipe[F] = {
-      updatable.update(key).pipe[F]
+      updatable(key).pipe[F]
     }
 
     def sink[F[_], Key](
@@ -41,7 +36,15 @@ trait Updatable {
     )(implicit async: Async[F],
       updatable: Updatable[Key]
     ): Ignore.Sink[F] = {
-      updatable.update(key).sink[F]
+      updatable(key).sink[F]
+    }
+
+    trait Partable {
+      implicit def updatablePartable[Key](implicit updatable: Updatable[Key]): Batch.Partable[Key] = {
+        (key: Key) =>
+          val query = updatable(key)
+          Update.partable(query)
+      }
     }
 
     trait syntax {

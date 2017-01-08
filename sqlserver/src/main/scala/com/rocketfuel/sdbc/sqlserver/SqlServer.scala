@@ -35,6 +35,7 @@ trait SqlServer
 
   trait syntax
     extends super.syntax
+      with MultiQueryable.Partable
       with MultiQueryable.syntax
 
   override val syntax = new syntax {}

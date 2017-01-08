@@ -53,9 +53,11 @@ class RichResultSpec
   }
 
   test("using SelectForUpdate to update a value works") {implicit connection =>
-    val randoms = Vector.fill(10)(util.Random.nextInt()).sorted
+    val batchCount = 10
 
-    Ignore("CREATE TABLE tbl (id serial PRIMARY KEY, x int)").ignore()
+    val randoms = Vector.fill(batchCount)(util.Random.nextInt()).sorted
+
+    Ignore.ignore("CREATE TABLE tbl (id serial PRIMARY KEY, x int)")
 
     val incrementedRandoms = randoms.map(_+1)
 
@@ -72,9 +74,9 @@ class RichResultSpec
 
     val summary = selectForUpdate"SELECT * FROM tbl".copy(rowUpdater = updateRow).update()
 
-    assertResult(UpdatableRow.Summary(updatedRows = batch.batches.size))(summary)
+    assertResult(UpdatableRow.Summary(updatedRows = batchCount))(summary)
 
-    val incrementedFromDb = Select[Int]("SELECT x FROM tbl ORDER BY x ASC").vector()
+    val incrementedFromDb = Select.vector[Int]("SELECT x FROM tbl ORDER BY x ASC")
 
     assert(incrementedFromDb.zip(incrementedRandoms).forall(xs => xs._1 == xs._2))
   }

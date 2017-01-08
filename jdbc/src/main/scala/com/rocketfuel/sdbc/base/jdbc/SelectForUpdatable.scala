@@ -5,24 +5,14 @@ import fs2.util.Async
 trait SelectForUpdatable {
   self: DBMS with Connection =>
 
-  trait SelectForUpdatable[Key] extends Queryable[SelectForUpdate, Key] {
-    def update(key: Key): SelectForUpdate
-
-    def rowUpdater(key: Key): UpdatableRow => Unit
-  }
+  trait SelectForUpdatable[Key] extends (Key => SelectForUpdate)
 
   object SelectForUpdatable {
     def apply[Key](implicit s: SelectForUpdatable[Key]): SelectForUpdatable[Key] = s
 
-    def apply[Key](f: Key => SelectForUpdate, g: Key => UpdatableRow => Unit): SelectForUpdatable[Key] =
+    implicit def create[Key](f: Key => SelectForUpdate): SelectForUpdatable[Key] =
       new SelectForUpdatable[Key] {
-        override def query(key: Key): SelectForUpdate = f(key)
-
-        override def update(key: Key): SelectForUpdate =
-          f(key)
-
-        override def rowUpdater(key: Key): UpdatableRow => Unit =
-          g(key)
+        override def apply(v1: Key): SelectForUpdate = f(v1)
       }
 
     def update[Key](
@@ -30,7 +20,7 @@ trait SelectForUpdatable {
     )(implicit selectable: SelectForUpdatable[Key],
       connection: Connection
     ): UpdatableRow.Summary = {
-      selectable.update(key).copy(rowUpdater = selectable.rowUpdater(key)).update()
+      selectable(key).update()
     }
 
     def pipe[F[_], Key](
@@ -38,7 +28,7 @@ trait SelectForUpdatable {
     )(implicit async: Async[F],
       selectable: SelectForUpdatable[Key]
     ): SelectForUpdate.Pipe[F] = {
-      selectable.update(key).copy(rowUpdater = selectable.rowUpdater(key)).pipe[F]
+      selectable(key).pipe[F]
     }
 
     def sink[F[_], Key](
@@ -46,7 +36,15 @@ trait SelectForUpdatable {
     )(implicit async: Async[F],
       selectable: SelectForUpdatable[Key]
     ): Ignore.Sink[F] = {
-      selectable.update(key).copy(rowUpdater = selectable.rowUpdater(key)).sink[F]
+      selectable(key).sink[F]
+    }
+
+    trait Partable {
+      implicit def selectForUpdatablePartable[Key](implicit selectForUpdate: SelectForUpdatable[Key]): Batch.Partable[Key] = {
+        (key: Key) =>
+          val query = selectForUpdate(key)
+          SelectForUpdate.partable(query)
+      }
     }
 
     trait syntax {

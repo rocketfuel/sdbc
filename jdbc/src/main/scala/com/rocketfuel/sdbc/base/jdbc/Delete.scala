@@ -33,10 +33,10 @@ trait Delete {
 
     class ToDeletable[Key] {
       def constant: Deletable[Key] =
-        Deletable(Function.const(q) _)
+        Function.const(q) _
 
       def parameters(toParameters: Key => Parameters): Deletable[Key] =
-        Deletable(key => q.onParameters(toParameters(key)))
+        key => q.onParameters(toParameters(key))
 
       def product[
         Repr <: HList,
@@ -137,6 +137,10 @@ trait Delete {
     ): Unit = {
       log.debug(s"""query "${compiledStatement.originalQueryText}", parameters $parameters""")
     }
+
+    implicit val partable: Batch.Partable[Delete] =
+      (d: Delete) => Batch.Part(d.statement, d.parameters)
+
   }
 
 }

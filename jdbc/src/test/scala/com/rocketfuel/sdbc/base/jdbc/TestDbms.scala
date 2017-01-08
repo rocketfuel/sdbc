@@ -10,6 +10,13 @@ class TestDbms extends DBMS
   with JdbcConnection
   with MultiQuery {
 
+  trait syntax
+    extends super.syntax
+      with MultiQueryable.Partable
+      with MultiQueryable.syntax
+
+  override val syntax = new syntax {}
+
 }
 
 object TestDbms extends TestDbms
