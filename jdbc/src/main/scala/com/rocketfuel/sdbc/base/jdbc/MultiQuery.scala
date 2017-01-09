@@ -4,6 +4,9 @@ import com.rocketfuel.sdbc.base.Logger
 import com.rocketfuel.sdbc.base.jdbc.statement.MultiResultConverter
 import fs2.Stream
 import fs2.util.Async
+import java.io.InputStream
+import java.net.URL
+import java.nio.file.Path
 import java.sql.ResultSet
 import shapeless.HList
 
@@ -69,6 +72,52 @@ trait MultiQuery extends MultiResultConverter with MultiQueryable {
   object MultiQuery
     extends Logger {
 
+    def readInputStream[
+      A
+    ](stream: InputStream
+    )(implicit multiResultConverter: MultiResultConverter[A],
+      codec: scala.io.Codec = scala.io.Codec.default
+    ): MultiQuery[A] = {
+      MultiQuery[A](CompiledStatement.readInputStream(stream))
+    }
+
+    def readUrl[
+      A
+    ](u: URL
+    )(implicit multiResultConverter: MultiResultConverter[A],
+      codec: scala.io.Codec = scala.io.Codec.default
+    ): MultiQuery[A] = {
+      MultiQuery[A](CompiledStatement.readUrl(u))
+    }
+
+    def readPath[
+      A
+    ](path: Path
+    )(implicit multiResultConverter: MultiResultConverter[A],
+      codec: scala.io.Codec = scala.io.Codec.default
+    ): MultiQuery[A] = {
+      MultiQuery[A](CompiledStatement.readPath(path))
+    }
+
+    def readClassResource[
+      A
+    ](clazz: Class[_],
+      name: String
+    )(implicit multiResultConverter: MultiResultConverter[A],
+      codec: scala.io.Codec = scala.io.Codec.default
+    ): MultiQuery[A] = {
+      MultiQuery[A](CompiledStatement.readClassResource(clazz, name))
+    }
+
+    def readResource[
+      A
+    ](name: String
+    )(implicit multiResultConverter: MultiResultConverter[A],
+      codec: scala.io.Codec = scala.io.Codec.default
+    ): MultiQuery[A] = {
+      MultiQuery[A](CompiledStatement.readResource(name))
+    }
+
     override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.jdbc.MultiQuery]
 
     val defaultResultSetType = ResultSet.TYPE_FORWARD_ONLY
@@ -81,7 +130,7 @@ trait MultiQuery extends MultiResultConverter with MultiQueryable {
     )(implicit connection: Connection,
       multiResultConverter: MultiResultConverter[A]
     ): A = {
-      logRun(compiledStatement, parameters)
+      QueryCompanion.logRun(log, compiledStatement, parameters)
       QueryMethods.execute(
         compiledStatement,
         parameters,
@@ -132,13 +181,6 @@ trait MultiQuery extends MultiResultConverter with MultiQueryable {
         _.map(p => Parameters.record(p)).through(parameters)
       }
 
-    }
-
-    private def logRun(
-      compiledStatement: CompiledStatement,
-      parameters: Parameters
-    ): Unit = {
-      log.debug(s"""query "${compiledStatement.originalQueryText}" parameters $parameters""")
     }
 
     implicit val partable: Batch.Partable[MultiQuery[_]] =

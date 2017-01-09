@@ -5,6 +5,9 @@ import com.rocketfuel.sdbc.Cassandra._
 import fs2._
 import fs2.util.Async
 import fs2.util.syntax._
+import java.io.InputStream
+import java.net.URL
+import java.nio.file.Path
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import shapeless.HList
@@ -154,6 +157,56 @@ object Query
     with Logger {
 
   override protected def logClass: Class[_] = classOf[Query[_]]
+
+  def readInputStream[A](
+    stream: InputStream,
+    queryOptions: QueryOptions = QueryOptions.default
+  )(implicit rowConverter: RowConverter[A],
+    codec: scala.io.Codec = scala.io.Codec.default
+  ): Query[A] = {
+    Query[A](CompiledStatement.readInputStream(stream))
+  }
+
+  def readUrl[
+    A
+  ](u: URL,
+    queryOptions: QueryOptions = QueryOptions.default
+  )(implicit rowConverter: RowConverter[A],
+    codec: scala.io.Codec = scala.io.Codec.default
+  ): Query[A] = {
+    Query[A](CompiledStatement.readUrl(u), queryOptions = queryOptions)
+  }
+
+  def readPath[
+    A
+  ](path: Path,
+    queryOptions: QueryOptions = QueryOptions.default
+  )(implicit rowConverter: RowConverter[A],
+    codec: scala.io.Codec = scala.io.Codec.default
+  ): Query[A] = {
+    Query[A](CompiledStatement.readPath(path), queryOptions = queryOptions)
+  }
+
+  def readClassResource[
+    A
+  ](clazz: Class[_],
+    name: String,
+    queryOptions: QueryOptions = QueryOptions.default
+  )(implicit rowConverter: RowConverter[A],
+    codec: scala.io.Codec = scala.io.Codec.default
+  ): Query[A] = {
+    Query[A](CompiledStatement.readClassResource(clazz, name), queryOptions = queryOptions)
+  }
+
+  def readResource[
+    A
+  ](name: String,
+    queryOptions: QueryOptions = QueryOptions.default
+  )(implicit rowConverter: RowConverter[A],
+    codec: scala.io.Codec = scala.io.Codec.default
+  ): Query[A] = {
+    Query[A](CompiledStatement.readResource(name), queryOptions = queryOptions)
+  }
 
   def execute(
     statement: CompiledStatement,

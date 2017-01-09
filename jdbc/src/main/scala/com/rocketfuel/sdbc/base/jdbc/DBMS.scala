@@ -7,7 +7,8 @@ import com.rocketfuel.sdbc.base.jdbc.statement.{ParameterValue, StatementConvert
 import java.sql
 
 trait DBMS
-  extends ParameterValue
+  extends QueryCompanion
+  with ParameterValue
   with HikariImplicits
   with Pool
   with Select

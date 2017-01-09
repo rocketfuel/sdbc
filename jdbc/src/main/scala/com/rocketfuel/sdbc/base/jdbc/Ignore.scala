@@ -64,9 +64,12 @@ trait Ignore {
   }
 
   object Ignore
-    extends Logger {
+    extends QueryCompanion[Ignore] {
 
     override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.jdbc.Ignore]
+
+    override protected def ofCompiledStatement(statement: CompiledStatement): Ignore =
+      Ignore(statement)
 
     def ignore(
       statement: CompiledStatement,
@@ -122,13 +125,6 @@ trait Ignore {
       ): fs2.Sink[F, Repr] = {
         parameterPipe.records.andThen(parameters)
       }
-    }
-
-    private def logRun(
-      compiledStatement: CompiledStatement,
-      parameters: Parameters
-    ): Unit = {
-      log.debug(s"""query "${compiledStatement.originalQueryText}", parameters $parameters""")
     }
 
     implicit val partable: Batch.Partable[Ignore] =

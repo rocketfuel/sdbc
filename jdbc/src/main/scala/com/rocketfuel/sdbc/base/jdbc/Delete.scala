@@ -1,6 +1,5 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.Logger
 import fs2.util.Async
 import fs2.Stream
 import shapeless.HList
@@ -59,7 +58,10 @@ trait Delete {
   }
 
   object Delete
-    extends Logger {
+    extends QueryCompanion[Delete] {
+
+    override protected def ofCompiledStatement(statement: CompiledStatement): Delete =
+      Delete(statement)
 
     override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.jdbc.Delete]
 
@@ -129,13 +131,6 @@ trait Delete {
         parameterPipe.records.andThen(parameters)
       }
 
-    }
-
-    private def logRun(
-      compiledStatement: CompiledStatement,
-      parameters: Parameters
-    ): Unit = {
-      log.debug(s"""query "${compiledStatement.originalQueryText}", parameters $parameters""")
     }
 
     implicit val partable: Batch.Partable[Delete] =

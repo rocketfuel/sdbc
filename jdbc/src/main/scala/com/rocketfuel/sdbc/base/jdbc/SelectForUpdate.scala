@@ -4,6 +4,9 @@ import com.rocketfuel.sdbc.base.Logger
 import com.rocketfuel.sdbc.base.jdbc.resultset.Row
 import fs2.Stream
 import fs2.util.Async
+import java.io.InputStream
+import java.net.URL
+import java.nio.file.Path
 import java.sql.ResultSet
 import shapeless.HList
 
@@ -122,6 +125,47 @@ trait SelectForUpdate {
   object SelectForUpdate
     extends Logger {
 
+    def readInputStream(
+      stream: InputStream,
+      rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
+    )(implicit codec: scala.io.Codec = scala.io.Codec.default
+    ): SelectForUpdate = {
+      SelectForUpdate(CompiledStatement.readInputStream(stream), rowUpdater = rowUpdater)
+    }
+
+    def readUrl(
+      u: URL,
+      rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
+    )(implicit codec: scala.io.Codec = scala.io.Codec.default
+    ): SelectForUpdate = {
+      SelectForUpdate(CompiledStatement.readUrl(u), rowUpdater = rowUpdater)
+    }
+
+    def readPath(
+      path: Path,
+      rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
+    )(implicit codec: scala.io.Codec = scala.io.Codec.default
+    ): SelectForUpdate = {
+      SelectForUpdate(CompiledStatement.readPath(path), rowUpdater = rowUpdater)
+    }
+
+    def readClassResource(
+      clazz: Class[_],
+      name: String,
+      rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
+    )(implicit codec: scala.io.Codec = scala.io.Codec.default
+    ): SelectForUpdate = {
+      SelectForUpdate(CompiledStatement.readClassResource(clazz, name), rowUpdater = rowUpdater)
+    }
+
+    def readResource(
+      name: String,
+      rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
+    )(implicit codec: scala.io.Codec = scala.io.Codec.default
+    ): SelectForUpdate = {
+      SelectForUpdate(CompiledStatement.readResource(name), rowUpdater = rowUpdater)
+    }
+
     override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.jdbc.SelectForUpdate]
 
     val defaultUpdater: UpdatableRow => Unit =
@@ -209,7 +253,7 @@ trait SelectForUpdate {
       parameters: Parameters,
       update: UpdatableRow => Unit
     ): Unit = {
-      log.debug(s"""query "${compiledStatement.originalQueryText}", parameters $parameters""")
+      QueryCompanion.logRun(log, compiledStatement, parameters)
       if (update eq defaultUpdater)
         log.warn("Update function was not set.")
     }

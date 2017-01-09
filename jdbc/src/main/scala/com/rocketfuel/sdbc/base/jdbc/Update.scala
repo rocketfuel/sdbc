@@ -67,7 +67,10 @@ trait Update {
   }
 
   object Update
-    extends Logger {
+    extends QueryCompanion[Update] {
+
+    override protected def ofCompiledStatement(statement: CompiledStatement): Update =
+      Update(statement)
 
     override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.jdbc.Update]
 
@@ -137,13 +140,6 @@ trait Update {
         parameterPipe.records.andThen(parameters)
       }
 
-    }
-
-    private def logRun(
-      compiledStatement: CompiledStatement,
-      parameters: Parameters
-    ): Unit = {
-      log.debug(s"""query "${compiledStatement.originalQueryText}", parameters $parameters""")
     }
 
     implicit val partable: Batch.Partable[Update] =

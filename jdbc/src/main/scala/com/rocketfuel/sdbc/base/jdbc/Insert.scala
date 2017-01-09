@@ -59,9 +59,12 @@ trait Insert {
   }
 
   object Insert
-    extends Logger {
+    extends QueryCompanion[Insert] {
 
     override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.jdbc.Insert]
+
+    override protected def ofCompiledStatement(statement: CompiledStatement): Insert =
+      Insert(statement)
 
     def insert(
       compiledStatement: CompiledStatement,
@@ -129,13 +132,6 @@ trait Insert {
         parameterPipe.records.andThen(parameters)
       }
 
-    }
-
-    private def logRun(
-      compiledStatement: CompiledStatement,
-      parameters: Parameters
-    ): Unit = {
-      log.debug(s"""query "${compiledStatement.originalQueryText}", parameters $parameters""")
     }
 
     implicit val partable: Batch.Partable[Insert] =

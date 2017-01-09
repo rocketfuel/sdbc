@@ -138,4 +138,10 @@ class CompiledStatementSpec extends FunSuite {
     intercept[IllegalStateException](CompiledStatement(queryText.mkString))
   }
 
+  test("can read resource") {
+    val actual = CompiledStatement.readClassResource(getClass, "test.txt")
+    val expected = CompiledStatement("abc")
+    assertResult(expected)(actual)
+  }
+
 }

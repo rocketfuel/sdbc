@@ -3,6 +3,9 @@ package com.rocketfuel.sdbc.base.jdbc
 import com.rocketfuel.sdbc.base.{CloseableIterator, Logger}
 import fs2.{Stream, pipe}
 import fs2.util.Async
+import java.io.InputStream
+import java.net.URL
+import java.nio.file.Path
 import shapeless.HList
 
 trait Select {
@@ -94,13 +97,59 @@ trait Select {
 
     override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.jdbc.Select]
 
+    def readInputStream[
+      A
+    ](stream: InputStream
+    )(implicit rowConverter: RowConverter[A],
+      codec: scala.io.Codec = scala.io.Codec.default
+    ): Select[A] = {
+      Select[A](CompiledStatement.readInputStream(stream))
+    }
+
+    def readUrl[
+      A
+    ](u: URL
+    )(implicit rowConverter: RowConverter[A],
+      codec: scala.io.Codec = scala.io.Codec.default
+    ): Select[A] = {
+      Select[A](CompiledStatement.readUrl(u))
+    }
+
+    def readPath[
+      A
+    ](path: Path
+    )(implicit rowConverter: RowConverter[A],
+      codec: scala.io.Codec = scala.io.Codec.default
+    ): Select[A] = {
+      Select[A](CompiledStatement.readPath(path))
+    }
+
+    def readClassResource[
+      A
+    ](clazz: Class[_],
+      name: String
+    )(implicit rowConverter: RowConverter[A],
+      codec: scala.io.Codec = scala.io.Codec.default
+    ): Select[A] = {
+      Select[A](CompiledStatement.readClassResource(clazz, name))
+    }
+
+    def readResource[
+      A
+    ](name: String
+    )(implicit rowConverter: RowConverter[A],
+      codec: scala.io.Codec = scala.io.Codec.default
+    ): Select[A] = {
+      Select[A](CompiledStatement.readResource(name))
+    }
+
     def iterator[A](
       statement: CompiledStatement,
       parameterValues: Parameters = Parameters.empty
     )(implicit connection: Connection,
       rowConverter: RowConverter[A]
     ): CloseableIterator[A] = {
-      logRun(statement, parameterValues)
+      QueryCompanion.logRun(log, statement, parameterValues)
       val executed = QueryMethods.execute(statement, parameterValues)
       StatementConverter.convertedRowIterator[A](executed)
     }
@@ -111,7 +160,7 @@ trait Select {
     )(implicit connection: Connection,
       rowConverter: RowConverter[A]
     ): Option[A] = {
-      logRun(statement, parameterValues)
+      QueryCompanion.logRun(log, statement, parameterValues)
       val executed = QueryMethods.execute(statement, parameterValues)
       try StatementConverter.convertedRowOption(executed)
       finally executed.close()
@@ -123,7 +172,7 @@ trait Select {
     )(implicit connection: Connection,
       rowConverter: RowConverter[A]
     ): A = {
-      logRun(statement, parameterValues)
+      QueryCompanion.logRun(log, statement, parameterValues)
       val executed = QueryMethods.execute(statement, parameterValues)
       try StatementConverter.convertedRowOne(executed)
       finally executed.close()
@@ -135,7 +184,7 @@ trait Select {
     )(implicit connection: Connection,
       rowConverter: RowConverter[A]
     ): Vector[A] = {
-      logRun(statement, parameterValues)
+      QueryCompanion.logRun(log, statement, parameterValues)
       val executed = QueryMethods.execute(statement, parameterValues)
 
       try StatementConverter.convertedRowVector[A](executed)
@@ -195,13 +244,6 @@ trait Select {
         parameterPipe.records.andThen(parameters)
       }
 
-    }
-
-    private def logRun(
-      compiledStatement: CompiledStatement,
-      parameters: Parameters
-    ): Unit = {
-      log.debug(s"""query "${compiledStatement.originalQueryText}" parameters $parameters""")
     }
 
     implicit val partable: Batch.Partable[Select[_]] =

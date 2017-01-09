@@ -1,5 +1,9 @@
 package com.rocketfuel.sdbc.base
 
+import java.io.{FileNotFoundException, InputStream}
+import java.net.URL
+import java.nio.file.{Files, Path}
+
 /**
   * Represents a query with named parameters.
   *
@@ -84,6 +88,52 @@ object CompiledStatement {
     val queryText = builder.toString
 
     apply(queryText)
+  }
+
+  def readInputStream(
+    stream: InputStream
+  )(implicit codec: scala.io.Codec = scala.io.Codec.default
+  ): CompiledStatement = {
+    scala.io.Source.fromInputStream(stream).mkString
+  }
+
+  def readUrl(
+    u: URL
+  )(implicit codec: scala.io.Codec = scala.io.Codec.default
+  ): CompiledStatement = {
+    val stream = u.openStream()
+    try readInputStream(stream)
+    finally stream.close()
+  }
+
+  def readPath(
+    path: Path
+  )(implicit codec: scala.io.Codec = scala.io.Codec.default
+  ): CompiledStatement = {
+    val bytes = Files.readAllBytes(path)
+    new String(bytes, codec.charSet)
+  }
+
+  def readClassResource(
+    clazz: Class[_],
+    name: String
+  )(implicit codec: scala.io.Codec = scala.io.Codec.default
+  ): CompiledStatement = {
+    val path = clazz.getCanonicalName.replace(".", "/") + "/" + name
+    val url = clazz.getClassLoader.getResource(path)
+    if (url == null)
+      throw new FileNotFoundException(path)
+    readUrl(url)
+  }
+
+  def readResource(
+    name: String
+  )(implicit codec: scala.io.Codec = scala.io.Codec.default
+  ): CompiledStatement = {
+    val url = getClass.getClassLoader.getResource(name)
+    if (url == null)
+      throw new FileNotFoundException(name)
+    readUrl(url)
   }
 
   private val CodePointAt = Character.codePointAt("@", 0)
