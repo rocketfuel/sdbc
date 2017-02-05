@@ -43,11 +43,14 @@ class RichResultSetSpec
       randoms.map(r => insert.on("x" -> r))
 
     val batch = Batch(inserts: _*)
+    batch.batch()
 
     val select =
-      Select[Int]("SELECT x FROM tbl ORDER BY id ASC")
+      Select[Int]("SELECT x FROM tbl ORDER BY x ASC")
 
     val beforeUpdate = select.vector()
+
+    assertResult(randoms)(beforeUpdate)
 
     def updateRow(row: UpdatableRow): Unit = {
       row("x") = row[Option[Int]]("x").map(_ + 1)
@@ -56,7 +59,7 @@ class RichResultSetSpec
 
     val summary = SelectForUpdate("SELECT x FROM tbl", rowUpdater = updateRow).update()
 
-    assertResult(UpdatableRow.Summary(updatedRows = batch.batches.size))(summary)
+    assertResult(UpdatableRow.Summary(updatedRows = batch.batches(insert.statement).size))(summary)
 
     val afterUpdate = select.vector()
 
