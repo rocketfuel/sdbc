@@ -24,7 +24,7 @@ abstract class CassandraSuite
     _keyspaces.head
 
   override protected def beforeAll(): Unit = {
-    EmbeddedCassandraServerHelper.startEmbeddedCassandra("another-cassandra.yaml")
+    EmbeddedCassandraServerHelper.startEmbeddedCassandra()
     createKeyspace()
   }
 

@@ -127,7 +127,7 @@ object CompiledStatement {
     name: String
   )(implicit codec: scala.io.Codec = scala.io.Codec.default
   ): CompiledStatement = {
-    val path = clazz.getCanonicalName.replace(".", "/") + "/" + name
+    val path = clazz.getCanonicalName.replace(".", "/") + "/" + name + "Queries"
     readResource(path)
   }
 
