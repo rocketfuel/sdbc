@@ -3,6 +3,7 @@ package com.rocketfuel.sdbc.base
 import java.io.{FileNotFoundException, InputStream}
 import java.net.URL
 import java.nio.file.{Files, Path}
+import scala.reflect.ClassTag
 
 /**
   * Represents a query with named parameters.
@@ -90,11 +91,18 @@ object CompiledStatement {
     apply(queryText)
   }
 
+  def readSource(
+    source: scala.io.Source
+  )(implicit codec: scala.io.Codec = scala.io.Codec.default
+  ): CompiledStatement = {
+    source.mkString
+  }
+
   def readInputStream(
     stream: InputStream
   )(implicit codec: scala.io.Codec = scala.io.Codec.default
   ): CompiledStatement = {
-    scala.io.Source.fromInputStream(stream).mkString
+    readSource(scala.io.Source.fromInputStream(stream))
   }
 
   def readUrl(
@@ -120,19 +128,24 @@ object CompiledStatement {
   )(implicit codec: scala.io.Codec = scala.io.Codec.default
   ): CompiledStatement = {
     val path = clazz.getCanonicalName.replace(".", "/") + "/" + name
-    val url = clazz.getClassLoader.getResource(path)
-    if (url == null)
-      throw new FileNotFoundException(path)
-    readUrl(url)
+    readResource(path)
+  }
+
+  def readTypeResource[A](
+    name: String
+  )(implicit codec: scala.io.Codec = scala.io.Codec.default,
+    tag: ClassTag[A]
+  ): CompiledStatement = {
+    readClassResource(tag.runtimeClass, name)
   }
 
   def readResource(
-    name: String
+    path: String
   )(implicit codec: scala.io.Codec = scala.io.Codec.default
   ): CompiledStatement = {
-    val url = getClass.getClassLoader.getResource(name)
+    val url = getClass.getClassLoader.getResource(path)
     if (url == null)
-      throw new FileNotFoundException(name)
+      throw new FileNotFoundException(path)
     readUrl(url)
   }
 

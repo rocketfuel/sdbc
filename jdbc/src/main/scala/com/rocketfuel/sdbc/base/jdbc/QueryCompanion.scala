@@ -4,6 +4,7 @@ import com.rocketfuel.sdbc.base.Logger
 import java.io.InputStream
 import java.net.URL
 import java.nio.file.Path
+import scala.reflect.ClassTag
 
 trait QueryCompanion {
   self: DBMS with Connection =>
@@ -39,6 +40,14 @@ trait QueryCompanion {
     )(implicit codec: scala.io.Codec = scala.io.Codec.default
     ): Query = {
       ofCompiledStatement(CompiledStatement.readClassResource(clazz, name))
+    }
+
+    def readTypeResource[A](
+      name: String
+    )(implicit codec: scala.io.Codec = scala.io.Codec.default,
+      tag: ClassTag[A]
+    ): Query = {
+      ofCompiledStatement(CompiledStatement.readTypeResource(name))
     }
 
     def readResource(

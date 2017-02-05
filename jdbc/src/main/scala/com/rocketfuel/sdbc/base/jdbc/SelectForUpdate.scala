@@ -8,6 +8,7 @@ import java.io.InputStream
 import java.net.URL
 import java.nio.file.Path
 import java.sql.ResultSet
+import scala.reflect.ClassTag
 import shapeless.HList
 
 trait SelectForUpdate {
@@ -156,6 +157,15 @@ trait SelectForUpdate {
     )(implicit codec: scala.io.Codec = scala.io.Codec.default
     ): SelectForUpdate = {
       SelectForUpdate(CompiledStatement.readClassResource(clazz, name), rowUpdater = rowUpdater)
+    }
+
+    def readTypeResource[A](
+      name: String,
+      rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
+    )(implicit codec: scala.io.Codec = scala.io.Codec.default,
+      tag: ClassTag[A]
+    ): SelectForUpdate = {
+      SelectForUpdate(CompiledStatement.readTypeResource(name), rowUpdater = rowUpdater)
     }
 
     def readResource(

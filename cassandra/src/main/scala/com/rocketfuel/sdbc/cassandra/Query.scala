@@ -10,6 +10,7 @@ import java.net.URL
 import java.nio.file.Path
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.reflect.ClassTag
 import shapeless.HList
 
 /**
@@ -196,6 +197,18 @@ object Query
     codec: scala.io.Codec = scala.io.Codec.default
   ): Query[A] = {
     Query[A](CompiledStatement.readClassResource(clazz, name), queryOptions = queryOptions)
+  }
+
+  def readTypeResource[
+    ResourceType,
+    Row
+  ](name: String,
+    queryOptions: QueryOptions = QueryOptions.default
+  )(implicit rowConverter: RowConverter[Row],
+    codec: scala.io.Codec = scala.io.Codec.default,
+    tag: ClassTag[ResourceType]
+  ): Query[Row] = {
+    Query[Row](CompiledStatement.readTypeResource[ResourceType](name), queryOptions = queryOptions)
   }
 
   def readResource[

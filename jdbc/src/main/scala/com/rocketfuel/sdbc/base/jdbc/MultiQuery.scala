@@ -8,6 +8,7 @@ import java.io.InputStream
 import java.net.URL
 import java.nio.file.Path
 import java.sql.ResultSet
+import scala.reflect.ClassTag
 import shapeless.HList
 
 /**
@@ -100,13 +101,24 @@ trait MultiQuery extends MultiResultConverter with MultiQueryable {
     }
 
     def readClassResource[
-      A
+      Row
     ](clazz: Class[_],
       name: String
-    )(implicit multiResultConverter: MultiResultConverter[A],
+    )(implicit multiResultConverter: MultiResultConverter[Row],
       codec: scala.io.Codec = scala.io.Codec.default
-    ): MultiQuery[A] = {
-      MultiQuery[A](CompiledStatement.readClassResource(clazz, name))
+    ): MultiQuery[Row] = {
+      MultiQuery[Row](CompiledStatement.readClassResource(clazz, name))
+    }
+
+    def readTypeResource[
+      ResourceType,
+      Row
+    ](name: String
+    )(implicit multiResultConverter: MultiResultConverter[Row],
+      codec: scala.io.Codec = scala.io.Codec.default,
+      tag: ClassTag[ResourceType]
+    ): MultiQuery[Row] = {
+      MultiQuery[Row](CompiledStatement.readTypeResource[ResourceType](name))
     }
 
     def readResource[

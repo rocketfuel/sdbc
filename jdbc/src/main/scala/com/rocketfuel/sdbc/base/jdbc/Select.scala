@@ -6,6 +6,7 @@ import fs2.util.Async
 import java.io.InputStream
 import java.net.URL
 import java.nio.file.Path
+import scala.reflect.ClassTag
 import shapeless.HList
 
 trait Select {
@@ -133,6 +134,18 @@ trait Select {
     ): Select[A] = {
       Select[A](CompiledStatement.readClassResource(clazz, name))
     }
+
+    def readTypeResource[
+      ResourceType,
+      Row
+    ](name: String
+    )(implicit rowConverter: RowConverter[Row],
+      codec: scala.io.Codec = scala.io.Codec.default,
+      tag: ClassTag[ResourceType]
+    ): Select[Row] = {
+      Select[Row](CompiledStatement.readTypeResource[ResourceType](name))
+    }
+
 
     def readResource[
       A
