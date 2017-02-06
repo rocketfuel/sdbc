@@ -9,7 +9,7 @@ import java.util.{Date, UUID}
 import scala.collection.JavaConverters._
 import scodec.bits.ByteVector
 
-trait TupleGetter[+A] extends ((TupleValue, Int) => Option[A])
+trait TupleGetter[A] extends ((TupleValue, Int) => Option[A])
 
 object TupleGetter {
   implicit def of[A](getter: TupleValue => Int => A): TupleGetter[A] = {

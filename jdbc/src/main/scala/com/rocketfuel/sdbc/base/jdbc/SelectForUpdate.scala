@@ -97,28 +97,30 @@ trait SelectForUpdate {
       new ToSelectForUpdatable[Key]
 
     class ToSelectForUpdatable[Key] {
-      def constant(): SelectForUpdatable[Key] =
-        SelectForUpdatable[Key](Function.const(q) _)
+      def constant(rowUpdater: Key => UpdatableRow => Unit = Function.const(q.rowUpdater)): SelectForUpdatable[Key] =
+        (key: Key) => q.copy(rowUpdater = rowUpdater(key))
 
-      def parameters(toParameters: Key => Parameters): SelectForUpdatable[Key] =
-        SelectForUpdatable(key => q.onParameters(toParameters(key)))
+      def parameters(toParameters: Key => Parameters, rowUpdater: Key => UpdatableRow => Unit = Function.const(q.rowUpdater)): SelectForUpdatable[Key] =
+        (key: Key) => q.onParameters(toParameters(key)).copy(rowUpdater = rowUpdater(key))
 
       def product[
         Repr <: HList,
         HMapKey <: Symbol,
         AsParameters <: HList
-      ](implicit p: Parameters.Products[Key, Repr, HMapKey, AsParameters]
+      ](rowUpdater: Key => UpdatableRow => Unit = Function.const(q.rowUpdater)
+      )(implicit p: Parameters.Products[Key, Repr, HMapKey, AsParameters]
       ): SelectForUpdatable[Key] =
-        parameters(Parameters.product(_))
+        parameters(Parameters.product(_), rowUpdater)
 
       def record[
         Repr <: HList,
         HMapKey <: Symbol,
         AsParameters <: HList
-      ](implicit p: Parameters.Records[Repr, HMapKey, AsParameters],
+      ](rowUpdater: Key => UpdatableRow => Unit = Function.const(q.rowUpdater)
+      )(implicit p: Parameters.Records[Repr, HMapKey, AsParameters],
         ev: Repr =:= Key
       ): SelectForUpdatable[Key] =
-        parameters(key => Parameters.record(key.asInstanceOf[Repr]))
+        parameters(key => Parameters.record(key.asInstanceOf[Repr]), rowUpdater)
     }
 
   }
@@ -153,19 +155,21 @@ trait SelectForUpdate {
     def readClassResource(
       clazz: Class[_],
       name: String,
-      rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
+      rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater,
+      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
     )(implicit codec: scala.io.Codec = scala.io.Codec.default
     ): SelectForUpdate = {
-      SelectForUpdate(CompiledStatement.readClassResource(clazz, name), rowUpdater = rowUpdater)
+      SelectForUpdate(CompiledStatement.readClassResource(clazz, name, nameMangler), rowUpdater = rowUpdater)
     }
 
     def readTypeResource[A](
       name: String,
-      rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
+      rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater,
+      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
     )(implicit codec: scala.io.Codec = scala.io.Codec.default,
       tag: ClassTag[A]
     ): SelectForUpdate = {
-      SelectForUpdate(CompiledStatement.readTypeResource(name), rowUpdater = rowUpdater)
+      SelectForUpdate(CompiledStatement.readTypeResource(name, nameMangler), rowUpdater = rowUpdater)
     }
 
     def readResource(

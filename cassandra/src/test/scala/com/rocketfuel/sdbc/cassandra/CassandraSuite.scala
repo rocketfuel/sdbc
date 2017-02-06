@@ -35,7 +35,7 @@ abstract class CassandraSuite
   override protected def afterEach(): Unit = {
     implicit val session = client.connect()
     try for (keyspace <- keyspaces)
-      util.Try(drop(tableName = "tbl"))
+      util.Try(drop(keyspace = keyspace, tableName = "tbl"))
     finally session.close()
   }
 

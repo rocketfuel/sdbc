@@ -74,11 +74,13 @@ trait Getter extends base.Getter with base.RowConverter {
       row.getSet[A](ix, token).asScala.toSet
     }
 
-  implicit def mapGetter[K, V](implicit keyTag: ClassTag[K], valueTag: ClassTag[V]): Getter[Map[K, V]] =
-    functionToGetter[Map[K, V]] { row => ix =>
-      val keyToken = TypeToken.of[K](keyTag.runtimeClass.asInstanceOf[Class[K]])
-      val valueToken = TypeToken.of[V](valueTag.runtimeClass.asInstanceOf[Class[V]])
-      row.getMap[K, V](ix, keyToken, valueToken).asScala.toMap
+  implicit def mapGetter[K, V](implicit keyTag: ClassTag[K], valueTag: ClassTag[V]): Getter[Map[K, V]] = {
+    val keyToken = TypeToken.of[K](keyTag.runtimeClass.asInstanceOf[Class[K]])
+    val valueToken = TypeToken.of[V](valueTag.runtimeClass.asInstanceOf[Class[V]])
+    functionToGetter[Map[K, V]] { row =>
+      ix =>
+        row.getMap[K, V](ix, keyToken, valueToken).asScala.toMap
     }
+  }
 
 }

@@ -4,6 +4,7 @@ import com.rocketfuel.sdbc.Cassandra
 import com.rocketfuel.sdbc.Cassandra._
 import org.scalacheck.Gen
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
+import shapeless._
 
 class RichResultSetSpec
   extends CassandraSuite
@@ -48,6 +49,13 @@ class RichResultSetSpec
     }
   }
 
+  test("Insert and select works for (0, 0).") { implicit connection =>
+    Query.execute(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x tuple<int, int>)")
+    Query(s"INSERT INTO $keyspace.tbl (id, x) VALUES (@id, @x)").on(
+      "id" -> 3, ("x", (0, 0))
+    ).execute()
+  }
+
   test("Insert and select works for tuples.") { implicit connection =>
     Query.execute(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x tuple<int, int>)")
 
@@ -64,7 +72,7 @@ class RichResultSetSpec
       val results = {
         for {
           tupleValue <- Query[TupleValue](s"SELECT x FROM $keyspace.tbl").iterator()
-        } yield tupleValue.apply[(Int, Int)]
+        } yield tupleValue[(Int, Int)]
       }.toSeq
 
       assertResult(tuples.toSet)(results.toSet)
@@ -97,22 +105,21 @@ class RichResultSetSpec
   }
 
   test("Insert and select works for sets.") {implicit connection =>
-    Query(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x set<text>)").execute()
+    Query(s"CREATE TABLE $keyspace.tbl2 (id int PRIMARY KEY, x set<text>)").execute()
+    val insert = Query(s"INSERT INTO $keyspace.tbl2 (id, x) VALUES (@id, @x)")
 
     forAll(Gen.nonEmptyListOf(Gen.nonEmptyContainerOf[Set, String](Gen.alphaStr))) { sets =>
-      val insert = Query(s"INSERT INTO $keyspace.tbl (id, x) VALUES (@id, @x)")
-
       for ((set, id) <- sets.zipWithIndex) {
         insert.on("id" -> id, "x" -> set).execute()
       }
 
-      val results = Query[Set[String]](s"SELECT x FROM $keyspace.tbl").iterator().toSeq
+      val results = Query[Set[String]](s"SELECT x FROM $keyspace.tbl2").iterator().toSeq
 
       assertResult(sets.toSet)(results.toSet)
 
       assertResult(sets.size)(results.size)
 
-      truncate(tableName = "tbl")
+      truncate(tableName = "tbl2")
     }
   }
 
@@ -122,22 +129,22 @@ class RichResultSetSpec
   } yield (t0, t1)
 
   test("Insert and select works for maps.") {implicit connection =>
-    Query(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x map<text, text>)").execute()
+    Query(s"CREATE TABLE $keyspace.tbl3 (id int PRIMARY KEY, x map<text, text>)").execute()
 
     forAll(Gen.nonEmptyListOf[Map[String, String]](Gen.nonEmptyMap[String, String](genStringTuple))) { maps =>
-      val insert = Query(s"INSERT INTO $keyspace.tbl (id, x) VALUES (@id, @x)")
+      val insert = Query(s"INSERT INTO $keyspace.tbl3 (id, x) VALUES (@id, @x)")
 
       for ((map, id) <- maps.zipWithIndex) {
         insert.on("id" -> id, "x" -> map).execute()
       }
 
-      val results = Query[Map[String, String]](s"SELECT x FROM $keyspace.tbl").iterator().toSeq
+      val results = Query[Map[String, String]](s"SELECT x FROM $keyspace.tbl3").iterator().toSeq
 
       assertResult(maps.toSet)(results.toSet)
 
       assertResult(maps.size)(results.size)
 
-      truncate(tableName = "tbl")
+      truncate(tableName = "tbl3")
     }
   }
 

@@ -36,18 +36,20 @@ trait QueryCompanion {
 
     def readClassResource(
       clazz: Class[_],
-      name: String
+      name: String,
+      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
     )(implicit codec: scala.io.Codec = scala.io.Codec.default
     ): Query = {
-      ofCompiledStatement(CompiledStatement.readClassResource(clazz, name))
+      ofCompiledStatement(CompiledStatement.readClassResource(clazz, name, nameMangler))
     }
 
     def readTypeResource[A](
-      name: String
+      name: String,
+      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
     )(implicit codec: scala.io.Codec = scala.io.Codec.default,
       tag: ClassTag[A]
     ): Query = {
-      ofCompiledStatement(CompiledStatement.readTypeResource(name))
+      ofCompiledStatement(CompiledStatement.readTypeResource(name, nameMangler))
     }
 
     def readResource(

@@ -139,7 +139,7 @@ class CompiledStatementSpec extends FunSuite {
   }
 
   test("can read resource") {
-    val actual = CompiledStatement.readClassResource(getClass, "test.txt")
+    val actual = CompiledStatement.readTypeResource[CompiledStatementSpec]("test.txt", nameMangler = CompiledStatement.NameManglers.withSuffix("Queries"))
     val expected = CompiledStatement("abc")
     assertResult(expected)(actual)
   }

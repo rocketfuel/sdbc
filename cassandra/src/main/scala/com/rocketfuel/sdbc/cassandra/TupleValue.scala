@@ -9,7 +9,6 @@ import java.nio.ByteBuffer
 import java.util
 import java.util.{Date, UUID}
 import shapeless.HList
-import shapeless.syntax.std.product._
 import shapeless.ops.hlist.{Mapper, ToTraversable}
 import shapeless.ops.product.ToHList
 
@@ -105,11 +104,11 @@ object TupleValue {
   }
 
   implicit def productTupleValue[
-  P <: Product,
-  H <: HList,
-  ListH <: HList,
-  MappedTypesH <: HList,
-  MappedValuesH <: HList
+    P,
+    H <: HList,
+    ListH <: HList,
+    MappedTypesH <: HList,
+    MappedValuesH <: HList
   ](p: P
   )(implicit toHList: ToHList.Aux[P, H],
     dataTypeMapper: Mapper.Aux[TupleDataType.ToDataType.type, H, MappedTypesH],
@@ -117,7 +116,7 @@ object TupleValue {
     dataValueMapper: Mapper.Aux[TupleDataType.ToDataValue.type, H, MappedValuesH],
     dataValueList: ToTraversable.Aux[MappedValuesH, Seq, AnyRef]
   ): TupleValue = {
-    val asH = p.toHList
+    val asH = toHList(p)
     val tv = hlistTupleValue(asH)
     tv
   }

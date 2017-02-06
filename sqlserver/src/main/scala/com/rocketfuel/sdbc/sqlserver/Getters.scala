@@ -11,7 +11,7 @@ trait Getters
   self: SqlServer =>
 
   override implicit val LocalTimeGetter: Getter[LocalTime] =
-    LocalTime.parse _
+    (asString: String) => LocalTime.parse(asString)
 
   implicit val OffsetDateTimeGetter: Getter[OffsetDateTime] =
     (asString: String) => OffsetDateTime.from(offsetDateTimeFormatter.parse(asString))

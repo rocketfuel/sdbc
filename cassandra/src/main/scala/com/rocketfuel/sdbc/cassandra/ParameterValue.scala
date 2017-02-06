@@ -187,7 +187,7 @@ trait ParameterValue
   }
 
   implicit def productParameterValue[
-    P <: Product,
+    P,
     H <: HList,
     ListH <: HList,
     MappedTypesH <: HList,

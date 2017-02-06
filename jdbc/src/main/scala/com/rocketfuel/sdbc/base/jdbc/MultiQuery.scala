@@ -103,22 +103,24 @@ trait MultiQuery extends MultiResultConverter with MultiQueryable {
     def readClassResource[
       Row
     ](clazz: Class[_],
-      name: String
+      name: String,
+      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
     )(implicit multiResultConverter: MultiResultConverter[Row],
       codec: scala.io.Codec = scala.io.Codec.default
     ): MultiQuery[Row] = {
-      MultiQuery[Row](CompiledStatement.readClassResource(clazz, name))
+      MultiQuery[Row](CompiledStatement.readClassResource(clazz, name, nameMangler))
     }
 
     def readTypeResource[
-      ResourceType,
-      Row
-    ](name: String
+      Row,
+      ResourceType
+    ](name: String,
+      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
     )(implicit multiResultConverter: MultiResultConverter[Row],
       codec: scala.io.Codec = scala.io.Codec.default,
       tag: ClassTag[ResourceType]
     ): MultiQuery[Row] = {
-      MultiQuery[Row](CompiledStatement.readTypeResource[ResourceType](name))
+      MultiQuery[Row](CompiledStatement.readTypeResource[ResourceType](name, nameMangler))
     }
 
     def readResource[

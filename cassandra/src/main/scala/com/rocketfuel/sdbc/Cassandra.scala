@@ -42,7 +42,7 @@ object Cassandra
   type TupleDataType[A] = cassandra.TupleDataType[A]
   val TupleDataType = cassandra.TupleDataType
 
-  type TupleGetter[+A] = cassandra.TupleGetter[A]
+  type TupleGetter[A] = cassandra.TupleGetter[A]
   val TupleGetter = cassandra.TupleGetter
 
   type TupleValue = cassandra.TupleValue

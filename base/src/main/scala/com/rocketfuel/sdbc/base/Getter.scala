@@ -1,7 +1,9 @@
 package com.rocketfuel.sdbc.base
 
-import shapeless.{::, Generic, HList, HNil, Lazy}
+import shapeless._
 import shapeless.labelled.{FieldType, field}
+import shapeless.ops.hlist.Length
+import shapeless.ops.nat.ToInt
 
 /*
  * This is inspired from doobie, which supports using Shapeless to create getters, setters, and updaters.
@@ -17,7 +19,7 @@ trait Getter {
     * Instead, the row decomposes into parts, which then compose into yet another
     * non-primitive value. Row => elements => case class or product
     */
-  trait Getter[+A] extends ((Row, Int) => Option[A]) {
+  trait Getter[A] extends ((Row, Int) => Option[A]) {
 
     val length: Int
 
@@ -45,7 +47,6 @@ trait Getter {
         } yield converter(base)
     }
   }
-
 
   /**
     * Like doobie's Composite, but only the getter part.
@@ -86,10 +87,14 @@ trait Getter {
     implicit def recordComposite[
       H,
       T <: HList,
-      K <: Symbol
+      K <: Symbol,
+      L <: HList,
+      N <: Nat
     ](implicit
       H: CompositeGetter[H],
-      T: CompositeGetter[T]
+      T: CompositeGetter[T],
+      L: Length.Aux[L, N],
+      I: ToInt[N]
     ): CompositeGetter[FieldType[K, H] :: T] =
       new CompositeGetter[FieldType[K, H] :: T] {
         override def apply(row: Row, ix: Int): FieldType[K, H] :: T = {
@@ -99,15 +104,21 @@ trait Getter {
           field[K](head) :: tail
         }
 
-        override val length: Int = H.length + T.length
+        override val length: Int = I() + 1
       }
   }
 
   trait LowerPriorityCompositeGetter {
 
-    implicit def product[H, T <: HList](implicit
-      H: CompositeGetter[H],
-      T: CompositeGetter[T]
+    implicit def product[
+      H,
+      T <: HList,
+      L <: HList,
+      N <: Nat
+    ](implicit H: CompositeGetter[H],
+      T: CompositeGetter[T],
+      L: Length.Aux[L, N],
+      I: ToInt[N]
     ): CompositeGetter[H :: T] =
       new CompositeGetter[H :: T] {
         override def apply(row: Row, ix: Int): H :: T = {
@@ -116,7 +127,7 @@ trait Getter {
           head :: tail
         }
 
-        override val length: Int = H.length + T.length
+        override val length: Int = I() + 1
       }
 
     implicit val emptyProduct: CompositeGetter[HNil] =

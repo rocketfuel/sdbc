@@ -192,23 +192,25 @@ object Query
     A
   ](clazz: Class[_],
     name: String,
-    queryOptions: QueryOptions = QueryOptions.default
+    queryOptions: QueryOptions = QueryOptions.default,
+    nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
   )(implicit rowConverter: RowConverter[A],
     codec: scala.io.Codec = scala.io.Codec.default
   ): Query[A] = {
-    Query[A](CompiledStatement.readClassResource(clazz, name), queryOptions = queryOptions)
+    Query[A](CompiledStatement.readClassResource(clazz, name, nameMangler), queryOptions = queryOptions)
   }
 
   def readTypeResource[
     ResourceType,
     Row
   ](name: String,
-    queryOptions: QueryOptions = QueryOptions.default
+    queryOptions: QueryOptions = QueryOptions.default,
+    nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
   )(implicit rowConverter: RowConverter[Row],
     codec: scala.io.Codec = scala.io.Codec.default,
     tag: ClassTag[ResourceType]
   ): Query[Row] = {
-    Query[Row](CompiledStatement.readTypeResource[ResourceType](name), queryOptions = queryOptions)
+    Query[Row](CompiledStatement.readTypeResource[ResourceType](name, nameMangler), queryOptions = queryOptions)
   }
 
   def readResource[

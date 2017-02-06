@@ -122,21 +122,45 @@ object CompiledStatement {
     new String(bytes, codec.charSet)
   }
 
+  /**
+    * Read a query from a resource where constructing the full path to the
+    * resource requires the class.
+    *
+    * Using a different `nameMangler` allows different naming schemes depending
+    * on your requirements. The default is to look for resources in the same
+    * package as the given class. See [[NameManglers]] for more examples.
+    *
+    * Name mangling is generally required, because if you have a class a.B, package
+    * a.B containing query files can not also exist.
+    */
   def readClassResource(
     clazz: Class[_],
-    name: String
+    fileName: String,
+    nameMangler: (Class[_], String) => String = NameManglers.default
   )(implicit codec: scala.io.Codec = scala.io.Codec.default
   ): CompiledStatement = {
-    val path = clazz.getCanonicalName.replace(".", "/") + "/" + name + "Queries"
-    readResource(path)
+    val mangledName = nameMangler(clazz, fileName)
+    readResource(mangledName)
   }
 
+  /**
+    * Read a query from a resource where constructing the full path to the
+    * resource requires the class.
+    *
+    * Using a different `nameMangler` allows different naming schemes depending
+    * on your requirements. The default is to look for resources in the same
+    * package as the given class. See [[NameManglers]] for more examples.
+    *
+    * Name mangling is generally required, because if you have a class a.B, package
+    * a.B containing query files can not also exist.
+    */
   def readTypeResource[A](
-    name: String
+    fileName: String,
+    nameMangler: (Class[_], String) => String = NameManglers.default
   )(implicit codec: scala.io.Codec = scala.io.Codec.default,
     tag: ClassTag[A]
   ): CompiledStatement = {
-    readClassResource(tag.runtimeClass, name)
+    readClassResource(tag.runtimeClass, fileName, nameMangler)
   }
 
   def readResource(
@@ -147,6 +171,51 @@ object CompiledStatement {
     if (url == null)
       throw new FileNotFoundException(path)
     readUrl(url)
+  }
+
+  object NameManglers {
+    val default: (Class[_], String) => String = samePackage
+
+    /**
+      * Given class `a.B`, find query files in `/a/`.
+      */
+    def samePackage(clazz: Class[_], fileName: String): String = {
+      val classPath = clazz.getCanonicalName.split('.').toVector
+      val filePath = classPath.init :+ fileName
+      filePath.mkString("/")
+    }
+
+    /**
+      * Given class `a.B`, find query files in `/a/b/`. Only the first
+      * character in the class name is lower cased.
+      */
+    def classToPackage(clazz: Class[_], fileName: String): String = {
+      val classPath = clazz.getCanonicalName.split('.').toVector
+      val className = classPath.last
+      val classNameAsPackage = className.head.toLower +: className.tail
+      val filePath = classPath.init :+ classNameAsPackage :+ fileName
+      filePath.mkString("/")
+    }
+
+    /**
+      * Given class `a.B` and prefix `Vector("prefix")`, find query files in
+      * `/prefix/a/B/`.
+      */
+    def withPrefix(prefix: Vector[String])(clazz: Class[_], fileName: String): String = {
+      val classPath = clazz.getCanonicalName.split('.').toVector
+      val filePath = prefix ++ classPath :+ fileName
+      filePath.mkString("/")
+    }
+
+    /**
+      * Given class `a.B` and suffix `"suffix"`, find query files in
+      * `/a/Bsuffix/`.
+      */
+    def withSuffix(suffix: String)(clazz: Class[_], fileName: String): String = {
+      val classPath = clazz.getCanonicalName.split('.').toVector
+      val filePath = classPath.init :+ (classPath.last ++ suffix) :+ fileName
+      filePath.mkString("/")
+    }
   }
 
   private val CodePointAt = Character.codePointAt("@", 0)

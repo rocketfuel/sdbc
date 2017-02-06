@@ -128,22 +128,24 @@ trait Select {
     def readClassResource[
       A
     ](clazz: Class[_],
-      name: String
+      name: String,
+      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
     )(implicit rowConverter: RowConverter[A],
       codec: scala.io.Codec = scala.io.Codec.default
     ): Select[A] = {
-      Select[A](CompiledStatement.readClassResource(clazz, name))
+      Select[A](CompiledStatement.readClassResource(clazz, name, nameMangler))
     }
 
     def readTypeResource[
       ResourceType,
       Row
-    ](name: String
+    ](name: String,
+      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
     )(implicit rowConverter: RowConverter[Row],
       codec: scala.io.Codec = scala.io.Codec.default,
       tag: ClassTag[ResourceType]
     ): Select[Row] = {
-      Select[Row](CompiledStatement.readTypeResource[ResourceType](name))
+      Select[Row](CompiledStatement.readTypeResource[ResourceType](name, nameMangler))
     }
 
 
