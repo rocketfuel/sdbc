@@ -1,12 +1,12 @@
 package com.rocketfuel.sdbc.postgresql
 
-import com.rocketfuel.sdbc.PostgreSql._
+import com.rocketfuel.sdbc.PostgreSqlArgonaut._
 import java.sql.{Date, Time, Timestamp}
 import java.time._
 import java.util.UUID
 import org.apache.commons.lang3.RandomStringUtils
-import org.json4s.JValue
-import org.json4s.jackson.JsonMethods
+import argonaut._
+import argonaut.Argonaut._
 import scala.reflect.ClassTag
 import scala.xml._
 import scodec.bits.ByteVector
@@ -100,7 +100,7 @@ class UpdatersSpec
 
   testUpdate[Elem]("xml")(<a></a>)(<b></b>)
 
-  testUpdate[JValue]("json")(JsonMethods.parse("{}"))(JsonMethods.parse("""{"a": 1}"""))
+  testUpdate[Json]("json")("{}".parseOption.get)("""{"a": 1}""".parseOption.get)
 
   test(s"Update None") {implicit connection =>
     val before = Some(1)

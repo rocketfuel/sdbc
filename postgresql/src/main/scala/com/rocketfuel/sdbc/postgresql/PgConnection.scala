@@ -5,6 +5,8 @@ import com.rocketfuel.sdbc.base.jdbc.Connection
 trait PgConnection
   extends Connection {
 
+  def initializeJson(connection: Connection): Unit
+
   override type BaseConnection = org.postgresql.core.BaseConnection
 
   override protected val baseConnection: Class[BaseConnection] =
@@ -22,8 +24,7 @@ trait PgConnection
     connection.addDataType("ltree", classOf[LTree])
     connection.addDataType("inet", classOf[PGInetAddress])
     connection.addDataType("cidr", classOf[Cidr])
-    connection.addDataType("json", classOf[PGJson])
-    connection.addDataType("jsonb", classOf[PGJson])
+    initializeJson(connection)
     //The PG driver won't use these registered custom classes, even if we register them.
     //    pgConnection.addDataType("time", classOf[PGLocalTime])
     //    pgConnection.addDataType("timetz", classOf[PGTimeTz])

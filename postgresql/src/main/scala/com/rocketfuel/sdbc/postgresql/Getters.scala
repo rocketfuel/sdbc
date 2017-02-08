@@ -6,7 +6,7 @@ import java.net.InetAddress
 import java.sql.{SQLDataException, SQLException}
 import java.time.{Duration => JavaDuration, _}
 import java.util.UUID
-import org.json4s.JValue
+import argonaut._
 import org.postgresql.util.{PGInterval, PGobject}
 import scala.concurrent.duration.{Duration => ScalaDuration}
 import scala.reflect.ClassTag
@@ -69,8 +69,6 @@ trait Getters
   implicit val ScalaDurationGetter: Getter[ScalaDuration] = IsPGobjectGetter[PGInterval, ScalaDuration](PGIntervalToScalaDuration)
 
   implicit val JavaDurationGetter: Getter[JavaDuration] = IsPGobjectGetter[PGInterval, JavaDuration](PGIntervalToJavaDuration)
-
-  implicit val JValueGetter: Getter[JValue] = IsPGobjectGetter[PGJson, JValue](_.jValue.get)
 
   implicit val InetAddressGetter: Getter[InetAddress] = IsPGobjectGetter[PGInetAddress, InetAddress](_.inetAddress.get)
 

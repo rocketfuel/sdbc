@@ -5,9 +5,9 @@ import java.nio.ByteBuffer
 import java.sql.{Array => _, _}
 import java.time._
 import java.util.UUID
-import com.rocketfuel.sdbc.PostgreSql._
-import org.json4s.JValue
-import org.json4s.jackson.JsonMethods
+import com.rocketfuel.sdbc.PostgreSqlArgonaut._
+import argonaut._
+import argonaut.Argonaut._
 import org.postgresql.util.PGInterval
 import scalaz.Scalaz._
 
@@ -81,9 +81,9 @@ class GettersSpec
 
   testSelect[UUID](s"SELECT '$uuid'::uuid", uuid.some)
 
-  testSelect[JValue](s"SELECT '$jsonString'::json", JsonMethods.parse(jsonString).some)
+  testSelect[Json](s"SELECT '$jsonString'::json", jsonString.parseOption)
 
-  testSelect[JValue](s"SELECT '$jsonString'::jsonb", JsonMethods.parse(jsonString).some)
+  testSelect[Json](s"SELECT '$jsonString'::jsonb", jsonString.parseOption)
 
   testSelect[InetAddress]("SELECT '1.1.1.1'::inet", Some(InetAddress.getByName("1.1.1.1")))
 

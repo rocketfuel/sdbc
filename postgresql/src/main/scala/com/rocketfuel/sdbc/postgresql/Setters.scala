@@ -24,7 +24,6 @@ trait Setters
   with OffsetDateTimeParameter
   with OffsetTimeParameter
   with InetAddressParameter
-  with JValueParameter
   with PGobjectParameter
   with HStoreParameter
   with SeqParameter

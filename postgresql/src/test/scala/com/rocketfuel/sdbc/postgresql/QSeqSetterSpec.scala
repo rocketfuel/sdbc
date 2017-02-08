@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.postgresql
 
 import org.scalatest._
-import com.rocketfuel.sdbc.PostgreSql._
+import com.rocketfuel.sdbc.PostgreSqlArgonaut._
 
 class QSeqSetterSpec extends FunSuite {
 

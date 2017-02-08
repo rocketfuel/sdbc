@@ -162,16 +162,16 @@ trait DateParameter {
   }
 
   implicit val LocalDateParameter: Parameter[LocalDate] =
-    JdbcDate.valueOf
+    (d: LocalDate) => JdbcDate.valueOf(d)
 
   implicit val LocalTimeParameter: Parameter[LocalTime] =
-    Time.valueOf
+    (l: LocalTime) => Time.valueOf(l)
 
   implicit val InstantParameter: Parameter[Instant] =
-    Timestamp.from
+    (i: Instant) => Timestamp.from(i)
 
   implicit val LocalDateTimeParameter: Parameter[LocalDateTime] =
-    Timestamp.valueOf
+    (l: LocalDateTime) => Timestamp.valueOf(l)
 
 }
 

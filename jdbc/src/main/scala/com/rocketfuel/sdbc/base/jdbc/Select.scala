@@ -68,7 +68,7 @@ trait Select {
 
     class ToSelectable[Key] {
       def constant: Selectable[Key, A] =
-        Function.const(q)
+        Function.const(q) _
 
       def parameters(toParameters: Key => Parameters): Selectable[Key, A] =
         key => q.onParameters(toParameters(key))

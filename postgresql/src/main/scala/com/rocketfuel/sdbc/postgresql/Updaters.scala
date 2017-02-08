@@ -4,7 +4,7 @@ import com.rocketfuel.sdbc.base.jdbc._
 import com.rocketfuel.sdbc.base.jdbc.statement._
 import java.net.InetAddress
 import java.time.{Duration => JavaDuration, _}
-import org.json4s._
+import argonaut._
 import org.postgresql.util.{PGInterval, PGobject}
 import scala.concurrent.duration.{Duration => ScalaDuration}
 
@@ -53,9 +53,6 @@ trait Updaters
 
   implicit val JavaDurationUpdater: Updater[JavaDuration] =
     IsPGobjectUpdater[JavaDuration, PGInterval]
-
-  implicit val JValueUpdater: Updater[JValue] =
-    IsPGobjectUpdater[JValue, PGJson]
 
   implicit val InetAddressUpdater: Updater[InetAddress] =
     IsPGobjectUpdater[InetAddress, PGInetAddress]

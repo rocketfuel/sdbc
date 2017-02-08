@@ -2,7 +2,7 @@ package com.rocketfuel.sdbc.postgresql
 
 import java.time.OffsetDateTime
 import org.scalatest._
-import com.rocketfuel.sdbc.PostgreSql._
+import com.rocketfuel.sdbc.PostgreSqlArgonaut._
 import fs2.Strategy
 
 abstract class PostgreSqlSuite

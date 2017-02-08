@@ -5,7 +5,7 @@ import com.rocketfuel.sdbc.base.jdbc.statement.SeqParameter
 import java.nio.ByteBuffer
 import java.time._
 import java.util.UUID
-import org.json4s._
+import argonaut._
 import scodec.bits.ByteVector
 
 trait ArrayTypes {
@@ -88,9 +88,6 @@ trait ArrayTypes {
 
   implicit val varcharTypeName: ArrayTypeName[String] =
     ArrayTypeName[String]("text")
-
-  implicit val jsonTypeName: ArrayTypeName[JValue] =
-    ArrayTypeName[JValue]("json")
 
   implicit val uuidTypeName: ArrayTypeName[UUID] =
     ArrayTypeName[UUID]("uuid")

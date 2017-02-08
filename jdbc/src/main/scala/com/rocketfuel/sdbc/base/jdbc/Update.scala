@@ -40,7 +40,7 @@ trait Update {
 
     class ToUpdatable[Key] {
       def constant: Updatable[Key] =
-        Function.const(q)
+        Function.const(q) _
 
       def parameters(toParameters: Key => Parameters): Updatable[Key] =
         key => q.onParameters(toParameters(key))
