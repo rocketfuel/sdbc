@@ -1,9 +1,7 @@
 package com.rocketfuel.sdbc.postgresql
 
-import com.rocketfuel.sdbc.PostgreSqlArgonaut._
-
 class QSeqUpdaterSpec
-  extends PostgreSqlSuite {
+  extends PostgreSqlSuite.Base {
 
   test("Updating an int[] works") {implicit connection =>
     Update.update("CREATE TABLE tbl (id serial PRIMARY KEY, ints int[])")

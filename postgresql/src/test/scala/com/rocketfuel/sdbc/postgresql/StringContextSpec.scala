@@ -1,10 +1,11 @@
 package com.rocketfuel.sdbc.postgresql
 
+import argonaut.Json
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.sql.Timestamp
 import java.util.UUID
-import com.rocketfuel.sdbc.PostgreSqlArgonaut._
+import com.rocketfuel.sdbc.PostgreSql._
 import org.scalatest.FunSuite
 import scodec.bits.ByteVector
 

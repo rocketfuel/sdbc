@@ -5,16 +5,13 @@ import java.nio.ByteBuffer
 import java.sql.{Array => _, _}
 import java.time._
 import java.util.UUID
-import com.rocketfuel.sdbc.PostgreSqlArgonaut._
 import argonaut._
 import argonaut.Argonaut._
 import org.postgresql.util.PGInterval
 import scalaz.Scalaz._
 
 class GettersSpec
-  extends PostgreSqlSuite {
-
-  val jsonString = """{"hi":"there"}"""
+  extends PostgreSqlSuite.Base {
 
   val uuid = UUID.randomUUID()
 
@@ -80,10 +77,6 @@ class GettersSpec
   testSelect[LTree]("SELECT 'a.b.c'::ltree", LTree("a", "b", "c").some)
 
   testSelect[UUID](s"SELECT '$uuid'::uuid", uuid.some)
-
-  testSelect[Json](s"SELECT '$jsonString'::json", jsonString.parseOption)
-
-  testSelect[Json](s"SELECT '$jsonString'::jsonb", jsonString.parseOption)
 
   testSelect[InetAddress]("SELECT '1.1.1.1'::inet", Some(InetAddress.getByName("1.1.1.1")))
 

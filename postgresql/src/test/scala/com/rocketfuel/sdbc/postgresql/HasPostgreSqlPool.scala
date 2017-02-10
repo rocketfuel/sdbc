@@ -1,11 +1,11 @@
 package com.rocketfuel.sdbc.postgresql
 
-import com.rocketfuel.sdbc.PostgreSqlArgonaut._
 import com.zaxxer.hikari.HikariConfig
 import ru.yandex.qatools.embed.postgresql._
 import ru.yandex.qatools.embed.postgresql.config.PostgresConfig
 
 trait HasPostgreSqlPool {
+  self: PostgreSql =>
 
   val dbName = "postgres"
   val user = "postgres"

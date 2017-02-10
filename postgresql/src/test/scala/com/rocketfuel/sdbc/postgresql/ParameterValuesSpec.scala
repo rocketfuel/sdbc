@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.postgresql
 
-import com.rocketfuel.sdbc.PostgreSqlArgonaut._
+import com.rocketfuel.sdbc.PostgreSql._
 import java.math.{BigDecimal => JBigDecimal}
 import org.scalatest._
 import scala.xml.Elem

@@ -1,56 +1,13 @@
 package com.rocketfuel.sdbc.postgresql
 
-import com.rocketfuel.sdbc.PostgreSqlArgonaut._
 import java.sql.{Date, Time, Timestamp}
 import java.time._
 import java.util.UUID
-import org.apache.commons.lang3.RandomStringUtils
-import argonaut._
-import argonaut.Argonaut._
-import scala.reflect.ClassTag
 import scala.xml._
 import scodec.bits.ByteVector
 
 class UpdatersSpec
-  extends PostgreSqlSuite {
-
-  def testUpdate[T](
-    typeName: String
-  )(before: T
-  )(after: T
-  )(implicit ctag: ClassTag[T],
-    updater: Updater[T],
-    setter: T => ParameterValue,
-    converter: RowConverter[Option[T]]
-  ): Unit = {
-    test(s"Update ${ctag.runtimeClass.getName}") {implicit connection =>
-      val tableName = RandomStringUtils.randomAlphabetic(10)
-
-      Ignore.ignore(s"CREATE TABLE $tableName (id serial PRIMARY KEY, v $typeName)")
-
-      Ignore.ignore(s"INSERT INTO $tableName (v) VALUES (@before :: $typeName)", Map("before" -> before))
-
-      def updateRow(row: UpdatableRow): Unit = {
-        row("v") = after
-        row.updateRow()
-      }
-
-      val summary =  SelectForUpdate.update(s"SELECT * FROM $tableName", rowUpdater = updateRow)
-
-      assertResult(UpdatableRow.Summary(updatedRows = 1))(summary)
-
-      val maybeValue = Select.one[Option[T]](s"SELECT v FROM $tableName")
-
-      assert(maybeValue.nonEmpty)
-
-      (after, maybeValue.get) match {
-        case (a: Array[_], b: Array[_]) =>
-          assert(a.sameElements(b))
-        case (expectedAfter, actualAfter) =>
-          assertResult(expectedAfter)(actualAfter)
-      }
-    }
-  }
+  extends PostgreSqlSuite.Base {
 
   testUpdate[Long]("int8")(1L)(2L)
 
@@ -99,8 +56,6 @@ class UpdatersSpec
   testUpdate[Map[String, String]]("hstore")(Map("hi" -> "there"))(Map("bye" -> "now"))
 
   testUpdate[Elem]("xml")(<a></a>)(<b></b>)
-
-  testUpdate[Json]("json")("{}".parseOption.get)("""{"a": 1}""".parseOption.get)
 
   test(s"Update None") {implicit connection =>
     val before = Some(1)

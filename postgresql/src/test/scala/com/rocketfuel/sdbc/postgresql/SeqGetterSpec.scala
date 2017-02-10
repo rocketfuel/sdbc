@@ -1,10 +1,9 @@
 package com.rocketfuel.sdbc.postgresql
 
 import scalaz.Scalaz._
-import com.rocketfuel.sdbc.PostgreSqlArgonaut._
 
 class SeqGetterSpec
-  extends PostgreSqlSuite {
+  extends PostgreSqlSuite.Base {
 
   testSelect[Seq[Option[Boolean]]]("SELECT '{}'::boolean[]", Seq.empty[Option[Boolean]].some)
 

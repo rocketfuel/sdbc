@@ -1,8 +1,8 @@
 package com.rocketfuel.sdbc.postgresql
 
-import com.rocketfuel.sdbc.PostgreSqlArgonaut._
+import com.rocketfuel.sdbc.PostgreSql._
 
-class EnumerateTypesSpec extends PostgreSqlSuite {
+class EnumerateTypesSpec extends PostgreSqlSuite.Base {
 
   test("list type map") {implicit connection =>
 

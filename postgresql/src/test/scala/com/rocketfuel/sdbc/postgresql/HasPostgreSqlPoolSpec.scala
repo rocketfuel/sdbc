@@ -1,12 +1,12 @@
 package com.rocketfuel.sdbc.postgresql
 
-import com.rocketfuel.sdbc.PostgreSqlArgonaut._
 import org.scalatest._
 
 class HasPostgreSqlPoolSpec
   extends FunSuite
     with HasPostgreSqlPool
-    with BeforeAndAfterAll {
+    with BeforeAndAfterAll
+    with PostgreSql {
 
   def testDatabaseExists(): Boolean = {
     withPg[Boolean] { implicit connection =>
@@ -28,5 +28,7 @@ class HasPostgreSqlPoolSpec
   }
 
   override protected def afterAll(): Unit = pgStop()
+
+  override def initializeJson(connection: Connection): Unit = ()
 
 }

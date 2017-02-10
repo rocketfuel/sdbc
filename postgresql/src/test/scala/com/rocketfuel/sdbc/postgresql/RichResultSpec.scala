@@ -1,11 +1,10 @@
 package com.rocketfuel.sdbc.postgresql
 
 import org.scalatest.BeforeAndAfterEach
-import com.rocketfuel.sdbc.PostgreSqlArgonaut._
 import scala.collection.immutable.Seq
 
 class RichResultSpec
-  extends PostgreSqlSuite
+  extends PostgreSqlSuite.Base
   with BeforeAndAfterEach {
 
   test("option() selects nothing from an empty table") {implicit connection =>
