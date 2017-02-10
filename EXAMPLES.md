@@ -364,7 +364,7 @@ object NewParameterTypeExampleSuccess0 {
 NewParameterTypeExampleSuccess0.query.parameters
 ```
 
-Another possibility is that we want to store durations as milliseconds. This example uses the existing `Parameter[Long]` along with the convenience DerivedParameter trait.
+Another possibility is that we want to store durations as milliseconds. This example uses the existing `Parameter[Long]` along with the Parameter.derived method.
 
 ```scala
 object NewParameterTypeExampleSuccess1 {
@@ -373,7 +373,7 @@ object NewParameterTypeExampleSuccess1 {
 
   implicit val durationParameter: Parameter[Duration] = {
     implicit def durationToMillis(d: Duration): Long = d.toMillis
-    DerivedParameter[Duration, Long]
+    Parameter.derived[Duration, Long]
   }
 
   val duration = 5.seconds
