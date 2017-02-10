@@ -26,25 +26,25 @@ Packages exist on Maven Central for Scala 2.11 and 2.12.
 #### Cassandra
 
 ```scala
-"com.rocketfuel.sdbc" %% "cassandra-datastax" % "2.0-RC1"
+"com.rocketfuel.sdbc" %% "cassandra-datastax" % "2.0"
 ```
 
 #### H2
 
 ```scala
-"com.rocketfuel.sdbc" %% "h2-jdbc" % "2.0-RC1"
+"com.rocketfuel.sdbc" %% "h2-jdbc" % "2.0"
 ```
 
 #### MariaDB
 
 ```scala
-"com.rocketfuel.sdbc" %% "mariadb-jdbc" % "2.0-RC1"
+"com.rocketfuel.sdbc" %% "mariadb-jdbc" % "2.0"
 ```
 
 #### Microsoft SQL Server
 
 ```scala
-"com.rocketfuel.sdbc" %% "sqlserver-jdbc" % "2.0-RC1"
+"com.rocketfuel.sdbc" %% "sqlserver-jdbc" % "2.0"
 ```
 
 #### PostgreSql
