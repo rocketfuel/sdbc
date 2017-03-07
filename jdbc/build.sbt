@@ -6,5 +6,8 @@ libraryDependencies ++= Seq(
   //Connection pooling
   "com.zaxxer" % "HikariCP" % "2.6.0",
   "org.scodec" %% "scodec-bits" % "1.1.4",
+  Common.xml % Provided,
   "org.scala-lang" % "scala-reflect" % scalaVersion.value
 )
+
+Common.settings

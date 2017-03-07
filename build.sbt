@@ -17,61 +17,23 @@ lazy val sqlserver = project.in(file("sqlserver")).dependsOn(jdbc % "test->test;
 lazy val examples = project.in(file("examples")).dependsOn(h2 % "test->test;compile->compile")
 
 lazy val sdbc =
-  project.
-  in(file(".")).
-  settings(publishArtifact := false).
-  settings(unidocSettings: _*).
-  aggregate(
-    base,
-    cassandra,
-    jdbc,
-    h2,
-    h2Benchmarks,
-    postgresql,
-    sqlserver,
-    examples
-  )
+  project.in(file(".")).
+    settings(publishArtifact := false).
+    settings(unidocSettings: _*).
+    aggregate(
+      base,
+      cassandra,
+      jdbc,
+      h2,
+      h2Benchmarks,
+      postgresql,
+      sqlserver,
+      mysql,
+      examples
+    )
 
-scalaVersion in ThisBuild := "2.12.1"
+scalaVersion := "2.12.1"
 
-crossScalaVersions in ThisBuild := Seq("2.11.8")
-
-version in ThisBuild := "2.0-RC2"
-
-licenses in ThisBuild := Seq("The BSD 3-Clause License" -> url("http://opensource.org/licenses/BSD-3-Clause"))
-
-homepage in ThisBuild := Some(url("https://github.com/wdacom/"))
-
-(publishArtifact in Test) in ThisBuild := true
-(publishArtifact in Compile) in ThisBuild := true
-
-pomExtra in ThisBuild :=
-  <developers>
-    <developer>
-      <name>Jeff Shaw</name>
-      <id>shawjef3</id>
-      <url>https://github.com/shawjef3/</url>
-      <organization>Rocketfuel</organization>
-      <organizationUrl>http://rocketfuel.com/</organizationUrl>
-    </developer>
-  </developers>
-  <scm>
-    <url>git@github.com:rocketfuel/sdbc.git</url>
-    <connection>scm:git:git@github.com:rocketfuel/sdbc.git</connection>
-  </scm>
-
-//Some helpful compiler flags from https://tpolecat.github.io/2014/04/11/scalac-flags.html
-scalacOptions in ThisBuild ++= Seq(
-  "-deprecation",
-  "-encoding", "UTF-8",       // yes, this is 2 args
-  "-feature",
-  "-language:existentials",
-  "-language:higherKinds",
-  "-language:implicitConversions",
-  "-language:postfixOps",
-  "-unchecked",
-  "-Yno-adapted-args",
-  "-Xfuture"
-)
+crossScalaVersions := Seq("2.11.8")
 
 scalacOptions in (Compile, doc) ++= Seq("-doc-root-content", baseDirectory.value+"/rootdoc.txt")
