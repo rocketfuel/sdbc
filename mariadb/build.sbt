@@ -10,3 +10,5 @@ libraryDependencies ++= Seq(
 )
 
 parallelExecution := false
+
+Common.settings
