@@ -26,31 +26,31 @@ Packages exist on Maven Central for Scala 2.11 and 2.12.
 #### Cassandra
 
 ```scala
-"com.rocketfuel.sdbc" %% "cassandra-datastax" % "2.0"
+"com.rocketfuel.sdbc" %% "cassandra-datastax" % "2.0.1"
 ```
 
 #### H2
 
 ```scala
-"com.rocketfuel.sdbc" %% "h2-jdbc" % "2.0"
+"com.rocketfuel.sdbc" %% "h2-jdbc" % "2.0.1"
 ```
 
 #### MariaDB
 
 ```scala
-"com.rocketfuel.sdbc" %% "mariadb-jdbc" % "2.0"
+"com.rocketfuel.sdbc" %% "mariadb-jdbc" % "2.0.1"
 ```
 
 #### Microsoft SQL Server
 
 ```scala
-"com.rocketfuel.sdbc" %% "sqlserver-jdbc" % "2.0"
+"com.rocketfuel.sdbc" %% "sqlserver-jdbc" % "2.0.1"
 ```
 
 #### PostgreSql
 
 ```scala
-"com.rocketfuel.sdbc" %% "postgresql-jdbc" % "2.0-RC1"
+"com.rocketfuel.sdbc" %% "postgresql-jdbc" % "2.0.1"
 ```
 
 ## License
@@ -100,6 +100,9 @@ Starting with 2.0, there are benchmarks to ensure that some common operations do
 ![batch insert benchmark results](https://www.jeffshaw.me/sdbc/2.0/benchmarks/batch.png)
 
 ## Changelog
+
+### 2.0.1
+* Correct publishing to Maven Central
 
 ### 2.0
 
