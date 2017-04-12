@@ -15,8 +15,8 @@ libraryDependencies ++= Seq(
   "com.typesafe" % "config" % "1.3.1",
   "com.chuusai" %% "shapeless" % "2.3.2",
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-  "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
-  "org.scalaz" %% "scalaz-core" % "7.2.9" % "test",
+  "org.scalacheck" %% "scalacheck" % "1.13.5" % "test",
+  "org.scalaz" %% "scalaz-core" % "7.2.10" % "test",
   "org.apache.commons" % "commons-lang3" % "3.5" % "test"
 )
 

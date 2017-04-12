@@ -3,8 +3,8 @@ organization := "com.rocketfuel.sdbc"
 name := "examples"
 
 libraryDependencies ++= Seq(
-  "io.argonaut" %% "argonaut-scalaz" % "6.2-RC2",
-  "co.fs2" %% "fs2-io" % "0.9.2"
+  "io.argonaut" %% "argonaut-scalaz" % "6.2",
+  "co.fs2" %% "fs2-io" % "0.95"
 )
 
 Common.settings
