@@ -3,7 +3,7 @@ name := "base"
 description := "SDBC is a database API for Scala."
 
 libraryDependencies ++= Seq(
-  "co.fs2" %% "fs2-core" % "0.9.4",
+  "co.fs2" %% "fs2-core" % "0.9.5",
   //Logging
   "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
   "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.8.1" % "test",
