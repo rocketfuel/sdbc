@@ -101,6 +101,9 @@ Starting with 2.0, there are benchmarks to ensure that some common operations do
 
 ## Changelog
 
+### 2.0.2
+* The wrong index was used for null parameters in jdbc queries.
+
 ### 2.0.1
 * Correct publishing to Maven Central
 
