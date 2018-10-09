@@ -11,7 +11,7 @@ trait QueryableWithKeyspace[Key, Value] extends Queryable[Key, Value] {
 object QueryableWithKeyspace {
   def apply[Key, Value](k: Key => String, q: Key => Query[Value]): QueryableWithKeyspace[Key, Value] =
     new QueryableWithKeyspace[Key, Value] {
-      override def query(key: Key): Query[Value] = q(key)
+      override def apply(key: Key): Query[Value] = q(key)
       override def keyspace(key: Key): String = k(key)
     }
 

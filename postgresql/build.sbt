@@ -9,7 +9,7 @@ libraryDependencies ++= Seq(
   "io.argonaut" %% "argonaut" % "6.2",
   Common.xml,
   "org.json4s" %% "json4s-jackson" % "3.5.0" % Provided,
-  "ru.yandex.qatools.embed" % "postgresql-embedded" % "1.23" % "test"
+  "ru.yandex.qatools.embed" % "postgresql-embedded" % "2.9" % "test"
 )
 
 parallelExecution := false

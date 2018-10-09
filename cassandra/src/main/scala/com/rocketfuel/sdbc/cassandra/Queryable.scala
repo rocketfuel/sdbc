@@ -5,17 +5,40 @@ import com.rocketfuel.sdbc.Cassandra._
 import fs2.util.Async
 import fs2.{Pipe, Stream}
 
-trait Queryable[Key, Value] {
+trait Queryable[Key, Value] extends (Key => Query[Value]) {
   queryable =>
 
-  def query(key: Key): Query[Value]
+  def apply(key: Key): Query[Value]
+
+  @deprecated("use apply", since = "2.0.3")
+  def query(key: Key): Query[Value] = apply(key)
+
+  def mapWithKey[B](f: (Key, Value) => B): Queryable[Key, B] = {
+    new Queryable[Key, B] {
+      override def apply(key: Key): Query[B] = {
+        queryable(key).map(result => f(key, result))
+      }
+    }
+  }
+
+  def map[B](f: Value => B): Queryable[Key, B] = {
+    mapWithKey((key, result) => f(result))
+  }
+
+  def comap[B](f: B => Key): Queryable[B, Value] = {
+    new Queryable[B, Value] {
+      override def apply(v1: B): Query[Value] = {
+        queryable(f(v1))
+      }
+    }
+  }
 
   def withKeyspace(toKeyspace: Key => String): QueryableWithKeyspace[Key, Value] =
     new QueryableWithKeyspace[Key, Value] {
       override def keyspace(key: Key): String =
         toKeyspace(key)
 
-      override def query(key: Key): Query[Value] =
+      override def apply(key: Key): Query[Value] =
         queryable.query(key)
     }
 }
@@ -23,7 +46,7 @@ trait Queryable[Key, Value] {
 object Queryable {
   def apply[Key, Value](f: Key => Query[Value]): Queryable[Key, Value] =
     new Queryable[Key, Value] {
-      override def query(key: Key): Query[Value] =
+      override def apply(key: Key): Query[Value] =
         f(key)
     }
 

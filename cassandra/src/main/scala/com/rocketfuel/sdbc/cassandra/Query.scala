@@ -30,6 +30,11 @@ case class Query[A](
 ) extends CompiledParameterizedQuery[Query[A]] {
   q =>
 
+  def map[B](f: A => B): Query[B] = {
+    implicit val innerConverter: Row => B = converter.andThen(f)
+    Query[B](statement, parameters)
+  }
+
   override protected def subclassConstructor(parameters: Parameters): Query[A] = {
     copy(parameters = parameters)
   }

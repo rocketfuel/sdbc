@@ -27,6 +27,11 @@ trait Select {
   ) extends IgnorableQuery[Select[A]] {
     q =>
 
+    def map[B](f: A => B): Select[B] = {
+      implicit val innerConverter: Row => B = rowConverter.andThen(f)
+      Select[B](statement, parameters)
+    }
+
     override def subclassConstructor(parameters: Parameters): Select[A] = {
       copy(parameters = parameters)
     }

@@ -6,7 +6,30 @@ import fs2.util.Async
 trait Selectable {
   self: DBMS with Connection =>
 
-  trait Selectable[Key, Result] extends (Key => Select[Result])
+  trait Selectable[Key, Result] extends (Key => Select[Result]) {
+    outer =>
+
+    def mapWithKey[B](f: (Key, Result) => B): Selectable[Key, B] = {
+      new Selectable[Key, B] {
+        override def apply(v1: Key): Select[B] = {
+          outer(v1).map(result => f(v1, result))
+        }
+      }
+    }
+
+    def map[B](f: Result => B): Selectable[Key, B] = {
+      mapWithKey[B]((key, result) => f(result))
+    }
+
+    def comap[B](f: B => Key): Selectable[B, Result] = {
+      new Selectable[B, Result] {
+        override def apply(v1: B): Select[Result] = {
+          outer(f(v1))
+        }
+      }
+    }
+  }
+
 
   object Selectable {
     def apply[Key, Value](implicit s: Selectable[Key, Value]): Selectable[Key, Value] = s
