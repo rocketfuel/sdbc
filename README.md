@@ -26,31 +26,31 @@ Packages exist on Maven Central for Scala 2.11 and 2.12.
 #### Cassandra
 
 ```scala
-"com.rocketfuel.sdbc" %% "cassandra-datastax" % "2.0.2"
+"com.rocketfuel.sdbc" %% "cassandra-datastax" % "3.0.0"
 ```
 
 #### H2
 
 ```scala
-"com.rocketfuel.sdbc" %% "h2-jdbc" % "2.0.2"
+"com.rocketfuel.sdbc" %% "h2-jdbc" % "3.0.0"
 ```
 
 #### MariaDB
 
 ```scala
-"com.rocketfuel.sdbc" %% "mariadb-jdbc" % "2.0.2"
+"com.rocketfuel.sdbc" %% "mariadb-jdbc" % "3.0.0"
 ```
 
 #### Microsoft SQL Server
 
 ```scala
-"com.rocketfuel.sdbc" %% "sqlserver-jdbc" % "2.0.2"
+"com.rocketfuel.sdbc" %% "sqlserver-jdbc" % "3.0.0"
 ```
 
 #### PostgreSql
 
 ```scala
-"com.rocketfuel.sdbc" %% "postgresql-jdbc" % "2.0.2"
+"com.rocketfuel.sdbc" %% "postgresql-jdbc" % "3.0.0"
 ```
 
 ## License
@@ -100,6 +100,9 @@ Starting with 2.0, there are benchmarks to ensure that some common operations do
 ![batch insert benchmark results](https://www.jeffshaw.me/sdbc/2.0/benchmarks/batch.png)
 
 ## Changelog
+
+### 3.0.0
+* Select, Selectable, Query, and Queryable now have map methods
 
 ### 2.0.2
 * The wrong index was used for null parameters in jdbc queries.
