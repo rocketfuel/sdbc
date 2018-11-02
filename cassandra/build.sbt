@@ -15,3 +15,9 @@ libraryDependencies ++= Seq(
 parallelExecution := false
 
 Common.settings
+
+mimaPreviousArtifacts := {
+  for (previousVersion <- Common.previousVersions) yield {
+    organization.value %% name.value % previousVersion
+  }
+}.toSet

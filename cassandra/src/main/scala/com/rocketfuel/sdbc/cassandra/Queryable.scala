@@ -10,7 +10,7 @@ trait Queryable[Key, Value] extends (Key => Query[Value]) {
 
   def apply(key: Key): Query[Value]
 
-  @deprecated("use apply", since = "2.0.3")
+  @deprecated("use apply", since = "3.0.0")
   def query(key: Key): Query[Value] = apply(key)
 
   def mapWithKey[B](f: (Key, Value) => B): Queryable[Key, B] = {

@@ -5,14 +5,16 @@ object Common {
 
   val macroParadiseVersion = "2.1.0"
 
+  val previousVersions = Seq()
+
   val settings = Seq(
     organization := "com.rocketfuel.sdbc",
 
-    scalaVersion := "2.12.1",
+    scalaVersion := "2.12.6",
 
-    crossScalaVersions := Seq("2.11.8"),
+    crossScalaVersions := Seq("2.11.12"),
 
-    version := "2.0.3",
+    version := "3.0.0",
 
     licenses := Seq("The BSD 3-Clause License" -> url("http://opensource.org/licenses/BSD-3-Clause")),
 
