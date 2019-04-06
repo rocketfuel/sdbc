@@ -14,7 +14,7 @@ object Common {
 
     crossScalaVersions := Seq("2.11.12"),
 
-    version := "3.0.0",
+    version := "3.0.1",
 
     licenses := Seq("The BSD 3-Clause License" -> url("http://opensource.org/licenses/BSD-3-Clause")),
 
