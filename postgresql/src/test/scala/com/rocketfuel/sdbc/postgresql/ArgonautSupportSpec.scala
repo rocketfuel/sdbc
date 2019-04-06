@@ -6,6 +6,8 @@ import argonaut.Argonaut._
 class ArgonautSupportSpec
   extends PostgreSqlSuite.Argonaut {
 
+  import postgresql._
+
   test("Json interpolation works with ignore") {implicit connection =>
     val i: Json = 4L.jencode
     val e = ignore"$i"

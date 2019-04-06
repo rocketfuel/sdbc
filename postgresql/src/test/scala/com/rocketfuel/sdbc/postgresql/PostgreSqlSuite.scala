@@ -6,11 +6,12 @@ import fs2.Strategy
 import org.apache.commons.lang3.RandomStringUtils
 import scala.reflect.ClassTag
 
-abstract class PostgreSqlSuite
+abstract class PostgreSqlSuite[P <: PostgreSql]
   extends fixture.FunSuite
-  with HasPostgreSqlPool
+  with HasPostgreSqlPool[P]
   with BeforeAndAfterAll {
-  self: PostgreSql =>
+
+  import postgresql._
 
   def testSelect[T](query: String, expectedValue: Option[T])(implicit converter: RowConverter[Option[T]]): Unit = {
     test(query) { implicit connection =>
@@ -88,19 +89,20 @@ abstract class PostgreSqlSuite
 object PostgreSqlSuite {
 
   abstract class Base
-    extends PostgreSqlSuite
-    with PostgreSql {
-    override def initializeJson(connection: Connection): Unit = ()
-  }
+    extends {
+      override val postgresql: PostgreSql = new PostgreSql {
+        override def initializeJson(connection: Connection): Unit = ()
+      }
+    } with PostgreSqlSuite[PostgreSql]
 
   abstract class Argonaut
-    extends PostgreSqlSuite
-    with PostgreSql
-    with ArgonautSupport
+    extends {
+    override val postgresql: PostgreSql with ArgonautSupport = com.rocketfuel.sdbc.PostgreSql
+  } with PostgreSqlSuite[PostgreSql with ArgonautSupport]
 
   abstract class Json4s
-    extends PostgreSqlSuite
-      with PostgreSql
-      with Json4sSupport
+    extends {
+      override val postgresql: PostgreSql with Json4sSupport = com.rocketfuel.sdbc.PostgreSqlJson4s
+    } with PostgreSqlSuite[PostgreSql with Json4sSupport]
 
 }

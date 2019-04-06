@@ -2,6 +2,8 @@ package com.rocketfuel.sdbc.postgresql
 
 class TableWithEnumSpec extends PostgreSqlSuite.Base {
 
+  import postgresql._
+
   case class TableHasEnum(
     id: Int,
     mood: String,

@@ -6,6 +6,8 @@ import org.json4s.jackson.JsonMethods._
 class Json4sSupportSpec
   extends PostgreSqlSuite.Json4s {
 
+  import postgresql._
+
   test("Json interpolation works with ignore") {implicit connection =>
     val i: JValue = JLong(3L)
     val e = ignore"$i"

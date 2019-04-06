@@ -4,8 +4,11 @@ import com.zaxxer.hikari.HikariConfig
 import ru.yandex.qatools.embed.postgresql._
 import ru.yandex.qatools.embed.postgresql.config.PostgresConfig
 
-trait HasPostgreSqlPool {
-  self: PostgreSql =>
+trait HasPostgreSqlPool[P <: PostgreSql] {
+
+  val postgresql: P
+
+  import postgresql._
 
   val dbName = "postgres"
   val user = "postgres"

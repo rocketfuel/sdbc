@@ -3,6 +3,8 @@ package com.rocketfuel.sdbc.postgresql
 class QSeqUpdaterSpec
   extends PostgreSqlSuite.Base {
 
+  import postgresql._
+
   test("Updating an int[] works") {implicit connection =>
     Update.update("CREATE TABLE tbl (id serial PRIMARY KEY, ints int[])")
 
