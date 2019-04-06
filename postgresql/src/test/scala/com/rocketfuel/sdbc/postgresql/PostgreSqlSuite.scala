@@ -97,12 +97,12 @@ object PostgreSqlSuite {
 
   abstract class Argonaut
     extends {
-    override val postgresql: PostgreSql with ArgonautSupport = com.rocketfuel.sdbc.PostgreSql
-  } with PostgreSqlSuite[PostgreSql with ArgonautSupport]
+    override val postgresql: com.rocketfuel.sdbc.PostgreSql.type = com.rocketfuel.sdbc.PostgreSql
+  } with PostgreSqlSuite[com.rocketfuel.sdbc.PostgreSql.type]
 
   abstract class Json4s
     extends {
-      override val postgresql: PostgreSql with Json4sSupport = com.rocketfuel.sdbc.PostgreSqlJson4s
-    } with PostgreSqlSuite[PostgreSql with Json4sSupport]
+      override val postgresql: com.rocketfuel.sdbc.PostgreSqlJson4s.type = com.rocketfuel.sdbc.PostgreSqlJson4s
+    } with PostgreSqlSuite[com.rocketfuel.sdbc.PostgreSqlJson4s.type]
 
 }
