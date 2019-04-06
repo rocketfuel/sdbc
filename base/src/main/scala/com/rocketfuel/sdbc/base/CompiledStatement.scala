@@ -92,34 +92,42 @@ object CompiledStatement {
   }
 
   def readSource(
-    source: scala.io.Source
+    source: scala.io.Source,
+    hasParameters: Boolean = true
   )(implicit codec: scala.io.Codec = scala.io.Codec.default
   ): CompiledStatement = {
-    source.mkString
+    val asString = source.mkString
+    if (hasParameters) {
+      apply(asString)
+    } else literal(asString)
   }
 
   def readInputStream(
-    stream: InputStream
+    stream: InputStream,
+    hasParameters: Boolean = true
   )(implicit codec: scala.io.Codec = scala.io.Codec.default
   ): CompiledStatement = {
-    readSource(scala.io.Source.fromInputStream(stream))
+    readSource(scala.io.Source.fromInputStream(stream), hasParameters)
   }
 
   def readUrl(
-    u: URL
+    u: URL,
+    hasParameters: Boolean = true
   )(implicit codec: scala.io.Codec = scala.io.Codec.default
   ): CompiledStatement = {
     val stream = u.openStream()
-    try readInputStream(stream)
+    try readInputStream(stream, hasParameters)
     finally stream.close()
   }
 
   def readPath(
-    path: Path
+    path: Path,
+    hasParameters: Boolean = true
   )(implicit codec: scala.io.Codec = scala.io.Codec.default
   ): CompiledStatement = {
     val bytes = Files.readAllBytes(path)
-    new String(bytes, codec.charSet)
+    val source = io.Source.fromBytes(bytes)
+    readSource(source, hasParameters)
   }
 
   /**
