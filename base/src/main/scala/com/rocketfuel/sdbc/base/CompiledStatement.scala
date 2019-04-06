@@ -144,11 +144,12 @@ object CompiledStatement {
   def readClassResource(
     clazz: Class[_],
     fileName: String,
-    nameMangler: (Class[_], String) => String = NameManglers.default
+    nameMangler: (Class[_], String) => String = NameManglers.default,
+    hasParameters: Boolean = true
   )(implicit codec: scala.io.Codec = scala.io.Codec.default
   ): CompiledStatement = {
     val mangledName = nameMangler(clazz, fileName)
-    readResource(mangledName)
+    readResource(mangledName, hasParameters)
   }
 
   /**
@@ -164,21 +165,23 @@ object CompiledStatement {
     */
   def readTypeResource[A](
     fileName: String,
-    nameMangler: (Class[_], String) => String = NameManglers.default
+    nameMangler: (Class[_], String) => String = NameManglers.default,
+    hasParameters: Boolean = true
   )(implicit codec: scala.io.Codec = scala.io.Codec.default,
     tag: ClassTag[A]
   ): CompiledStatement = {
-    readClassResource(tag.runtimeClass, fileName, nameMangler)
+    readClassResource(tag.runtimeClass, fileName, nameMangler, hasParameters)
   }
 
   def readResource(
-    path: String
+    path: String,
+    hasParameters: Boolean = true
   )(implicit codec: scala.io.Codec = scala.io.Codec.default
   ): CompiledStatement = {
     val url = getClass.getClassLoader.getResource(path)
     if (url == null)
       throw new FileNotFoundException(path)
-    readUrl(url)
+    readUrl(url, hasParameters)
   }
 
   object NameManglers {

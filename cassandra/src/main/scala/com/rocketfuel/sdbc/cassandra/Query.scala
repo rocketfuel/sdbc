@@ -166,31 +166,34 @@ object Query
 
   def readInputStream[A](
     stream: InputStream,
-    queryOptions: QueryOptions = QueryOptions.default
+    queryOptions: QueryOptions = QueryOptions.default,
+    hasParameters: Boolean = true
   )(implicit rowConverter: RowConverter[A],
     codec: scala.io.Codec = scala.io.Codec.default
   ): Query[A] = {
-    Query[A](CompiledStatement.readInputStream(stream))
+    Query[A](CompiledStatement.readInputStream(stream, hasParameters), queryOptions = queryOptions)
   }
 
   def readUrl[
     A
   ](u: URL,
-    queryOptions: QueryOptions = QueryOptions.default
+    queryOptions: QueryOptions = QueryOptions.default,
+    hasParameters: Boolean = true
   )(implicit rowConverter: RowConverter[A],
     codec: scala.io.Codec = scala.io.Codec.default
   ): Query[A] = {
-    Query[A](CompiledStatement.readUrl(u), queryOptions = queryOptions)
+    Query[A](CompiledStatement.readUrl(u, hasParameters), queryOptions = queryOptions)
   }
 
   def readPath[
     A
   ](path: Path,
-    queryOptions: QueryOptions = QueryOptions.default
+    queryOptions: QueryOptions = QueryOptions.default,
+    hasParameters: Boolean = true
   )(implicit rowConverter: RowConverter[A],
     codec: scala.io.Codec = scala.io.Codec.default
   ): Query[A] = {
-    Query[A](CompiledStatement.readPath(path), queryOptions = queryOptions)
+    Query[A](CompiledStatement.readPath(path, hasParameters), queryOptions = queryOptions)
   }
 
   def readClassResource[
@@ -198,11 +201,12 @@ object Query
   ](clazz: Class[_],
     name: String,
     queryOptions: QueryOptions = QueryOptions.default,
-    nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
+    nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default,
+    hasParameters: Boolean = true
   )(implicit rowConverter: RowConverter[A],
     codec: scala.io.Codec = scala.io.Codec.default
   ): Query[A] = {
-    Query[A](CompiledStatement.readClassResource(clazz, name, nameMangler), queryOptions = queryOptions)
+    Query[A](CompiledStatement.readClassResource(clazz, name, nameMangler, hasParameters), queryOptions = queryOptions)
   }
 
   def readTypeResource[
@@ -210,28 +214,31 @@ object Query
     Row
   ](name: String,
     queryOptions: QueryOptions = QueryOptions.default,
-    nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
+    nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default,
+    hasParameters: Boolean = true
   )(implicit rowConverter: RowConverter[Row],
     codec: scala.io.Codec = scala.io.Codec.default,
     tag: ClassTag[ResourceType]
   ): Query[Row] = {
-    Query[Row](CompiledStatement.readTypeResource[ResourceType](name, nameMangler), queryOptions = queryOptions)
+    Query[Row](CompiledStatement.readTypeResource[ResourceType](name, nameMangler, hasParameters), queryOptions = queryOptions)
   }
 
   def readResource[
     A
   ](name: String,
-    queryOptions: QueryOptions = QueryOptions.default
+    queryOptions: QueryOptions = QueryOptions.default,
+    hasParameters: Boolean = true
   )(implicit rowConverter: RowConverter[A],
     codec: scala.io.Codec = scala.io.Codec.default
   ): Query[A] = {
-    Query[A](CompiledStatement.readResource(name), queryOptions = queryOptions)
+    Query[A](CompiledStatement.readResource(name, hasParameters), queryOptions = queryOptions)
   }
 
   def execute(
     statement: CompiledStatement,
     parameters: Parameters = Parameters.empty,
-    queryOptions: QueryOptions = QueryOptions.default
+    queryOptions: QueryOptions = QueryOptions.default,
+    hasParameters: Boolean = true
   )(implicit session: Session
   ): ResultSet = {
     logExecution(statement, parameters)

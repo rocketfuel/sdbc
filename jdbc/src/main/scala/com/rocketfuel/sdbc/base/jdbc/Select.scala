@@ -105,62 +105,68 @@ trait Select {
 
     def readInputStream[
       A
-    ](stream: InputStream
+    ](stream: InputStream,
+      hasParameters: Boolean = true
     )(implicit rowConverter: RowConverter[A],
       codec: scala.io.Codec = scala.io.Codec.default
     ): Select[A] = {
-      Select[A](CompiledStatement.readInputStream(stream))
+      Select[A](CompiledStatement.readInputStream(stream, hasParameters))
     }
 
     def readUrl[
       A
-    ](u: URL
+    ](u: URL,
+      hasParameters: Boolean = true
     )(implicit rowConverter: RowConverter[A],
       codec: scala.io.Codec = scala.io.Codec.default
     ): Select[A] = {
-      Select[A](CompiledStatement.readUrl(u))
+      Select[A](CompiledStatement.readUrl(u, hasParameters))
     }
 
     def readPath[
       A
-    ](path: Path
+    ](path: Path,
+      hasParameters: Boolean = true
     )(implicit rowConverter: RowConverter[A],
       codec: scala.io.Codec = scala.io.Codec.default
     ): Select[A] = {
-      Select[A](CompiledStatement.readPath(path))
+      Select[A](CompiledStatement.readPath(path, hasParameters))
     }
 
     def readClassResource[
       A
     ](clazz: Class[_],
       name: String,
-      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
+      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default,
+      hasParameters: Boolean = true
     )(implicit rowConverter: RowConverter[A],
       codec: scala.io.Codec = scala.io.Codec.default
     ): Select[A] = {
-      Select[A](CompiledStatement.readClassResource(clazz, name, nameMangler))
+      Select[A](CompiledStatement.readClassResource(clazz, name, nameMangler, hasParameters))
     }
 
     def readTypeResource[
       ResourceType,
       Row
     ](name: String,
-      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
+      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default,
+      hasParameters: Boolean = true
     )(implicit rowConverter: RowConverter[Row],
       codec: scala.io.Codec = scala.io.Codec.default,
       tag: ClassTag[ResourceType]
     ): Select[Row] = {
-      Select[Row](CompiledStatement.readTypeResource[ResourceType](name, nameMangler))
+      Select[Row](CompiledStatement.readTypeResource[ResourceType](name, nameMangler, hasParameters))
     }
 
 
     def readResource[
       A
-    ](name: String
+    ](name: String,
+      hasParameters: Boolean = true
     )(implicit rowConverter: RowConverter[A],
       codec: scala.io.Codec = scala.io.Codec.default
     ): Select[A] = {
-      Select[A](CompiledStatement.readResource(name))
+      Select[A](CompiledStatement.readResource(name, hasParameters))
     }
 
     def iterator[A](
