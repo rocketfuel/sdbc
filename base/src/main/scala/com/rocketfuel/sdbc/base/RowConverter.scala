@@ -27,6 +27,15 @@ trait RowConverter {
         }
       }
 
+    implicit def fromExplicitFunction[A](
+      converter: Row => A
+    ): RowConverter[A] =
+      new RowConverter[A] {
+        override def apply(row: Row): A = {
+          converter(row)
+        }
+      }
+
   }
 
   trait LowPriorityRowConverters {
