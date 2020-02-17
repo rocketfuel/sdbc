@@ -7,12 +7,32 @@ object Common {
 
   val previousVersions = Seq()
 
+  //Some helpful compiler flags from https://tpolecat.github.io/2014/04/11/scalac-flags.html
+  def extraScalacOptions(scalaVersion: String) =
+    Seq(
+      "-deprecation",
+      "-encoding", "UTF-8",       // yes, this is 2 args
+      "-feature",
+      "-language:existentials",
+      "-language:higherKinds",
+      "-language:implicitConversions",
+      "-language:postfixOps",
+      "-unchecked"
+    ) ++ {
+      CrossVersion.partialVersion(scalaVersion) match {
+        case Some((2, 11|12)) =>
+          Seq("-Xfuture", "-Yno-adapted-args")
+        case _ =>
+          Seq.empty
+      }
+    }
+
   val settings = Seq(
     organization := "com.rocketfuel.sdbc",
 
-    scalaVersion := "2.12.6",
+    scalaVersion := "2.13.1",
 
-    crossScalaVersions := Seq("2.11.12"),
+    crossScalaVersions := Seq("2.11.12, 2.12.10"),
 
     version := "3.0.1",
 
@@ -47,22 +67,9 @@ object Common {
 
     publishArtifact in Test := true,
 
-    //Some helpful compiler flags from https://tpolecat.github.io/2014/04/11/scalac-flags.html
-    scalacOptions ++= Seq(
-      "-deprecation",
-      "-encoding", "UTF-8",       // yes, this is 2 args
-      "-feature",
-      "-language:existentials",
-      "-language:higherKinds",
-      "-language:implicitConversions",
-      "-language:postfixOps",
-      "-unchecked",
-      "-Yno-adapted-args",
-      "-Xfuture"
-    )
-
+    scalacOptions ++= extraScalacOptions(scalaVersion.value)
   )
 
-  val xml = "org.scala-lang.modules" %% "scala-xml" % "1.0.6"
+  val xml = "org.scala-lang.modules" %% "scala-xml" % "1.2.0"
 
 }

@@ -24,7 +24,7 @@ trait HasPostgreSqlPool[P <: PostgreSql] {
     pgProcess = Some(pgServer.prepare(pgConfig).start())
   }
 
-  def startPool(): Unit = {
+  def pgPoolConfig: HikariConfig = {
     val poolConfig = new HikariConfig()
     poolConfig.setUsername(user)
     poolConfig.setPassword(password)
@@ -32,8 +32,11 @@ trait HasPostgreSqlPool[P <: PostgreSql] {
     poolConfig.setDataSourceClassName(classOf[org.postgresql.ds.PGSimpleDataSource].getCanonicalName)
     poolConfig.getDataSourceProperties.setProperty("PortNumber", pgConfig.net.port.toString)
     poolConfig.setMaximumPoolSize(10)
+    poolConfig
+  }
 
-    pgPool = Some(new Pool(poolConfig))
+  def startPool(): Unit = {
+    pgPool = Some(new Pool(pgPoolConfig))
   }
 
   protected def withPg[T](f: Connection => T): T = {

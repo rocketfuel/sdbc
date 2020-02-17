@@ -242,7 +242,7 @@ trait ParameterValue {
       }
     }
 
-    case class Pipe[F[_]](implicit async: Async[F]) {
+    case class Pipe[F[_]]()(implicit async: Async[F]) {
       def combine(p: Parameters): fs2.Pipe[F, Parameters, Parameters] = {
         pipe.lift(p ++ _)
       }
