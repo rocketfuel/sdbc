@@ -40,11 +40,12 @@ abstract class CassandraSuite
     dropKeyspace()
   }
 
-  def getSession(): CqlSession = {
-    CqlSession
-      .builder.addContactPoint(new InetSocketAddress(EmbeddedCassandraServerHelper.getHost, EmbeddedCassandraServerHelper.getNativeTransportPort))
+  def getSession(keyspace: String = keyspace): CqlSession = {
+    CqlSession.builder
+      .addContactPoint(new InetSocketAddress(EmbeddedCassandraServerHelper.getHost, EmbeddedCassandraServerHelper.getNativeTransportPort))
       .withConfigLoader(ConfigLoader)
       .withLocalDatacenter("datacenter1")
+      .withKeyspace(keyspace)
       .build
   }
 
@@ -64,13 +65,13 @@ abstract class CassandraSuite
   }
 
   def createKeyspace(): Unit = synchronized {
-    implicit val session = getSession()
+    implicit val session = getSession(null)
     try Query.execute(s"CREATE KEYSPACE $keyspace WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}")
     finally session.close()
   }
 
   def dropKeyspace(): Unit = synchronized {
-    implicit val session = getSession()
+    implicit val session = getSession(null)
     try Query.execute(s"DROP KEYSPACE $keyspace")
     finally session.close()
   }

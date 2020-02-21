@@ -12,7 +12,7 @@ class CassandraStreamSpec
     PropertyCheckConfiguration(sizeRange = 10)
 
   test("values are inserted and selected") {implicit connection =>
-    Query.execute(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x int)")
+    Query.execute("CREATE TABLE tbl (id int PRIMARY KEY, x int)")
 
     case class IdAndX(id: Int, x: Int)
 
@@ -22,12 +22,12 @@ class CassandraStreamSpec
 
       val insert: Stream[IO, Unit] = {
         val randomStream = Stream[IO, IdAndX](randoms: _*)
-        randomStream.through(Query(s"INSERT INTO $keyspace.tbl (id, x) VALUES (@id, @x)").sink[IO].product)
+        randomStream.through(Query("INSERT INTO tbl (id, x) VALUES (@id, @x)").sink[IO].product)
       }
 
       insert.compile.drain.unsafeRunSync()
 
-      val select = Query[Int](s"SELECT x FROM $keyspace.tbl")
+      val select = Query[Int]("SELECT x FROM tbl")
 
       val results = select.iterator().toVector
 
@@ -45,11 +45,11 @@ class CassandraStreamSpec
   object TestTable {
 
     val createTable =
-      Query[Unit](s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, value int)")
+      Query[Unit]("CREATE TABLE tbl (id int PRIMARY KEY, value int)")
 
     object All {
       implicit val queryable: Queryable[All.type, TestTable] = {
-        Query[TestTable](s"SELECT id, value FROM $keyspace.tbl").queryable[All.type].constant
+        Query[TestTable]("SELECT id, value FROM tbl").queryable[All.type].constant
       }
     }
 
@@ -57,7 +57,7 @@ class CassandraStreamSpec
 
     object Insert {
       implicit val keyspaceQueryable: Queryable[Insert, Unit] = {
-        Query[Unit](s"INSERT INTO $keyspace.tbl (id, value) VALUES (@id, @value)").
+        Query[Unit]("INSERT INTO tbl (id, value) VALUES (@id, @value)").
           queryable[Insert].product
       }
     }
