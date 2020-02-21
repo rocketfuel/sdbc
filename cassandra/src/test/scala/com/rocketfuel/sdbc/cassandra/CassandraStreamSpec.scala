@@ -1,15 +1,12 @@
 package com.rocketfuel.sdbc.cassandra
 
+import cats.effect.IO
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
-import fs2.{Stream, Task}
-import scala.concurrent.ExecutionContext
+import fs2.Stream
 
 class CassandraStreamSpec
   extends CassandraSuite
   with GeneratorDrivenPropertyChecks {
-
-  implicit val strategy =
-    fs2.Strategy.fromExecutionContext(ExecutionContext.global)
 
   override implicit val generatorDrivenConfig: PropertyCheckConfiguration =
     PropertyCheckConfiguration(sizeRange = 10)
@@ -23,12 +20,12 @@ class CassandraStreamSpec
       val randoms: Seq[IdAndX] =
         randomValues.zipWithIndex.map(t => IdAndX.tupled(t.swap))
 
-      val insert: Stream[Task, Unit] = {
-        val randomStream = Stream[Task, IdAndX](randoms: _*)
-        randomStream.to(Query(s"INSERT INTO $keyspace.tbl (id, x) VALUES (@id, @x)").sink[Task].product)
+      val insert: Stream[IO, Unit] = {
+        val randomStream = Stream[IO, IdAndX](randoms: _*)
+        randomStream.through(Query(s"INSERT INTO $keyspace.tbl (id, x) VALUES (@id, @x)").sink[IO].product)
       }
 
-      insert.run.unsafeRun()
+      insert.compile.drain.unsafeRunSync()
 
       val select = Query[Int](s"SELECT x FROM $keyspace.tbl")
 
@@ -40,55 +37,6 @@ class CassandraStreamSpec
     }
   }
 
-  test("can stream from multiple keyspaces") {_ =>
-
-    val keyspaceCount = util.Random.nextInt(5) + 3
-
-    val rowsPerKeyspace = util.Random.nextInt(50) + 50
-
-    val rowCount = keyspaceCount * rowsPerKeyspace
-
-    //There's the default test keyspace, so create keyspaceCount - 1 more.
-    for (_ <- 0 until keyspaceCount - 1)
-      createKeyspace()
-
-    val expectedRows =
-      for {
-        id <- 0 until rowCount
-      } yield TestTable(id, id + 1)
-
-    val expectedRowsByKeyspace =
-      for {
-        (keyspace, keyspaceRows) <- keyspaces.zip(expectedRows.sliding(rowsPerKeyspace, rowsPerKeyspace).toSet).toMap
-      } yield keyspace -> keyspaceRows
-
-    val insertKeys =
-      for {
-        (keyspace, keyspaceRows) <- expectedRowsByKeyspace
-        insert <- keyspaceRows.map(_.insert(keyspace))
-      } yield insert
-
-    for (keyspace <- keyspaces) {
-      implicit val session = client.connect(keyspace)
-      TestTable.createTable.execute()
-      session.close()
-    }
-
-    fs2.concurrent.join(keyspaceCount)(Stream(insertKeys.toSeq: _*).
-      through(QueryableWithKeyspace.pipe[Task, TestTable.Insert, Unit])
-    ).run.unsafeRun()
-
-    val results =
-      fs2.concurrent.join(keyspaceCount)(
-        Stream.constant(TestTable.All).zip(Stream(keyspaces: _*)).
-          through(Queryable.pipeWithKeyspace[Task, TestTable.All.type, TestTable])
-      ).runLog.unsafeRun()
-
-    assertResult(rowCount)(results.size)
-
-    assertResult(expectedRows.toSet)(results.toSet)
-  }
-
   case class TestTable(id: Int, value: Int) {
     def insert(keyspace: String): TestTable.Insert =
       TestTable.Insert(keyspace, id, value)
@@ -97,20 +45,20 @@ class CassandraStreamSpec
   object TestTable {
 
     val createTable =
-      Query[Unit]("CREATE TABLE tbl (id int PRIMARY KEY, value int)")
+      Query[Unit](s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, value int)")
 
     object All {
       implicit val queryable: Queryable[All.type, TestTable] = {
-        Query[TestTable]("SELECT id, value FROM tbl").queryable[All.type].constant
+        Query[TestTable](s"SELECT id, value FROM $keyspace.tbl").queryable[All.type].constant
       }
     }
 
     case class Insert(keyspace: String, id: Int, value: Int)
 
     object Insert {
-      implicit val keyspaceQueryable: QueryableWithKeyspace[Insert, Unit] = {
-        Query[Unit]("INSERT INTO tbl (id, value) VALUES (@id, @value)").
-          queryable[Insert].product.withKeyspace(_.keyspace)
+      implicit val keyspaceQueryable: Queryable[Insert, Unit] = {
+        Query[Unit](s"INSERT INTO $keyspace.tbl (id, value) VALUES (@id, @value)").
+          queryable[Insert].product
       }
     }
 

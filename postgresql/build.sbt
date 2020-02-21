@@ -1,3 +1,5 @@
+import com.typesafe.tools.mima.core._
+
 organization := "com.rocketfuel.sdbc"
 
 name := "postgresql-jdbc"

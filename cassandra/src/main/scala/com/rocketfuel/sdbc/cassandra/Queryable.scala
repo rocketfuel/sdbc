@@ -1,8 +1,7 @@
 package com.rocketfuel.sdbc.cassandra
 
-import com.datastax.driver.core.Cluster
+import cats.effect.Async
 import com.rocketfuel.sdbc.Cassandra._
-import fs2.util.Async
 import fs2.{Pipe, Stream}
 
 trait Queryable[Key, Value] extends (Key => Query[Value]) {
@@ -32,15 +31,6 @@ trait Queryable[Key, Value] extends (Key => Query[Value]) {
       }
     }
   }
-
-  def withKeyspace(toKeyspace: Key => String): QueryableWithKeyspace[Key, Value] =
-    new QueryableWithKeyspace[Key, Value] {
-      override def keyspace(key: Key): String =
-        toKeyspace(key)
-
-      override def apply(key: Key): Query[Value] =
-        queryable.query(key)
-    }
 }
 
 object Queryable {
@@ -90,22 +80,6 @@ object Queryable {
   ): Pipe[F, Key, Stream[F, Value]] = {
     keys =>
       keys.map(key => queryable.query(key).stream[F])
-  }
-
-  def pipeWithKeyspace[F[_], Key, Value](implicit
-    cluster: Cluster,
-    queryable: Queryable[Key, Value],
-    async: Async[F]
-  ): Pipe[F, (Key, String), Stream[F, Value]] = {
-    keyspaceAndKeys =>
-      val keys = keyspaceAndKeys.map(_._1)
-      val keyspaces = keyspaceAndKeys.map(_._2)
-      val queries = keys.map(queryable.query)
-      val sessions = keyspaces.through(StreamUtils.keyspaces)
-      queries.zip(sessions).map {
-        case (query, session) =>
-          query.stream[F](session, implicitly[Async[F]])
-      }
   }
 
   trait syntax {

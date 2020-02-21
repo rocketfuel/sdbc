@@ -78,12 +78,12 @@ object CompiledStatement {
     val parts = sc.parts.iterator
     var i = 0
 
-    builder.append(StringContext.treatEscapes(parts.next()))
+    builder.append(StringContext.processEscapes(parts.next()))
 
     while (parts.hasNext) {
       builder.append(s"@`$i`")
       i += 1
-      builder.append(StringContext.treatEscapes(parts.next()))
+      builder.append(StringContext.processEscapes(parts.next()))
     }
 
     val queryText = builder.toString

@@ -1,10 +1,10 @@
 package com.rocketfuel.sdbc.cassandra
 
+import cats.effect.Async
+import cats.syntax.all._
 import com.rocketfuel.sdbc.base.{CompiledStatement, Logger}
 import com.rocketfuel.sdbc.Cassandra._
 import fs2._
-import fs2.util.Async
-import fs2.util.syntax._
 import java.io.InputStream
 import java.net.URL
 import java.nio.file.Path
@@ -70,7 +70,7 @@ case class Query[A](
       parameters(key => Parameters.record(key.asInstanceOf[Repr]))
   }
 
-  def execute()(implicit session: Session): ResultSet = {
+  def execute()(implicit session: Session): com.datastax.oss.driver.api.core.cql.ResultSet = {
     Query.execute(statement, parameters, queryOptions)
   }
 
@@ -96,10 +96,6 @@ case class Query[A](
       Query.future.execute(statement, queryOptions, parameters)
     }
 
-    def iterator()(implicit session: Session, ec: ExecutionContext): Future[Iterator[A]] = {
-      Query.future.iterator(statement, queryOptions, parameters)
-    }
-
     def option()(implicit session: Session, ec: ExecutionContext): Future[Option[A]] = {
       Query.future.option(statement, queryOptions, parameters)
     }
@@ -116,36 +112,12 @@ case class Query[A](
       Query.async.execute(statement, queryOptions, parameters)
     }
 
-    def iterator[F[_]]()(implicit session: Session, async: Async[F]): F[Iterator[A]] = {
-      Query.async.iterator(statement, queryOptions, parameters)
-    }
-
     def option[F[_]]()(implicit session: Session, async: Async[F]): F[Option[A]] = {
       Query.async.option(statement, queryOptions, parameters)
     }
 
     def one[F[_]]()(implicit session: Session, async: Async[F]): F[A] = {
       Query.async.one(statement, queryOptions, parameters)
-    }
-
-  }
-
-  object task {
-
-    def execute()(implicit session: Session, strategy: Strategy): Task[ResultSet] = {
-      async.execute[Task]()
-    }
-
-    def iterator(implicit session: Session, strategy: Strategy): Task[Iterator[A]] = {
-      async.iterator[Task]()
-    }
-
-    def option()(implicit session: Session, strategy: Strategy): Task[Option[A]] = {
-      async.option[Task]()
-    }
-
-    def one()(implicit session: Session, strategy: Strategy): Task[A] = {
-      async.one[Task]()
     }
 
   }
@@ -240,12 +212,28 @@ object Query
     queryOptions: QueryOptions = QueryOptions.default,
     hasParameters: Boolean = true
   )(implicit session: Session
-  ): ResultSet = {
+  ): com.datastax.oss.driver.api.core.cql.ResultSet = {
     logExecution(statement, parameters)
 
     val prepared = session.prepare(statement.queryText)
     val bound = bind(statement, prepared, parameters, queryOptions)
     session.execute(bound)
+  }
+
+  def executeAsync[F[_]](
+    statement: CompiledStatement,
+    parameters: Parameters = Parameters.empty,
+    queryOptions: QueryOptions = QueryOptions.default,
+    hasParameters: Boolean = true
+  )(implicit session: Session,
+    async: Async[F]
+  ): F[ResultSet] = {
+    for {
+      _ <- async.delay(logExecution(statement, parameters))
+      prepared <- toAsync(session.prepareAsync(statement.queryText))
+      bound = bind(statement, prepared, parameters, queryOptions)
+      results <- toAsync(session.executeAsync(bound))
+    } yield results
   }
 
   def iterator[A](
@@ -273,15 +261,15 @@ object Query
     }
 
     def chunks(results: ResultSet): Stream[F, A] = {
-      (results.getAvailableWithoutFetching, results.isFullyFetched) match {
-        case (0, false) =>
+      (results.remaining(), results.hasMorePages) match {
+        case (0, true) =>
           for {
-            nextResults <- Stream.eval(toAsync[F, ResultSet](results.fetchMoreResults()))
+            nextResults <- Stream.eval(toAsync[F, ResultSet](results.fetchNextPage()))
             one <- chunks(nextResults)
           } yield one
 
-        case (0, true) =>
-          Stream.empty[F, A]
+        case (0, false) =>
+          Stream.empty
 
         case (chunkSize, _) =>
           //Get results that won't cause any IO, then append the ones that do.
@@ -325,9 +313,7 @@ object Query
     protected def aux(additionalParameters: Parameters)(implicit session: Session): A
 
     def parameters(implicit session: Session): fs2.Pipe[F, Parameters, A] = {
-      fs2.pipe.lift[F, Parameters, A] { parameters =>
-        aux(parameters)
-      }
+      _.map(aux)
     }
 
     def product[
@@ -338,9 +324,7 @@ object Query
     ](implicit session: Session,
       p: Parameters.Products[B, Repr, Key, AsParameters]
     ): fs2.Pipe[F, B, A] = {
-      fs2.pipe.lift[F, B, A] { parameters =>
-        aux(Parameters.product(parameters))
-      }
+      _.map(parameters => aux(Parameters.product(parameters)))
     }
 
     def record[
@@ -350,9 +334,7 @@ object Query
     ](implicit session: Session,
       r: Parameters.Records[Repr, Key, AsParameters]
     ): fs2.Pipe[F, Repr, A] = {
-      fs2.pipe.lift[F, Repr, A] { parameters =>
-        aux(Parameters.record(parameters))
-      }
+      _.map(parameters => aux(Parameters.record(parameters)))
     }
   }
 
@@ -399,12 +381,12 @@ trait QueryCompanionOps {
 
   protected def bind(
     statement: CompiledStatement,
-    prepared: com.datastax.driver.core.PreparedStatement,
+    prepared: com.datastax.oss.driver.api.core.cql.PreparedStatement,
     parameters: Parameters,
     queryOptions: QueryOptions
   )(implicit session: Session
-  ): PreparedStatement = {
-    val forBinding = prepared.bind()
+  ): com.datastax.oss.driver.api.core.cql.BoundStatement = {
+    val forBinding = prepared.boundStatementBuilder()
     for ((parameterName, parameterIndices) <- statement.parameterPositions) {
       val parameterValue = parameters(parameterName)
       for (parameterIndex <- parameterIndices) {
@@ -412,9 +394,9 @@ trait QueryCompanionOps {
       }
     }
 
-    queryOptions.set(forBinding)
-
-    forBinding
+    val build = forBinding.build()
+    queryOptions.set(build)
+    build
   }
 
   protected def logExecution(statement: CompiledStatement, parameters: Parameters): Unit =
@@ -426,7 +408,7 @@ trait QueryCompanionOps {
       statement: CompiledStatement
     )(implicit session: Session,
       async: Async[F]
-    ): F[com.datastax.driver.core.PreparedStatement] = {
+    ): F[com.datastax.oss.driver.api.core.cql.PreparedStatement] = {
       toAsync(session.prepareAsync(statement.queryText))
     }
 
@@ -453,10 +435,15 @@ trait QueryCompanionOps {
     )(implicit converter: RowConverter[A],
       session: Session,
       async: Async[F]
-    ): F[Iterator[A]] = {
-      for (results <- execute(statement, queryOptions, parameters)) yield
-        for (result <- results.iterator().asScala) yield
-          result
+    ): F[Iterator[F[Iterator[A]]]] = {
+      throw new NotImplementedError("test that paging works this way and state doesn't break it")
+      // If the paging works, the future version can use this scheme, too
+//      for (results <- execute(statement, queryOptions, parameters)) yield
+//        for {
+//          future <- results.currentPage.iterator.asScala.map(converter) ++ Iterator.unfold(results)(results => if (results.hasMorePages) {
+//            Some((toAsync(results.fetchNextPage()).map(_.currentPage.iterator().asScala.map(converter)), results))
+//          } else None)
+//        } yield future
     }
 
     def option[F[_], A](
@@ -485,59 +472,13 @@ trait QueryCompanionOps {
 
   }
 
-  object task {
-
-    def execute(
-      statement: CompiledStatement,
-      queryOptions: QueryOptions,
-      parameters: Parameters
-    )(implicit session: Session,
-      strategy: Strategy
-    ): Task[ResultSet] = {
-      async.execute[Task](statement, queryOptions, parameters)
-    }
-
-    def iterator[A](
-      statement: CompiledStatement,
-      queryOptions: QueryOptions,
-      parameters: Parameters
-    )(implicit converter: RowConverter[A],
-      session: Session,
-      strategy: Strategy
-    ): Task[Iterator[A]] = {
-      async.iterator[Task, A](statement, queryOptions, parameters)
-    }
-
-    def option[A](
-      statement: CompiledStatement,
-      queryOptions: QueryOptions,
-      parameters: Parameters
-    )(implicit converter: RowConverter[A],
-      session: Session,
-      strategy: Strategy
-    ): Task[Option[A]] = {
-      async.option[Task, A](statement, queryOptions, parameters)
-    }
-
-    def one[A](
-      statement: CompiledStatement,
-      queryOptions: QueryOptions,
-      parameters: Parameters
-    )(implicit converter: RowConverter[A],
-      session: Session,
-      strategy: Strategy
-    ): Task[A] = {
-      async.one[Task, A](statement, queryOptions, parameters)
-    }
-  }
-
   object future {
 
     private def prepare(
       statement: CompiledStatement
     )(implicit session: Session,
       ec: ExecutionContext
-    ): Future[com.datastax.driver.core.PreparedStatement] = {
+    ): Future[com.datastax.oss.driver.api.core.cql.PreparedStatement] = {
       toScalaFuture(session.prepareAsync(statement.queryText))
     }
 
@@ -557,7 +498,7 @@ trait QueryCompanionOps {
       } yield results
     }
 
-    def iterator[A](
+    def flatIterator[F[_], A](
       statement: CompiledStatement,
       queryOptions: QueryOptions,
       parameters: Parameters
@@ -565,9 +506,15 @@ trait QueryCompanionOps {
       session: Session,
       ec: ExecutionContext
     ): Future[Iterator[A]] = {
-      for (results <- execute(statement, queryOptions, parameters)) yield
-        for (result <- results.iterator().asScala) yield
-          result
+      Future {
+        // We have to use a synchronous ResultSet because otherwise we will give F[Iterator[F[Iterator[A]]].
+        // But it's even worse, b
+        logExecution(statement, parameters)
+        val prepared = session.prepare(statement.queryText)
+        val bound = bind(statement, prepared, parameters, queryOptions)
+        val results = session.execute(bound)
+        results.iterator.asScala.map(converter)
+      }
     }
 
     def option[A](
