@@ -1,8 +1,8 @@
 package com.rocketfuel.sdbc.base.jdbc
 
+import cats.effect.Async
 import com.rocketfuel.sdbc.base.{CloseableIterator, Logger}
-import fs2.{Stream, pipe}
-import fs2.util.Async
+import fs2.Stream
 import java.io.InputStream
 import java.net.URL
 import java.nio.file.Path
@@ -224,13 +224,12 @@ trait Select {
       pool: Pool,
       rowConverter: RowConverter[A]
     ): Stream[F, A] = {
-      Stream.bracket[F, Connection, A](
-        r = async.delay(pool.getConnection())
-      )(use = {implicit connection: Connection =>
+      Stream.bracket[F, Connection](
+        async.delay(pool.getConnection())
+      )((connection: Connection) => async.delay(connection.close()))
+        .flatMap{implicit connection: Connection =>
           CloseableIterator.toStream(async.delay(iterator[A](statement, parameterValues)))
-      },
-        release = (connection: Connection) => async.delay(connection.close())
-      )
+        },
     }
 
     case class Pipe[F[_], A](
@@ -243,9 +242,7 @@ trait Select {
 
       def parameters(implicit pool: Pool): fs2.Pipe[F, Parameters, Stream[F, A]] = {
         parameterPipe.combine(defaultParameters).andThen(
-          pipe.lift[F, Parameters, Stream[F, A]] { params =>
-            stream(statement, params)
-          }
+          _.map(params => stream(statement, params))
         )
       }
 

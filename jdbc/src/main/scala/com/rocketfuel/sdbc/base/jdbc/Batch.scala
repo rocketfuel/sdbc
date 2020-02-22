@@ -1,8 +1,9 @@
 package com.rocketfuel.sdbc.base.jdbc
 
+import cats.Eq
+import cats.effect.Async
 import com.rocketfuel.sdbc.base.Logger
-import fs2.{Pipe, Stream}
-import fs2.util.Async
+import fs2.{Chunk, Pipe, Stream}
 
 trait Batch {
   self: DBMS with Connection =>
@@ -271,12 +272,22 @@ trait Batch {
       } yield result
     }
 
+    private implicit val compiledStatementEq: Eq[CompiledStatement] =
+      new Eq[CompiledStatement] {
+        override def eqv(
+          x: CompiledStatement,
+          y: CompiledStatement
+        ): Boolean = {
+          x.queryText == y.queryText
+        }
+      }
+
     /**
       * Run queries by taking chunks from an input stream and batching parameters with
       * common statements together.
       *
       * Use the various `chunk` methods on your input stream to group the appropriate
-      * number of queries together for batching. See [[fs2.pipe.groupBy]].
+      * number of queries together for batching. See [[Stream.groupAdjacentBy]].
       */
     def pipe[
       F[_]
@@ -285,14 +296,14 @@ trait Batch {
     ): Pipe[F, CompiledParameterizedQuery[_], Result] =
       (queriesStream: Stream[F, CompiledParameterizedQuery[_]]) =>
         for {
-          statementAndBatches <- queriesStream.groupBy(_.statement)
+          statementAndBatches <- queriesStream.groupAdjacentBy(_.statement)
           (statement, statementBatches) = statementAndBatches
           batches = statementBatches.map(_.parameters)
           result <-
             Stream.eval(
               async.delay {
                 pool.withConnection {implicit connection =>
-                  Result(statement, batches.zip(prepareAndRun(statement, batches)))
+                  Result(statement, batches.toVector.zip(prepareAndRun(statement, batches.toVector)))
                 }
               }
             )

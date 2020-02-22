@@ -1,9 +1,9 @@
 package com.rocketfuel.sdbc.base.jdbc
 
+import cats.effect.Async
 import com.rocketfuel.sdbc.base.Logger
 import com.rocketfuel.sdbc.base.jdbc.resultset.Row
 import fs2.Stream
-import fs2.util.Async
 import java.io.InputStream
 import java.net.URL
 import java.nio.file.Path

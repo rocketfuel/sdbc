@@ -21,15 +21,31 @@ class ResultSetIterator(val underlying: ResultSet) extends AnyVal {
     * share elements.
     */
   def iterator(): CloseableIterator[ResultSet] = {
+    // https://stackoverflow.com/questions/1870022/java-iterator-backed-by-a-resultset
     val i = new Iterator[ResultSet] {
-      override def hasNext: Boolean =
-        underlying.next()
 
-      override def next(): ResultSet =
+      var calledNext = false
+      var _hasNext = false
+
+      override def hasNext: Boolean = {
+        if (!calledNext) {
+          calledNext = true
+          _hasNext = underlying.next()
+        }
+        _hasNext
+      }
+
+      override def next(): ResultSet = {
+        if (!hasNext) {
+          throw new NoSuchElementException("next on empty iterator")
+        }
+        // reset the state
+        calledNext = false
         underlying
+      }
     }
 
-    new CloseableIterator[ResultSet](i) {
+    new CloseableIterator[ResultSet](i, CloseableIterator.SingleCloseTracking(underlying)) {
       override def close(): Unit = {
         underlying.close()
       }

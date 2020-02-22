@@ -1,6 +1,7 @@
 package com.rocketfuel.sdbc.base
 
-import java.io.Closeable
+import cats.effect.Async
+import fs2.Stream
 import scala.collection.{IterableOnce, IterableOnceOps}
 
 /**
@@ -15,11 +16,11 @@ import scala.collection.{IterableOnce, IterableOnceOps}
  * @tparam A
  */
 class CloseableIterator[+A](
-  underlying: Iterator[A],
+  private val underlying: Iterator[A],
   private val closer: CloseableIterator.CloseTracking
 ) extends IterableOnce[A]
   with IterableOnceOps[A, CloseableIterator, CloseableIterator[A]]
-  with Closeable {
+  with AutoCloseable {
   self =>
 
   override def close(): Unit = {
@@ -180,14 +181,18 @@ object CloseableIterator {
     * a plain Scala Iterator.
     */
   implicit def toIterator[A](i: CloseableIterator[A]): Iterator[A] =
-    i.iterator
+    i.underlying
 
-  trait CloseTracking extends Closeable {
+  def toStream[F[x], A](i: F[CloseableIterator[A]])(implicit a: Async[F]): fs2.Stream[F, A] = {
+    fs2.Stream.bracket[F, CloseableIterator[A]](i)(i => a.delay(i.close())).flatMap(Stream.fromIterator[F](_))
+  }
+
+  trait CloseTracking extends AutoCloseable {
     var isClosed: Boolean = false
   }
 
   case class SingleCloseTracking(
-    closeable: Closeable
+    closeable: AutoCloseable
   ) extends CloseTracking {
     override def close(): Unit = {
       if (!isClosed) {

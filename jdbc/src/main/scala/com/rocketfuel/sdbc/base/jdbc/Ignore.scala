@@ -1,8 +1,8 @@
 package com.rocketfuel.sdbc.base.jdbc
 
+import cats.effect.Async
 import com.rocketfuel.sdbc.base.Logger
-import fs2.{Stream, pipe}
-import fs2.util.Async
+import fs2.Stream
 import shapeless.HList
 
 trait Ignore {
@@ -97,11 +97,11 @@ trait Ignore {
         */
       def parameters(implicit pool: Pool): fs2.Sink[F, Parameters] = {
         parameterPipe.combine(defaultParameters).andThen(
-          pipe.lift[F, Parameters, Unit] { params =>
+          _.map(params =>
             StreamUtils.connection {implicit connection =>
               Stream.eval(async.delay(ignore(statement, params)))
             }
-          }
+          )
         )
       }
 

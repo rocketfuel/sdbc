@@ -89,9 +89,16 @@ class GettersSpec
 
   testSelect[Seq[Seq[Int]]]("SELECT (())", Seq.empty.some)
 
-  //The next two tests are disabled because they cause "org.h2.jdbc.JdbcSQLException: Feature not supported: null [50100-193]"
+  /*
+  This test is disabled due to
+
+  Syntax error in SQL statement "SELECT ((1, 2),)[*]"; expected "NOT, EXISTS, INTERSECTS, UNIQUE"; SQL statement:
+  SELECT ((1, 2),) [42001-200]
+
+  Removing the comma flattens the array, which is not what I'm testing.
+   */
   testIgnore[Seq[Seq[Int]]]("SELECT ((1, 2),)", Seq(Seq(1, 2)).some)
 
-  testIgnore[Seq[Seq[Option[Int]]]]("SELECT ((1, NULL), (2, NULL))", Seq(Seq(Some(1), None), Seq(Some(2), None)).some)
+  testSelect[Seq[Seq[Option[Int]]]]("SELECT ((1, NULL), (2, NULL))", Seq(Seq(Some(1), None), Seq(Some(2), None)).some)
 
 }

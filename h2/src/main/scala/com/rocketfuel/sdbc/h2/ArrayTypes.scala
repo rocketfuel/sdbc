@@ -6,6 +6,7 @@ import java.nio.ByteBuffer
 import java.sql.Types
 import java.time._
 import java.util.UUID
+import org.h2.engine.Mode
 import org.h2.value.DataType
 import scodec.bits.ByteVector
 
@@ -98,6 +99,6 @@ trait ArrayTypes {
     ArrayTypeName[String](nameOfJdbcType(Types.VARCHAR))
 
   implicit val uuidTypeName: ArrayTypeName[UUID] =
-    ArrayTypeName[UUID](DataType.getTypeByName("UUID").name)
+    ArrayTypeName[UUID](DataType.getTypeByName("UUID", Mode.getRegular).name)
 
 }

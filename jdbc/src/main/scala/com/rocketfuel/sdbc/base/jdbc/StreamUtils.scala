@@ -1,8 +1,8 @@
 package com.rocketfuel.sdbc.base.jdbc
 
+import cats.effect.Async
 import com.typesafe.config.Config
 import com.zaxxer.hikari.HikariConfig
-import fs2.util.Async
 import fs2.Stream
 import java.sql.DriverManager
 import java.util.Properties
@@ -38,7 +38,7 @@ trait StreamUtils {
       def release(pool: Pool): F[Unit] = {
         async.delay(pool.close())
       }
-      Stream.bracket(req)(use, release)
+      Stream.bracket(req)(release).flatMap(use)
     }
 
     private def connectionAux[F[_], O](
@@ -49,7 +49,7 @@ trait StreamUtils {
       def release(connection: Connection): F[Unit] = {
         async.delay(connection.close())
       }
-      Stream.bracket(req)(use, release)
+      Stream.bracket(req)(release).flatMap(use)
     }
 
     /**
