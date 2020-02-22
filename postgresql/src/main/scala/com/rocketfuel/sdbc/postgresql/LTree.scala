@@ -109,10 +109,6 @@ class LTree private (
 object LTree {
 
   def apply(path: String*): LTree = {
-    apply(path.toVector)
-  }
-
-  def apply(path: Seq[String]): LTree = {
     new LTree(path = Some(path))
   }
 

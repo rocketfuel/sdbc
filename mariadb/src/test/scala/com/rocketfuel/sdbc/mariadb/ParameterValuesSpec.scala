@@ -13,91 +13,91 @@ class ParameterValuesSpec
   extends FunSuite {
 
   test("implicit Boolean conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = false")
+    assertCompiles("false: MariaDb.ParameterValue")
   }
 
   test("implicit Boxed Boolean conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = java.lang.Boolean.valueOf(false)")
+    assertCompiles("java.lang.Boolean.valueOf(false): MariaDb.ParameterValue")
   }
 
   test("implicit ByteVector conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = ByteVector.empty")
+    assertCompiles("ByteVector.empty: MariaDb.ParameterValue")
   }
 
   test("implicit ByteBuffer conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = ByteBuffer.wrap(Array.emptyByteArray)")
+    assertCompiles("ByteBuffer.wrap(Array.emptyByteArray): MariaDb.ParameterValue")
   }
 
   test("implicit Array[Byte] conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = Array.emptyByteArray")
+    assertCompiles("Array.emptyByteArray: MariaDb.ParameterValue")
   }
 
   test("implicit java.util.Date conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = new util.Date(0L)")
+    assertCompiles("new util.Date(0L): MariaDb.ParameterValue")
   }
 
   test("implicit java.sql.Date conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = new java.sql.Date(0L)")
+    assertCompiles("new java.sql.Date(0L): MariaDb.ParameterValue")
   }
 
   test("implicit Java BigDecimal conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = JBigDecimal.valueOf(0L)")
+    assertCompiles("JBigDecimal.valueOf(0L): MariaDb.ParameterValue")
   }
 
   test("implicit Scala BigDecimal conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = BigDecimal(0L)")
+    assertCompiles("BigDecimal(0L): MariaDb.ParameterValue")
   }
 
   test("implicit Double conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = 3.0")
+    assertCompiles("3.0: MariaDb.ParameterValue")
   }
 
   test("implicit Boxed Double conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = java.lang.Double.valueOf(0.0)")
+    assertCompiles("java.lang.Double.valueOf(0.0): MariaDb.ParameterValue")
   }
 
   test("implicit Float conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = 3.0F")
+    assertCompiles("3.0F: MariaDb.ParameterValue")
   }
 
   test("implicit Boxed Float conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = java.lang.Float.valueOf(0.0F)")
+    assertCompiles("java.lang.Float.valueOf(0.0F): MariaDb.ParameterValue")
   }
 
   test("implicit Int conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = 3")
+    assertCompiles("3: MariaDb.ParameterValue")
   }
 
   test("implicit Boxed Int conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = java.lang.Integer.valueOf(0)")
+    assertCompiles("java.lang.Integer.valueOf(0): MariaDb.ParameterValue")
   }
 
   test("implicit Long conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = 3L")
+    assertCompiles("3L: MariaDb.ParameterValue")
   }
 
   test("implicit Boxed Long conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = java.lang.Long.valueOf(0L)")
+    assertCompiles("java.lang.Long.valueOf(0L): MariaDb.ParameterValue")
   }
 
   test("implicit Option[String] conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = Some(\"hello\")")
+    assertCompiles("Some(\"hello\"): MariaDb.ParameterValue")
   }
 
   test("implicit scala.BigDecimal conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = BigDecimal(1)")
+    assertCompiles("BigDecimal(1): MariaDb.ParameterValue")
   }
 
   test("implicit String conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = \"\"")
+    assertCompiles("\"\": MariaDb.ParameterValue")
   }
 
   test("implicit None conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = None")
+    assertCompiles("None: MariaDb.ParameterValue")
   }
 
   test("implicit Instant conversion works") {
-    assertCompiles("val _: MariaDb.ParameterValue = Instant.MIN")
+    assertCompiles("Instant.MIN: MariaDb.ParameterValue")
   }
   
 }

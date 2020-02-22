@@ -2,7 +2,6 @@ package com.rocketfuel.sdbc.postgresql
 
 import java.time.OffsetDateTime
 import org.scalatest._
-import fs2.Strategy
 import org.apache.commons.lang3.RandomStringUtils
 import scala.reflect.ClassTag
 
@@ -42,9 +41,6 @@ abstract class PostgreSqlSuite[P <: PostgreSql]
   override protected def afterAll(): Unit = {
     pgStop()
   }
-
-  implicit val strategy =
-    Strategy.sequential
 
   def testUpdate[T](
     typeName: String
