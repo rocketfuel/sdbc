@@ -7,7 +7,7 @@ package object jsondbms {
   import argonaut.JsonIdentity._
   import argonaut.JsonScalaz._
   import argonaut._
-  import fs2.{Pipe, Sink, Stream}
+  import fs2.{Pipe, Stream}
   import scala.collection.JavaConverters._
   import scalaz.syntax.equal._
 
@@ -95,7 +95,6 @@ package object jsondbms {
     }
 
     object syntax extends syntax
-
   }
 
   object Insert {
