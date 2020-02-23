@@ -74,7 +74,13 @@ class SelectBenchmarks {
 
     val rs = s.executeQuery()
 
-    rs.iterator().map(TestTable(_)).toVector
+    val builder = Vector.newBuilder[TestTable]
+
+    while (rs.next()) {
+      builder.addOne(TestTable(rs))
+    }
+
+    builder.result()
     s.close()
   }
 
