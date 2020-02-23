@@ -27,19 +27,45 @@ class CloseableIterator[+A](
     closer.close()
   }
 
+  /*
+  Make sure that the iterator is closed at the end whether the user is calling
+  `hasNext` or not.
+   */
+  private var calledHasNext = false
+  private var _hasNext = false
+
   def hasNext: Boolean = {
-    val hasNext = underlying.hasNext
-    if (!hasNext) {
+    if (!calledHasNext) {
+      _hasNext = underlying.hasNext
+      calledHasNext = true
+    }
+    if (!_hasNext) {
       close()
     }
-    hasNext
+    _hasNext
   }
 
-  def next(): A = underlying.next()
+  def next(): A = {
+    if (hasNext) {
+      calledHasNext = false
+      underlying.next()
+    } else throw new NoSuchElementException("next on empty iterator")
+  }
 
   override def iterator: Iterator[A] = {
-    this
+    // Don't just use the underlying iterator, because it won't call `close` at the end.
+    new Iterator[A] {
+      override def hasNext: Boolean = {
+        CloseableIterator.this.hasNext
+      }
+
+      override def next(): A = {
+        CloseableIterator.this.next()
+      }
+    }
   }
+
+  def nextOption(): Option[A] = if (hasNext) Some(next()) else None
 
   /**
    * An iterator that shares the same close method as the parent. It's usable
@@ -80,6 +106,14 @@ class CloseableIterator[+A](
   override def corresponds[B](that: IterableOnce[B])(p: (A, B) => Boolean): Boolean =
     underlying.corresponds(that)(p)
 
+  def corresponds[B](that: CloseableIterator[B])(p: (A, B) => Boolean): Boolean = {
+    try underlying.corresponds(that)(p)
+    finally {
+      try close()
+      finally that.close()
+    }
+  }
+
   override def filterNot(p: A => Boolean): CloseableIterator[A] =
     mapped(underlying.filterNot(p))
 
@@ -96,26 +130,7 @@ class CloseableIterator[+A](
     val (has, hasNot) = underlying.span(p)
     // Span is a special case because we can't let one result close the resource, starving
     // the other result. Instead, wait to call close until the parent is done.
-    var hasClosed = false
-    var hasNotClosed = false
-    val hasTracker = new CloseableIterator.CloseTracking {
-      override def close(): Unit = {
-        hasClosed = true
-        if (hasClosed && hasNotClosed) {
-          self.close()
-        }
-      }
-    }
-    val hasNotTracker = new CloseableIterator.CloseTracking {
-      override def close(): Unit = {
-        hasNotClosed = true
-        if (hasClosed && hasNotClosed) {
-          self.close()
-        }
-      }
-    }
-
-    (new CloseableIterator(has, hasTracker), new CloseableIterator(hasNot, hasNotTracker))
+    (new CloseableIterator(has, closer), new CloseableIterator(hasNot, closer))
   }
 
   override def dropWhile(p: A => Boolean): CloseableIterator[A] =
@@ -176,42 +191,41 @@ class CloseableIterator[+A](
 }
 
 object CloseableIterator {
-  /**
-    * Allow a CloseableIterator to be used in any context requiring
-    * a plain Scala Iterator.
-    */
-  implicit def toIterator[A](i: CloseableIterator[A]): Iterator[A] =
-    i.underlying
-
   def toStream[F[x], A](i: F[CloseableIterator[A]])(implicit a: Async[F]): fs2.Stream[F, A] = {
-    fs2.Stream.bracket[F, CloseableIterator[A]](i)(i => a.delay(i.close())).flatMap(Stream.fromIterator[F](_))
+    fs2.Stream.bracket[F, CloseableIterator[A]](i)(i => a.delay(i.close())).flatMap(i => Stream.fromIterator[F](i.iterator))
   }
 
   trait CloseTracking extends AutoCloseable {
-    var isClosed: Boolean = false
+    protected var _isClosed: Boolean = false
+    def isClosed: Boolean = _isClosed
   }
 
   case class SingleCloseTracking(
     closeable: AutoCloseable
   ) extends CloseTracking {
     override def close(): Unit = {
-      if (!isClosed) {
+      if (!_isClosed) {
         try closeable.close()
-        finally isClosed = true
+        finally _isClosed = true
       }
     }
   }
 
+  /**
+   * For use when the iterator has multiple underlying resources.
+   * @param closeables
+   */
   case class MultiCloseTracking(
     closeables: Seq[CloseTracking]
   ) extends CloseTracking {
     override def close(): Unit = {
-      if (!isClosed) {
+      if (!_isClosed) {
         try {
           for (closeable <- closeables) {
-            closeable.close()
+            try ()
+            finally closeable.close()
           }
-        } finally isClosed = true
+        } finally _isClosed = true
       }
     }
   }

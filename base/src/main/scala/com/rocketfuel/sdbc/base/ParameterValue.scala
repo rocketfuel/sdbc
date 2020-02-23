@@ -4,7 +4,6 @@ import fs2.Stream
 import shapeless._
 import shapeless.record._
 import shapeless.ops.record._
-import scala.languageFeature.implicitConversions
 
 trait ParameterValue {
 

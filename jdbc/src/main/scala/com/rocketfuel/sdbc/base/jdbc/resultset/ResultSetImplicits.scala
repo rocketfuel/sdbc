@@ -21,11 +21,16 @@ class ResultSetIterator(val underlying: ResultSet) extends AnyVal {
     * share elements.
     */
   def iterator(): CloseableIterator[ResultSet] = {
-    // https://stackoverflow.com/questions/1870022/java-iterator-backed-by-a-resultset
-    val i = new Iterator[ResultSet] {
+    /*
+    `hasNext` is optional, but `next` is not. Make sure the ResultSet's `next` is
+     only called once per iteration, regardless of whether `hasNext` was called
+     or not.
 
-      var calledNext = false
-      var _hasNext = false
+     https://stackoverflow.com/questions/1870022/java-iterator-backed-by-a-resultset
+     */
+    val i = new Iterator[ResultSet] {
+      private var calledNext = false
+      private var _hasNext = false
 
       override def hasNext: Boolean = {
         if (!calledNext) {
