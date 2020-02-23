@@ -65,17 +65,14 @@ object TestTable {
     Ignore("TRUNCATE TABLE test;")
 
   object doobieMethods {
-    import doobie.enum.jdbctype
-    import doobie.free.{preparedstatement => PS, resultset => RS}
-    import doobie.imports._
+    import doobie._
+    import doobie.implicits._
+    import doobie.enum.JdbcType
 
     implicit val uuidMeta: Meta[UUID] =
-      Meta.basic1[UUID](
-        jdbcType = jdbctype.JavaObject,
-        jdbcSourceSecondary0 = List(),
-        get0 = (rs, ix) => rs.getObject(ix).asInstanceOf[UUID],
-        set0 = PS.setObject,
-        update0 = RS.updateObject
+      new Meta[UUID](
+        get = Get.Basic.one(JdbcType.JavaObject, List(), (rs, ix) => rs.getObject[UUID](ix, classOf[UUID])),
+        put = Put.Basic.one(JdbcType.JavaObject, (p, ix, value) => p.setObject(ix, value), (rs, ix, value) => rs.updateObject(ix, value))
       )
 
     val select: Query0[TestTable] =

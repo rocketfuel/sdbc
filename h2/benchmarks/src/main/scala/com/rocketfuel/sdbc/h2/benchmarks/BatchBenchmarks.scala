@@ -1,20 +1,32 @@
 package com.rocketfuel.sdbc.h2.benchmarks
 
+import cats.effect.{Blocker, IO}
+import cats.instances.vector._
 import com.rocketfuel.sdbc.H2._
-import java.sql.{Connection => JdbcConnection}
+import doobie.free.connection.ConnectionIO
+import doobie.implicits._
+import doobie.util.ExecutionContexts
+import doobie.util.transactor.Transactor
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations._
-import scalaz.Kleisli
-import scalaz.effect.IO
-import scalaz.std.vector._
 import shapeless.syntax.std.tuple._
+import scala.util.Random
 
 @State(Scope.Thread)
+@Fork(value = 1)
+@Measurement(iterations = 5, time = 1)
+@Warmup(iterations = 5, time = 1)
 class BatchBenchmarks {
 
   implicit val connection =
     Connection.get("jdbc:h2:mem:benchmark;DB_CLOSE_DELAY=0")
+
+  implicit val cs = IO.contextShift(ExecutionContexts.synchronous)
+
+  val xa = Blocker[IO].map { b =>
+    Transactor.fromConnection[IO](connection, b)
+  }
 
   @Param(Array("0", "1", "2", "4", "8", "16", "32", "64", "128", "256", "512"))
   var valueCount: Int = _
@@ -23,10 +35,10 @@ class BatchBenchmarks {
 
   var sdbcBatch: Batch = _
 
-  var doobieBatch: Kleisli[IO, JdbcConnection, Int] = _
+  var doobieBatch: ConnectionIO[Int] = _
 
   def createValues(): Vector[TestTable] = {
-    val r = new util.Random()
+    val r = new Random()
 
     val randomClasses =
       for {
@@ -78,7 +90,7 @@ class BatchBenchmarks {
   @BenchmarkMode(Array(Mode.AverageTime))
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
   def doobie(): Unit = {
-    doobieBatch.run(connection).unsafePerformIO()
+    xa.use(doobieBatch.transact[IO]).unsafeRunSync()
   }
 
 }
@@ -88,7 +100,7 @@ object BatchBenchmarks {
     Batch(values.map(TestTable.insert.onProduct(_)): _*)
   }
 
-  def createDoobieBatch(values: Vector[(String, UUID, String)]): Kleisli[IO, JdbcConnection, Int] = {
-    TestTable.doobieMethods.insert.updateMany(values).transK[IO]
+  def createDoobieBatch(values: Vector[(String, UUID, String)]): ConnectionIO[Int] = {
+    TestTable.doobieMethods.insert.updateMany(values)
   }
 }
