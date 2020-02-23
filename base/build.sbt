@@ -1,9 +1,11 @@
+organization := "com.rocketfuel.sdbc"
+
 name := "base"
 
 description := "SDBC is a database API for Scala."
 
 libraryDependencies ++= Seq(
-  "co.fs2" %% "fs2-core" % "2.2.2",
+  Common.fs2(scalaVersion.value),
   //Logging
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
   "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.8.1" % "test",

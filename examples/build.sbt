@@ -4,7 +4,7 @@ name := "examples"
 
 libraryDependencies ++= Seq(
   "io.argonaut" %% "argonaut-scalaz" % "6.2.4",
-  "co.fs2" %% "fs2-io" % "2.2.2"
+  Common.fs2IO(scalaVersion.value)
 )
 
 Common.settings

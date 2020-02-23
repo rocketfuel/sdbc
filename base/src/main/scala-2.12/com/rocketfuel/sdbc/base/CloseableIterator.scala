@@ -18,8 +18,7 @@ import scala.collection.{IterableOnce, IterableOnceOps}
 class CloseableIterator[+A](
   private val underlying: Iterator[A],
   private val closer: CloseableIterator.CloseTracking
-) extends IterableOnce[A]
-  with IterableOnceOps[A, CloseableIterator, CloseableIterator[A]]
+) extends IterableOnce[A] with IterableOnceOps[A, Iterator, Iterator[A]]
   with AutoCloseable {
   self =>
 
@@ -222,7 +221,7 @@ object CloseableIterator {
       if (!_isClosed) {
         try {
           for (closeable <- closeables) {
-            try ()
+            try {}
             finally closeable.close()
           }
         } finally _isClosed = true

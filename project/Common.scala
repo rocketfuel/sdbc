@@ -32,7 +32,7 @@ object Common {
 
     scalaVersion := "2.13.1",
 
-    crossScalaVersions := Seq("2.11.12, 2.12.10"),
+    crossScalaVersions := Seq("2.11.12", "2.12.10"),
 
     version := "3.0.1",
 
@@ -71,5 +71,29 @@ object Common {
   )
 
   val xml = "org.scala-lang.modules" %% "scala-xml" % "1.2.0"
+
+  def fs2(scalaVersion: String) =
+    CrossVersion.partialVersion(scalaVersion) match {
+      case Some((2, 12|13)) =>
+        "co.fs2" %% "fs2-core" % "2.2.2"
+      case Some((2, 11)) =>
+        "co.fs2" %% "fs2-core" % "2.1.0"
+    }
+
+  def fs2IO(scalaVersion: String) =
+    CrossVersion.partialVersion(scalaVersion) match {
+      case Some((2, 12|13)) =>
+        "co.fs2" %% "fs2-io" % "2.2.2"
+      case Some((2, 11)) =>
+        "co.fs2" %% "fs2-io" % "2.1.0"
+    }
+
+  def scodec(scalaVersion: String) =
+    CrossVersion.partialVersion(scalaVersion) match {
+      case Some((2, 12|13)) =>
+        "org.scodec" %% "scodec-bits" % "1.1.13"
+      case Some((2, 11)) =>
+        "org.scodec" %% "scodec-bits" % "1.1.12"
+    }
 
 }
