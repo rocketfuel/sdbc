@@ -1,7 +1,7 @@
 # SDBC by Rocketfuel
 
 ## Description
-SDBC is a collection of database APIs for Scala. It originally was meant to be an alternative to [Anorm](https://www.playframework.com/documentation/2.5.x/Home), but has also borrowed ideas from from [Doobie](https://github.com/tpolecat/doobie). SDBC is not an ORM.
+SDBC is a collection of database APIs for Scala. It originally was meant to be an alternative to [Anorm](https://www.playframework.com/documentation/2.5.x/Home), but has also borrowed ideas from from [Doobie](https://github.com/tpolecat/doobie). SDBC is not an ORM, but the JDBC and Cassandra APIs contain some basic ORM functionality.
 
 It currently supports [Apache Cassandra](http://cassandra.apache.org/), [H2](http://www.h2database.com/), [MariaDB](https://mariadb.org/), [Microsoft SQL Server](http://www.microsoft.com/en-us/server-cloud/products/sql-server/), and [PostgreSQL](http://www.postgresql.org/).
 

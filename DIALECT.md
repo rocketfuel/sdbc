@@ -2,17 +2,15 @@
 
 ## Principles
 
-The original goal of SDBC was to create a clean abstraction layer over JDBC for Scala. Now the focus is on being able to perform query operations on any value that you would like to use as the basis of a query. For JDBC this is usually a `String` with some parameters. Or maybe you have a class that represents a row or lookup key. You should be able to query from those as well.
+The original goal of SDBC was to create a Scala-native interface for JDBC. Now the focus is on being able to perform query operations on any value that you would like to use as the basis of a query. For JDBC this is usually a `String` with some parameters. Or maybe you have a class that represents a row or lookup key. You should be able to query from those as well.
 
 SDBC is not necessarily purely functional. A particular dialect of SDBC can be more or less pure according to the tastes of the author. In the official dialects, only certain methods on queries or connection pools perform IO, but they are not typed specially to distinguish them from other methods.
-
-SDBC is not an ORM.
 
 A class should be created for each kind of query the DBMS supports. JDBC allows calling `.updateCount()` on a `ResultSet` that is a `SELECT` statement, which is absurd. Instead, create classes for each query type.
 
 For each query class, there should be a type class. If appropriate, query classes should provide factory methods for type classes. There should be optional syntax on types which are members of query type classes. For instance, if there is a `Selectable[Int, Value]` in scope, then `3.option[Value]()` can get the `Value` whose primary key is `3`.
 
-SDBC queries should provide support for [FS2](https://github.com/functional-streams-for-scala/fs2) streams, pipes, and sinks.
+SDBC queries should provide support for [FS2](https://github.com/functional-streams-for-scala/fs2) streams and pipes.
 
 An SDBC-like API does not necessarily have to rely on an SDBC library, but the base and jdbc packages provide utilities that can make the task easier.
 
