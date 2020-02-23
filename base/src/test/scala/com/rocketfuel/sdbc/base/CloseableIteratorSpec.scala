@@ -22,7 +22,7 @@ class CloseableIteratorSpec extends FunSuite {
   def drainNext(i: CloseableIterator[_]): Unit = {
     try while (true) i.next()
     catch {
-      case e: NoSuchElementException => ()
+      case e: NoSuchElementException =>
     }
   }
 
@@ -119,5 +119,127 @@ class CloseableIteratorSpec extends FunSuite {
 
     assert(closeable.isClosed)
     assert(closer.isClosed)
+  }
+
+  test("span on empty iterator") {
+    val closeable = new CheckableCloser
+
+    val closer = CloseableIterator.SingleCloseTracking(closeable)
+
+    val i = new CloseableIterator(Iterator(), closer)
+
+    val (i0, i1) = i.span(_ => true)
+
+    assert(!closeable.isClosed)
+    assert(!closer.isClosed)
+    assert(!i0.closer.isClosed)
+    assert(!i1.closer.isClosed)
+
+    drainHasNext(i0)
+
+    assert(closeable.isClosed)
+    assert(closer.isClosed)
+    assert(i0.closer.isClosed)
+    assert(i1.closer.isClosed)
+  }
+
+  test("span iterator, left has everything") {
+    val closeable = new CheckableCloser
+
+    val closer = CloseableIterator.SingleCloseTracking(closeable)
+
+    val i = new CloseableIterator(Iterator(1), closer)
+
+    val (i0, i1) = i.span(_ => true)
+
+    drainHasNext(i0)
+
+    assert(closeable.isClosed)
+    assert(closer.isClosed)
+    assert(i0.closer.isClosed)
+    assert(i1.closer.isClosed)
+  }
+
+  test("span iterator, right has everything") {
+    val closeable = new CheckableCloser
+
+    val closer = CloseableIterator.SingleCloseTracking(closeable)
+
+    val i = new CloseableIterator(Iterator(1), closer)
+
+    val (i0, i1) = i.span(_ => false)
+
+    drainHasNext(i0)
+
+    assert(!closeable.isClosed)
+    assert(!closer.isClosed)
+    assert(!i0.closer.isClosed)
+    assert(!i1.closer.isClosed)
+
+    drainHasNext(i1)
+
+    assert(closeable.isClosed)
+    assert(closer.isClosed)
+    assert(i0.closer.isClosed)
+    assert(i1.closer.isClosed)
+  }
+
+  test("span iterator, both have something") {
+    val closeable = new CheckableCloser
+
+    val closer = CloseableIterator.SingleCloseTracking(closeable)
+
+    val i = new CloseableIterator(Iterator(1,2), closer)
+
+    val (i0, i1) = i.span(_ < 2)
+
+    drainHasNext(i0)
+    assert(!closeable.isClosed)
+    assert(!i0.closer.isClosed)
+    assert(!i1.closer.isClosed)
+
+    drainHasNext(i1)
+
+    assert(closeable.isClosed)
+    assert(closer.isClosed)
+    assert(i0.closer.isClosed)
+    assert(i1.closer.isClosed)
+  }
+
+  test("foreach") {
+    val closeable = new CheckableCloser
+
+    val closer = CloseableIterator.SingleCloseTracking(closeable)
+
+    val it = new CloseableIterator(Iterator.tabulate(3)(identity), closer)
+
+    var ints = collection.mutable.Set.empty[Int]
+
+    for (i <- it) {
+      ints += i
+    }
+
+    assert(closeable.isClosed)
+    assertResult(Set.tabulate(3)(identity))(ints)
+  }
+
+  test("filter") {
+    val closeable = new CheckableCloser
+
+    val closer = CloseableIterator.SingleCloseTracking(closeable)
+
+    val it = new CloseableIterator(Iterator.tabulate(3)(identity), closer)
+
+    var ints = collection.mutable.Set.empty[Int]
+
+    for {
+      i <- it
+      if i % 2 == 0
+    } {
+      ints += i
+    }
+
+    assert(closeable.isClosed)
+    assertResult(Set(0,2))(ints)
   }
 }
