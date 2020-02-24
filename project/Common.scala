@@ -34,6 +34,15 @@ object Common {
 
     crossScalaVersions := Seq("2.11.12", "2.12.10"),
 
+    unmanagedSourceDirectories in Compile ++= {
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((2, 11 | 12)) =>
+          Seq(baseDirectory.value / "src" / "main" / "scala-2.1x")
+        case Some((2, 13)) =>
+          Seq()
+      }
+    },
+
     version := "3.0.1",
 
     licenses := Seq("The BSD 3-Clause License" -> url("http://opensource.org/licenses/BSD-3-Clause")),

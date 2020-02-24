@@ -229,7 +229,7 @@ trait Select {
       )((connection: Connection) => async.delay(connection.close()))
         .flatMap{implicit connection: Connection =>
           CloseableIterator.toStream(async.delay(iterator[A](statement, parameterValues)))
-        },
+        }
     }
 
     case class Pipe[F[_], A](

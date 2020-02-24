@@ -3,7 +3,7 @@ package com.rocketfuel.sdbc.base.jdbc
 import cats.Eq
 import cats.effect.Async
 import com.rocketfuel.sdbc.base.Logger
-import fs2.{Chunk, Pipe, Stream}
+import fs2.{Pipe, Stream}
 
 trait Batch {
   self: DBMS with Connection =>
@@ -13,7 +13,7 @@ trait Batch {
   So far, none do.
    */
   protected def executeBatch(statement: PreparedStatement): IndexedSeq[Long] = {
-    statement.executeBatch().map(_.toLong)
+    statement.executeBatch().toIndexedSeq.map(_.toLong)
   }
 
   /**

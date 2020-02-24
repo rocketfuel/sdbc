@@ -182,7 +182,7 @@ trait ImmutableRow {
       val columnNames = Row.columnNames(getMetadata)
       val columnIndexes = Row.columnIndexes(columnNames)
 
-      resultSet.iterator().map { resultSet =>
+      val iterator = resultSet.iterator().map { resultSet =>
         val getRow = resultSet.getRow - 1
         val toSeq = Row.toSeq(resultSet)
 
@@ -194,6 +194,7 @@ trait ImmutableRow {
           toSeq = toSeq
         )
       }
+      new CloseableIterator(iterator, CloseableIterator.SingleCloseTracking(resultSet))
     }
 
     private def incorrectType(typeName: String): Nothing = {

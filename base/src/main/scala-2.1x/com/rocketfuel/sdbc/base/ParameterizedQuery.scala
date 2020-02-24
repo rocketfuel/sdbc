@@ -1,15 +1,12 @@
 package com.rocketfuel.sdbc.base
 
 import scala.collection._
-import scala.collection.generic.Subtractable
 import shapeless._
 
 trait ParameterizedQuery {
   self: ParameterValue =>
 
-  trait ParameterizedQuery[Self <: ParameterizedQuery[Self]]
-    extends Subtractable[String, Self]
-    with Logger {
+  trait ParameterizedQuery[Self <: ParameterizedQuery[Self]] extends Logger {
 
     override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.ParameterizedQuery]
 
@@ -18,33 +15,33 @@ trait ParameterizedQuery {
     def parameterPositions: ParameterPositions
 
     /**
-      * Parameters that you must set before running the query.
-      */
+     * Parameters that you must set before running the query.
+     */
     lazy val unassignedParameters: Set[String] = parameterPositions.keySet -- parameters.keySet
 
     /**
-      * All the parameters have values.
-      */
+     * All the parameters have values.
+     */
     def isComplete: Boolean =
       parameterPositions.size == parameters.size
 
     def +(parameterKvp: (String, ParameterValue)): Self =
       on(parameterKvp)
 
-    def ++(parameterKvps: GenTraversableOnce[(String, ParameterValue)]): Self =
-      onParameters(parameterKvps.toMap)
+    def ++(parameterKvps: Parameters): Self =
+      onParameters(parameterKvps)
 
     /**
-      * The same query, with no parameters having values.
-      */
+     * The same query, with no parameters having values.
+     */
     def clear: Self = subclassConstructor(parameters = Parameters.empty)
 
-    def on(additionalParameter: (String, ParameterValue), additionalParameters: (String, ParameterValue)*): Self = {
-      onParameters((additionalParameter +: additionalParameters).toMap)
+    def on(parameters: (String, ParameterValue)*): Self = {
+      onParameters(parameters.toMap)
     }
 
     def onParameters(additionalParameters: Parameters): Self = {
-      subclassConstructor(setParameters(additionalParameters))
+      subclassConstructor(mergeParameters(additionalParameters))
     }
 
     def onProduct[
@@ -55,7 +52,7 @@ trait ParameterizedQuery {
     ](t: A
     )(implicit p: Parameters.Products[A, Repr, Key, AsParameters]
     ): Self = {
-      subclassConstructor(setParameters(Parameters.product(t)))
+      subclassConstructor(mergeParameters(Parameters.product(t)))
     }
 
     def onRecord[
@@ -65,14 +62,14 @@ trait ParameterizedQuery {
     ](t: Repr
     )(implicit r: Parameters.Records[Repr, Key, AsParameters]
     ): Self = {
-      subclassConstructor(setParameters(Parameters.record(t)))
+      subclassConstructor(mergeParameters(Parameters.record(t)))
     }
 
     protected def filter(p: Parameters): Parameters = {
       p.filter(kvp => parameterPositions.contains(kvp._1))
     }
 
-    protected def setParameters(additionalParameters: Parameters): Parameters = {
+    protected def mergeParameters(additionalParameters: Parameters): Parameters = {
       val parametersHavingPositions = filter(additionalParameters)
       parameters ++ parametersHavingPositions
     }
@@ -80,10 +77,11 @@ trait ParameterizedQuery {
     protected def subclassConstructor(parameters: Parameters): Self
 
     //Subtractable implementation
-    override def -(parameterName: String): Self =
+    def -(parameterName: String): Self =
       subclassConstructor(parameters = parameters - parameterName)
 
-    override protected def repr: Self = asInstanceOf[Self]
+    def --(parameterNames: String*): Self =
+      subclassConstructor(parameters = parameters -- parameterNames)
   }
 
 }

@@ -109,7 +109,7 @@ class LTree private (
 object LTree {
 
   def apply(path: String*): LTree = {
-    new LTree(path = Some(path))
+    new LTree(path = Some(path.toIndexedSeq))
   }
 
   def unapplySeq(lTree: LTree): Option[Seq[String]] = {
@@ -118,7 +118,7 @@ object LTree {
 
   def valueOf(path: String): LTree = {
     val pathParts = path.split('.')
-    apply(pathParts: _*)
+    apply(pathParts.toIndexedSeq: _*)
   }
 
   def validatePath(nodes: Iterable[String]): Unit = {

@@ -220,7 +220,7 @@ class CloseableIteratorSpec extends FunSuite {
     }
 
     assert(closeable.isClosed)
-    assertResult(Set.tabulate(3)(identity))(ints)
+    assertResult(0 until 3 toSet)(ints)
   }
 
   test("filter") {

@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc
 
 import cats.effect.Async
-import com.rocketfuel.sdbc.base.Logger
+import com.rocketfuel.sdbc.base.{CloseableIterator, Logger}
 import com.rocketfuel.sdbc.base.jdbc.resultset.Row
 import fs2.Stream
 import java.io.InputStream
@@ -47,11 +47,11 @@ trait SelectForUpdate {
 
     def iterator(resultSet: ResultSet): CloseableIterator[UpdatableRow]  = {
       val row = UpdatableRow(resultSet)
-      resultSet.iterator().map(Function.const(row))
+      new CloseableIterator(resultSet.iterator().map(Function.const(row)), CloseableIterator.SingleCloseTracking(row))
     }
 
     def iterator(row: UpdatableRow): CloseableIterator[UpdatableRow]  = {
-      row.underlying.iterator().map(Function.const(row))
+      new CloseableIterator(row.underlying.iterator().map(Function.const(row)), CloseableIterator.SingleCloseTracking(row))
     }
 
     /**
