@@ -2,10 +2,31 @@ package com.rocketfuel.sdbc.base
 
 import java.util.NoSuchElementException
 import org.scalatest.FunSuite
+import scala.collection.AbstractIterator
 
 class CloseableIteratorSpec extends FunSuite {
 
-  val zeroUntilThree: Seq[Int] = 0 until 3
+  /**
+   * Scala < 2.13 uses arithmetic to determine `isEmpty` instead of consuming the iterator,
+   * so use something that isn't clever.
+   */
+  def zeroUntil(maximum: Int): Iterator[Int] =
+    new AbstractIterator[Int]() {
+      var i = 0
+      override def hasNext: Boolean = {
+        i < maximum
+      }
+
+      override def next(): Int = {
+        if (!hasNext) {
+          Iterator.empty.next()
+        } else {
+          val here = i
+          i += 1
+          here
+        }
+      }
+    }
 
   class CheckableCloser extends AutoCloseable {
     var isClosed = false
@@ -187,7 +208,7 @@ class CloseableIteratorSpec extends FunSuite {
   test("foreach") {
     val closeable = new CheckableCloser
 
-    val it = new CloseableIterator(zeroUntilThree iterator, closeable)
+    val it = new CloseableIterator(zeroUntil(3), closeable)
 
     var ints = collection.mutable.Buffer.empty[Int]
 
@@ -196,13 +217,13 @@ class CloseableIteratorSpec extends FunSuite {
     }
 
     assert(closeable.isClosed)
-    assertResult(zeroUntilThree)(ints)
+    assertResult(zeroUntil(3).toSeq)(ints)
   }
 
   test("filter") {
     val closeable = new CheckableCloser
 
-    val it = new CloseableIterator(Iterator.tabulate(3)(identity), closeable)
+    val it = new CloseableIterator(zeroUntil(3), closeable)
 
     var ints = collection.mutable.Set.empty[Int]
 
@@ -220,7 +241,7 @@ class CloseableIteratorSpec extends FunSuite {
   test("drop with not enough available") {
     val closeable = new CheckableCloser
 
-    val it = new CloseableIterator(zeroUntilThree iterator, closeable)
+    val it = new CloseableIterator(zeroUntil(3), closeable)
 
     assert(it.drop(500).toSeq.isEmpty)
 
@@ -230,7 +251,7 @@ class CloseableIteratorSpec extends FunSuite {
   test("drop with enough available") {
     val closeable = new CheckableCloser
 
-    val it = new CloseableIterator(zeroUntilThree iterator, closeable)
+    val it = new CloseableIterator(zeroUntil(3), closeable)
 
     assertResult(Seq(1,2))(it.drop(1).toSeq)
 
@@ -240,9 +261,9 @@ class CloseableIteratorSpec extends FunSuite {
   test("take with not enough available") {
     val closeable = new CheckableCloser
 
-    val it = new CloseableIterator(zeroUntilThree iterator, closeable)
+    val it = new CloseableIterator(zeroUntil(3), closeable)
 
-    assertResult(zeroUntilThree)(it.take(3).toSeq)
+    assertResult(zeroUntil(3).toSeq)(it.take(3).toSeq)
 
     assert(closeable.isClosed)
   }
@@ -250,9 +271,9 @@ class CloseableIteratorSpec extends FunSuite {
   test("take with enough available") {
     val closeable = new CheckableCloser
 
-    val it = new CloseableIterator(zeroUntilThree iterator, closeable)
+    val it = new CloseableIterator(zeroUntil(3), closeable)
 
-    assertResult(zeroUntilThree)(it.take(3).toSeq)
+    assertResult(zeroUntil(3).toSeq)(it.take(3).toSeq)
 
     assert(closeable.isClosed)
   }
@@ -260,7 +281,7 @@ class CloseableIteratorSpec extends FunSuite {
   test("take with too many available") {
     val closeable = new CheckableCloser
 
-    val it = new CloseableIterator(0 to 3 iterator, closeable)
+    val it = new CloseableIterator(zeroUntil(3), closeable)
 
     assertResult(Seq(0))(it.take(1).toSeq)
 
@@ -273,7 +294,7 @@ class CloseableIteratorSpec extends FunSuite {
     def f(i: Int): CloseableIterator[Int] = {
       val closeable = new CheckableCloser
       closables += closeable
-      new CloseableIterator(0 until i iterator, closeable)
+      new CloseableIterator(zeroUntil(i), closeable)
     }
     val i = f(3).flatMap(f)
 

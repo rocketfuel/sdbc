@@ -315,6 +315,12 @@ object CloseableIterator {
       }
     }
 
+    def closeIfConsumed(): Unit = {
+      if (!original.hasNext) {
+        close()
+      }
+    }
+
     protected var _isClosed: Boolean = false
     def isClosed: Boolean = _isClosed
   }

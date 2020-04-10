@@ -49,8 +49,8 @@ class CloseableIterator[+A] private (
   def hasNext: Boolean = {
     if (!calledHasNext) {
       _hasNext = underlying.hasNext
-      closer.closeIfConsumed()
       calledHasNext = true
+      closer.closeIfConsumed()
     }
     _hasNext
   }
@@ -324,7 +324,7 @@ object CloseableIterator {
     }
 
     def closeIfConsumed(): Unit = {
-      if (!original.hasNext && !_isClosed) {
+      if (!original.hasNext) {
         close()
       }
     }
