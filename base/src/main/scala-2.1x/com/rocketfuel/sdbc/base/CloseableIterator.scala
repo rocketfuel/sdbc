@@ -24,21 +24,19 @@ import scala.collection.{AbstractIterator, GenTraversableOnce}
  * If you fully consume the resulting iterator, the resource might not be
  * closed, and so you should close it manually.
  */
-class CloseableIterator[+A](
+class CloseableIterator[+A] private (
   private val underlying: Iterator[A],
   private[base] val closer: CloseableIterator.CloseTracking
 ) extends TraversableOnce[A]
   with AutoCloseable {
 
+  def this(original: Iterator[A], resource: AutoCloseable) {
+    this(original, CloseableIterator.CloseTracking(original, resource))
+  }
+
   override def close(): Unit = {
     closer.close()
   }
-
-  /**
-   * For use with child iterators that should not close the resource themselves,
-   * but need to report on if it is closed.
-   */
-  private lazy val reportOnlyCloseTracker = CloseableIterator.ReportOnlyCloseTracker(closer)
 
   /*
   Make sure that the iterator is closed at the end whether the user is calling
@@ -48,15 +46,10 @@ class CloseableIterator[+A](
   private var _hasNext = false
 
   def hasNext: Boolean = {
-    if (closer.isClosed) {
-      return false
-    }
     if (!calledHasNext) {
       _hasNext = underlying.hasNext
       calledHasNext = true
-      if (!_hasNext) {
-        close()
-      }
+      closer.closeIfConsumed()
     }
     _hasNext
   }
@@ -65,7 +58,7 @@ class CloseableIterator[+A](
     if (hasNext) {
       calledHasNext = false
       underlying.next()
-    } else throw new NoSuchElementException("next on empty iterator")
+    } else Iterator.empty.next()
   }
 
   /**
@@ -98,14 +91,13 @@ class CloseableIterator[+A](
   def nextOption(): Option[A] = if (hasNext) Some(next()) else None
 
   /**
-   * An iterator that shares the same close method as the parent. It's usable
-   * when the underlying iterator should be closed when `hasNext` fails and
-   * there aren't other considerations, like with `span`.
+   * An iterator that shares the same close method as the parent. It closes
+   * only if the parent is consumed.
    */
   private def mapped[B](
-    underlying: Iterator[B]
+    mappedUnderlying: Iterator[B]
   ): CloseableIterator[B] =
-    new CloseableIterator[B](underlying, closer)
+    new CloseableIterator[B](mappedUnderlying, closer)
 
   def map[B](f: A => B): CloseableIterator[B] =
     mapped[B](underlying.map(f))
@@ -155,6 +147,25 @@ class CloseableIterator[+A](
   /**
    * @note    Reuse: $resultDoesNotClose
    */
+  def take(n: Int): CloseableIterator[A] =
+    mapped(underlying.take(n))
+
+  /**
+   * @note    Reuse: $resultCloses
+   */
+  def drop(n: Int): CloseableIterator[A] = {
+    mapped(underlying.drop(n))
+  }
+
+  /**
+   * @note    Reuse: $resultDoesNotClose
+   */
+  def slice(from: Int, until: Int): CloseableIterator[A] =
+    mapped(underlying.slice(from, until))
+
+  /**
+   * @note    Reuse: $resultDoesNotClose
+   */
   def takeWhile(p: A => Boolean): CloseableIterator[A] =
     mapped(underlying.takeWhile(p))
 
@@ -162,8 +173,8 @@ class CloseableIterator[+A](
    * @note Consuming the first iterator might close the resource. If not, the second will.
    */
   def span(p: A => Boolean): (CloseableIterator[A], CloseableIterator[A]) = {
-    val (has, afterHas) = toIterator.span(p)
-    (new CloseableIterator(has, reportOnlyCloseTracker), new CloseableIterator(afterHas, reportOnlyCloseTracker))
+    val (has, afterHasNot) = toIterator.span(p)
+    (mapped(has), mapped(afterHasNot))
   }
 
   /**
@@ -229,7 +240,7 @@ class CloseableIterator[+A](
    */
   def duplicate: (CloseableIterator[A], CloseableIterator[A]) = {
     val (first, second) = toIterator.duplicate
-    (new CloseableIterator[A](first, reportOnlyCloseTracker), new CloseableIterator[A](second, reportOnlyCloseTracker))
+    (mapped(first), mapped(second))
   }
 
   /**
@@ -282,68 +293,29 @@ object CloseableIterator {
     fs2.Stream.bracket[F, CloseableIterator[A]](i)(i => a.delay(i.close())).flatMap(i => Stream.fromIterator[F](i.toIterator))
   }
 
-  trait CloseTracking extends AutoCloseable {
+  private val _empty: CloseableIterator[Nothing] = {
+    val i = new CloseableIterator(Iterator.empty, CloseTracking(Iterator.empty, new AutoCloseable {
+      override def close(): Unit = ()
+    }))
+    i.close()
+    i
+  }
+
+  def empty[A]: CloseableIterator[A] = _empty
+
+  case class CloseTracking(
+    original: Iterator[_],
+    resource: AutoCloseable
+  ) extends AutoCloseable {
+
+    override def close(): Unit = {
+      if (!_isClosed) {
+        _isClosed = true
+        resource.close()
+      }
+    }
+
     protected var _isClosed: Boolean = false
     def isClosed: Boolean = _isClosed
-  }
-
-  case class ReportOnlyCloseTracker(reportee: CloseTracking) extends CloseTracking {
-    override def close(): Unit = {
-      // Don't actually close anything. The parent iterator will close when
-      // either of the children finish iterating through it, so just report
-      // the parent's status.
-    }
-
-    override def isClosed: Boolean = reportee.isClosed
-  }
-
-  case class EmptyCloseTracking() extends CloseTracking {
-    override def close(): Unit = {
-      _isClosed = true
-    }
-  }
-
-  case class SingleCloseTracking(
-    closeable: AutoCloseable
-  ) extends CloseTracking {
-    override def close(): Unit = {
-      if (!_isClosed) {
-        try closeable.close()
-        finally _isClosed = true
-      }
-    }
-  }
-
-  /**
-   * For use when the iterator has multiple underlying resources.
-   * @param closeables
-   */
-  case class MultiCloseTracking(
-    closeables: Seq[CloseTracking]
-  ) extends CloseTracking {
-    override def close(): Unit = {
-      if (!_isClosed) {
-        try {
-          for (closeable <- closeables) {
-            try {}
-            finally closeable.close()
-          }
-        } finally _isClosed = true
-      }
-    }
-  }
-
-  /**
-   * Call close on `c` but only when `dependencies` are also closed.
-   */
-  case class DependentCloseTracking(
-    dependencies: Seq[CloseTracking],
-    c: CloseTracking
-  ) extends CloseTracking {
-    override def close(): Unit = {
-      if (dependencies.forall(_.isClosed)) {
-        c.close()
-      }
-    }
   }
 }
