@@ -21,7 +21,7 @@ object Common {
     ) ++ {
       CrossVersion.partialVersion(scalaVersion) match {
         case Some((2, 11|12)) =>
-          Seq("-Xfuture", "-Yno-adapted-args")
+          Seq("-Xfuture", "-Yno-adapted-args", "-target:jvm-1.8")
         case _ =>
           Seq.empty
       }
@@ -43,7 +43,7 @@ object Common {
       }
     },
 
-    version := "3.0.1",
+    version := "4.0.0",
 
     licenses := Seq("The BSD 3-Clause License" -> url("http://opensource.org/licenses/BSD-3-Clause")),
 

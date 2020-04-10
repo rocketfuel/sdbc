@@ -60,9 +60,9 @@ trait Getter extends base.Getter with base.RowConverter {
 
   implicit val UDTValueGetter: Getter[UdtValue] = functionToGetter[UdtValue](row => ix => row.getUdtValue(ix))
 
-  implicit def seqGetter[A](implicit classTag: ClassTag[A]): Getter[collection.immutable.Seq[A]] =
-    functionToGetter[collection.immutable.Seq[A]] { row => ix =>
-        row.getList[A](ix, classTag.runtimeClass.asInstanceOf[Class[A]]).asScala.to(collection.immutable.Seq)
+  implicit def seqGetter[A](implicit classTag: ClassTag[A]): Getter[Seq[A]] =
+    functionToGetter[Seq[A]] { row => ix =>
+      row.getList[A](ix, classTag.runtimeClass.asInstanceOf[Class[A]]).asScala
     }
 
   implicit def setGetter[A](implicit classTag: ClassTag[A]): Getter[Set[A]] =
