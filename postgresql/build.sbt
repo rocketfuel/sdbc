@@ -7,10 +7,11 @@ name := "postgresql-jdbc"
 description := "An implementation of SDBC for accessing PostgreSQL using JDBC."
 
 libraryDependencies ++= Seq(
-  "org.postgresql" % "postgresql" % "42.2.10.jre7",
+  "org.postgresql" % "postgresql" % "42.2.12.jre7",
   Common.xml,
-  "io.argonaut" %% "argonaut" % "6.2.4" % Provided,
+  "io.argonaut" %% "argonaut" % "6.2.5" % Provided,
   "org.json4s" %% "json4s-jackson" % "3.6.7" % Provided,
+  "org.json4s" %% "json4s-native" % "3.6.7" % Provided,
 
   "ru.yandex.qatools.embed" % "postgresql-embedded" % "2.10" % "test"
 )

@@ -7,7 +7,7 @@ name := "mariadb-jdbc"
 description := "An implementation of SDBC for accessing MariaDB using JDBC."
 
 libraryDependencies ++= Seq(
-  "org.mariadb.jdbc" % "mariadb-java-client" % "2.5.4",
+  "org.mariadb.jdbc" % "mariadb-java-client" % "2.6.0",
   "ch.vorburger.mariaDB4j" % "mariaDB4j" % "2.4.0" % "test"
 )
 

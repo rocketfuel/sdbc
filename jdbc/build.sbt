@@ -4,7 +4,7 @@ name := "jdbc"
 
 libraryDependencies ++= Seq(
   //Connection pooling
-  "com.zaxxer" % "HikariCP" % "2.6.0",
+  "com.zaxxer" % "HikariCP" % "3.4.2",
   Common.scodec(scalaVersion.value),
   Common.xml % Provided,
   "org.scala-lang" % "scala-reflect" % scalaVersion.value

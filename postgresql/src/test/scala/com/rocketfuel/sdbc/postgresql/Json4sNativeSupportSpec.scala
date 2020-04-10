@@ -1,10 +1,10 @@
 package com.rocketfuel.sdbc.postgresql
 
 import org.json4s._
-import org.json4s.jackson.JsonMethods._
+import org.json4s.native.JsonMethods._
 
-class Json4sSupportSpec
-  extends PostgreSqlSuite.Json4s {
+class Json4SNativeSupportSpec
+  extends PostgreSqlSuite.Json4sNative {
 
   import postgresql._
 
@@ -24,3 +24,4 @@ class Json4sSupportSpec
   testSelect[JValue](s"SELECT '$jsonString'::jsonb", Some(parse(jsonString)))
 
 }
+
