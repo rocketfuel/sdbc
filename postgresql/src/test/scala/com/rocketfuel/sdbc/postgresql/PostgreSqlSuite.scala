@@ -93,12 +93,17 @@ object PostgreSqlSuite {
 
   abstract class Argonaut
     extends {
-    override val postgresql: com.rocketfuel.sdbc.PostgreSql.type = com.rocketfuel.sdbc.PostgreSql
-  } with PostgreSqlSuite[com.rocketfuel.sdbc.PostgreSql.type]
+    override val postgresql: com.rocketfuel.sdbc.PostgreSqlArgonaut.type = com.rocketfuel.sdbc.PostgreSqlArgonaut
+  } with PostgreSqlSuite[com.rocketfuel.sdbc.PostgreSqlArgonaut.type]
 
   abstract class Json4s
     extends {
       override val postgresql: com.rocketfuel.sdbc.PostgreSqlJson4s.type = com.rocketfuel.sdbc.PostgreSqlJson4s
     } with PostgreSqlSuite[com.rocketfuel.sdbc.PostgreSqlJson4s.type]
+
+  abstract class Circe
+    extends {
+      override val postgresql: com.rocketfuel.sdbc.PostgreSqlCirce.type = com.rocketfuel.sdbc.PostgreSqlCirce
+    } with PostgreSqlSuite[com.rocketfuel.sdbc.PostgreSqlCirce.type]
 
 }

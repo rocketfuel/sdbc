@@ -12,3 +12,7 @@ object PostgreSqlArgonaut
 object PostgreSqlJson4s
   extends postgresql.PostgreSql
     with postgresql.Json4sSupport
+
+object PostgreSqlCirce
+  extends postgresql.PostgreSql
+    with postgresql.CirceSupport

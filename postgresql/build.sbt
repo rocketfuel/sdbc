@@ -15,6 +15,15 @@ libraryDependencies ++= Seq(
   "ru.yandex.qatools.embed" % "postgresql-embedded" % "2.10" % "test"
 )
 
+libraryDependencies += {
+  CrossVersion.partialVersion(scalaVersion.value) match {
+    case Some((2, 11)) =>
+      "io.circe" %% "circe-parser" % "0.11.2" % Provided
+    case Some((2, 12 | 13)) =>
+      "io.circe" %% "circe-parser" % "0.13.0" % Provided
+  }
+}
+
 parallelExecution := false
 
 Common.settings
