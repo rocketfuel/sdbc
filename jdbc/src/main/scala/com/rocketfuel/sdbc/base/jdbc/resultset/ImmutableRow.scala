@@ -194,7 +194,7 @@ trait ImmutableRow {
           toSeq = toSeq
         )
       }
-      new CloseableIterator(iterator, CloseableIterator.SingleCloseTracking(resultSet))
+      new CloseableIterator(iterator, resultSet)
     }
 
     private def incorrectType(typeName: String): Nothing = {

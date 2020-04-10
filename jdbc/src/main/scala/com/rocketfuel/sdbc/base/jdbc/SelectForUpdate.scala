@@ -47,11 +47,11 @@ trait SelectForUpdate {
 
     def iterator(resultSet: ResultSet): CloseableIterator[UpdatableRow]  = {
       val row = UpdatableRow(resultSet)
-      new CloseableIterator(resultSet.iterator().map(Function.const(row)), CloseableIterator.SingleCloseTracking(row))
+      new CloseableIterator(resultSet.iterator().map(Function.const(row)), row)
     }
 
     def iterator(row: UpdatableRow): CloseableIterator[UpdatableRow]  = {
-      new CloseableIterator(row.underlying.iterator().map(Function.const(row)), CloseableIterator.SingleCloseTracking(row))
+      new CloseableIterator(row.underlying.iterator().map(Function.const(row)), row)
     }
 
     /**
