@@ -1,7 +1,7 @@
 # SDBC by Rocketfuel
 
 ## Description
-SDBC is a collection of database APIs for Scala. It originally was meant to be an alternative to [Anorm](https://www.playframework.com/documentation/2.5.x/Home), but has also borrowed ideas from from [Doobie](https://github.com/tpolecat/doobie). SDBC is not an ORM.
+SDBC is a collection of database APIs for Scala. It originally was meant to be an alternative to [Anorm](https://www.playframework.com/documentation/2.5.x/Home), but has also borrowed ideas from from [Doobie](https://github.com/tpolecat/doobie). SDBC is not a fully featured ORM, but it provides automatic case class extraction to query parameters and from result sets.
 
 It currently supports [Apache Cassandra](http://cassandra.apache.org/), [H2](http://www.h2database.com/), [MariaDB](https://mariadb.org/), [Microsoft SQL Server](http://www.microsoft.com/en-us/server-cloud/products/sql-server/), and [PostgreSQL](http://www.postgresql.org/).
 
@@ -14,7 +14,7 @@ JDBC connection pools are provided by [HikariCP](https://github.com/brettwooldri
 ## Requirements
 
 * Java 8
-* Scala 2.11 or 2.12.
+* Scala 2.11, 2.12 or 2.13.
 * Cassandra, H2, MariaDB, Microsoft SQL Server, or PostgreSQL
 
 Include an implementation of the [SLF4J](http://slf4j.org/) logging interface, turn on debug logging, and all your query executions will be logged with the query text and the parameter name-value map.
