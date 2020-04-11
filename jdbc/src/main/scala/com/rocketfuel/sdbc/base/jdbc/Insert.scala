@@ -1,7 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.Logger
-import fs2.util.Async
+import cats.effect.Async
 import fs2.Stream
 import shapeless.HList
 

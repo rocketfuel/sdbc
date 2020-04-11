@@ -6,19 +6,19 @@ class DefaultSettersSpec
   extends FunSuite {
 
   test("implicit Int conversion works") {
-    assertCompiles("val _: TestDbms.ParameterValue = 3")
+    assertCompiles("3: TestDbms.ParameterValue")
   }
 
   test("implicit Option[String] conversion works") {
-    assertCompiles("val _: TestDbms.ParameterValue = Some(\"hello\")")
+    assertCompiles("Some(\"hello\"): TestDbms.ParameterValue")
   }
 
   test("implicit scala.BigDecimal conversion works") {
-    assertCompiles("val _: TestDbms.ParameterValue = BigDecimal(1)")
+    assertCompiles("BigDecimal(1): TestDbms.ParameterValue")
   }
 
   test("implicit java.math.BigDecimal conversion works") {
-    assertCompiles("val _: TestDbms.ParameterValue = BigDecimal(1).underlying")
+    assertCompiles("BigDecimal(1).underlying: TestDbms.ParameterValue")
   }
 
 }

@@ -78,12 +78,12 @@ object CompiledStatement {
     val parts = sc.parts.iterator
     var i = 0
 
-    builder.append(StringContext.treatEscapes(parts.next()))
+    builder.append(StringContext.processEscapes(parts.next()))
 
     while (parts.hasNext) {
       builder.append(s"@`$i`")
       i += 1
-      builder.append(StringContext.treatEscapes(parts.next()))
+      builder.append(StringContext.processEscapes(parts.next()))
     }
 
     val queryText = builder.toString
@@ -92,34 +92,42 @@ object CompiledStatement {
   }
 
   def readSource(
-    source: scala.io.Source
+    source: scala.io.Source,
+    hasParameters: Boolean = true
   )(implicit codec: scala.io.Codec = scala.io.Codec.default
   ): CompiledStatement = {
-    source.mkString
+    val asString = source.mkString
+    if (hasParameters) {
+      apply(asString)
+    } else literal(asString)
   }
 
   def readInputStream(
-    stream: InputStream
+    stream: InputStream,
+    hasParameters: Boolean = true
   )(implicit codec: scala.io.Codec = scala.io.Codec.default
   ): CompiledStatement = {
-    readSource(scala.io.Source.fromInputStream(stream))
+    readSource(scala.io.Source.fromInputStream(stream), hasParameters)
   }
 
   def readUrl(
-    u: URL
+    u: URL,
+    hasParameters: Boolean = true
   )(implicit codec: scala.io.Codec = scala.io.Codec.default
   ): CompiledStatement = {
     val stream = u.openStream()
-    try readInputStream(stream)
+    try readInputStream(stream, hasParameters)
     finally stream.close()
   }
 
   def readPath(
-    path: Path
+    path: Path,
+    hasParameters: Boolean = true
   )(implicit codec: scala.io.Codec = scala.io.Codec.default
   ): CompiledStatement = {
     val bytes = Files.readAllBytes(path)
-    new String(bytes, codec.charSet)
+    val source = io.Source.fromBytes(bytes)
+    readSource(source, hasParameters)
   }
 
   /**
@@ -136,11 +144,12 @@ object CompiledStatement {
   def readClassResource(
     clazz: Class[_],
     fileName: String,
-    nameMangler: (Class[_], String) => String = NameManglers.default
+    nameMangler: (Class[_], String) => String = NameManglers.default,
+    hasParameters: Boolean = true
   )(implicit codec: scala.io.Codec = scala.io.Codec.default
   ): CompiledStatement = {
     val mangledName = nameMangler(clazz, fileName)
-    readResource(mangledName)
+    readResource(mangledName, hasParameters)
   }
 
   /**
@@ -156,21 +165,23 @@ object CompiledStatement {
     */
   def readTypeResource[A](
     fileName: String,
-    nameMangler: (Class[_], String) => String = NameManglers.default
+    nameMangler: (Class[_], String) => String = NameManglers.default,
+    hasParameters: Boolean = true
   )(implicit codec: scala.io.Codec = scala.io.Codec.default,
     tag: ClassTag[A]
   ): CompiledStatement = {
-    readClassResource(tag.runtimeClass, fileName, nameMangler)
+    readClassResource(tag.runtimeClass, fileName, nameMangler, hasParameters)
   }
 
   def readResource(
-    path: String
+    path: String,
+    hasParameters: Boolean = true
   )(implicit codec: scala.io.Codec = scala.io.Codec.default
   ): CompiledStatement = {
     val url = getClass.getClassLoader.getResource(path)
     if (url == null)
       throw new FileNotFoundException(path)
-    readUrl(url)
+    readUrl(url, hasParameters)
   }
 
   object NameManglers {

@@ -1,6 +1,6 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import fs2.util.Async
+import cats.effect.Async
 
 trait Updatable {
   self: DBMS with Connection =>

@@ -2,7 +2,7 @@
 
 ## Principles
 
-The original goal of SDBC was to create a clean abstraction layer over JDBC for Scala. Now the focus is on being able to perform query operations on any value that you would like to use as the basis of a query. For JDBC this is usually a `String` with some parameters. Or maybe you have a class that represents a row or lookup key. You should be able to query from those as well.
+The original goal of SDBC was to create a Scala-native interface for JDBC. Now the focus is on being able to perform query operations on any value that you would like to use as the basis of a query. For JDBC this is usually a `String` with some parameters. Or maybe you have a class that represents a row or lookup key. You should be able to query from those as well.
 
 SDBC is not purely functional.
 
@@ -43,84 +43,75 @@ This implementation does not provide classes for Select or Insert. The equivalen
 ### Imports
 
 ```scala
-import argonaut.JsonIdentity._
-import argonaut.JsonScalaz._
-import argonaut._
-import com.rocketfuel.sdbc.base.IteratorUtils
-import fs2.util.Async
-import fs2.{Pipe, Sink, Stream}
-import scala.collection.JavaConverters._
-import scalaz.syntax.equal._
+  import argonaut.JsonIdentity._
+  import argonaut.JsonScalaz._
+  import argonaut._
+  import fs2.{Pipe, Stream}
+  import scala.collection.JavaConverters._
+  import scalaz.syntax.equal._
 ```
 
 ### Select
 
 ```scala
-object Select {
+def iterator[
+  Query,
+  Result
+](query: Query
+)(implicit queryEnc: EncodeJson[Query],
+  resultDec: DecodeJson[Result],
+  connection: JsonDb
+): Iterator[Result] =
+  for {
+    result <- connection.select(query.asJson)
+  } yield result.as[Result].value.ge
+def stream[
+  F[_],
+  Query,
+  Result
+](query: Query
+)(implicit queryEnc: EncodeJson[Query],
+  resultDec: DecodeJson[Result],
+  pool: JsonDb,
+  a: Async[F]
+): Stream[F, Result] = {
+  Stream.eval(a.delay(iterator(query))).flatMap(Stream.fromIterator(_))
 
-  def iterator[
-    Query,
-    Result
-  ](query: Query
-  )(implicit queryEnc: EncodeJson[Query],
-    resultDec: DecodeJson[Result],
-    connection: JsonDb
-  ): Iterator[Result] =
+def pipe[
+  F[_],
+  Query,
+  Result
+](implicit queryEnc: EncodeJson[Query],
+  resultDec: DecodeJson[Result],
+  pool: JsonDb,
+  a: Async[F]
+): Pipe[F, Query, Stream[F, Result]] =
+  (queries: Stream[F, Query]) =>
     for {
-      result <- connection.select(query.asJson)
-    } yield result.as[Result].value.get
-
-  def stream[
-    F[_],
-    Query,
-    Result
-  ](query: Query
-  )(implicit queryEnc: EncodeJson[Query],
-    resultDec: DecodeJson[Result],
-    pool: JsonDb,
-    a: Async[F]
-  ): Stream[F, Result] = {
-    IteratorUtils.toStream(a.delay(iterator(query)))
-  }
-
-  def pipe[
-    F[_],
-    Query,
-    Result
-  ](implicit queryEnc: EncodeJson[Query],
-    resultDec: DecodeJson[Result],
-    pool: JsonDb,
-    a: Async[F]
-  ): Pipe[F, Query, Stream[F, Result]] =
-    (queries: Stream[F, Query]) =>
-      for {
-        query <- queries
-      } yield stream(query)
-}
+      query <- queries
+    } yield stream(query)
 ```
 
 ### Insert
 
 ```scala
-object Insert {
-  def insert[A](
-    value: A
-  )(implicit enc: EncodeJson[A],
-    connection: JsonDb
-  ): Unit =
-    connection.insert(value.asJson)
+def insert[A](
+  value: A
+)(implicit enc: EncodeJson[A],
+  connection: JsonDb
+): Unit =
+  connection.insert(value.asJson)
 
-  def sink[F[_], A](
-    implicit a: Async[F],
-    enc: EncodeJson[A],
-    pool: JsonDb
-  ): Sink[F, A] =
-    (values: Stream[F, A]) =>
-      for {
-        value <- values
-        _ <- Stream.eval(a.delay(insert(value)))
-      } yield ()
-}
+def sink[F[_], A](
+  implicit a: Async[F],
+  enc: EncodeJson[A],
+  pool: JsonDb
+): Pipe[F, A, Unit] =
+  (values: Stream[F, A]) =>
+    for {
+      value <- values
+      _ <- Stream.eval(a.delay(insert(value)))
+    } yield ()
 ```
 
 ### Type Classes
@@ -206,13 +197,15 @@ val pirates =
 We can insert them.
 
 ```scala
-Stream[Task, Pirate](pirates: _*).to(Insert.sink)
+Stream[IO, Pirate](pirates.toSeq: _*).through(Insert.sink)
 ```
 
 Then, we can query for the crew members of Hades' Pearl, and print them to the stdout.
 
 ```scala
-hadesPearl.stream[Task, Pirate].through(printPirates).to(fs2.io.stdout)
+Stream.resource(Blocker[IO]).flatMap { blocker =>
+  hadesPearl.stream[IO, Pirate].through(printPirates).through(fs2.io.stdout[IO](blocker))
+}
 ```
 
 The output from running Pirate.scala is

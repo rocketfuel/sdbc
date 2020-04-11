@@ -11,43 +11,43 @@ class ParameterValuesSpec
   val elem: Elem = <a></a>
 
   test("implicit None conversion works") {
-    assertCompiles("val _: ParameterValue = None")
+    assertCompiles("None: ParameterValue")
   }
 
   test("implicit Elem conversion works") {
-    assertCompiles("val _: ParameterValue = elem")
+    assertCompiles("elem: ParameterValue")
   }
 
   test("implicit Seq[Int] conversion works") {
-    assertCompiles("val _: ParameterValue = Seq[Int]()")
+    assertCompiles("Seq[Int](): ParameterValue")
   }
 
   test("implicit Seq[String] conversion works") {
-    assertCompiles("val _: ParameterValue = Seq[String]()")
+    assertCompiles("Seq[String](): ParameterValue")
   }
 
   test("implicit Seq[java.math.BigDecimal] conversion works") {
-    assertCompiles("val _: ParameterValue = Seq[java.math.BigDecimal]()")
+    assertCompiles("Seq[java.math.BigDecimal](): ParameterValue")
   }
 
   test("implicit Seq[scala.BigDecimal] conversion works") {
-    assertCompiles("val _: ParameterValue = Seq[scala.BigDecimal]()")
+    assertCompiles("Seq[scala.BigDecimal](): ParameterValue")
   }
 
   test("implicit Seq[Option[Int]] conversion works") {
-    assertCompiles("val _: ParameterValue = Seq[Option[Int]]()")
+    assertCompiles("Seq[Option[Int]](): ParameterValue")
   }
 
   test("implicit Seq[Option[java.math.BigDecimal]] conversion works") {
-    assertCompiles("val _: ParameterValue = Seq[Option[JBigDecimal]]()")
+    assertCompiles("Seq[Option[JBigDecimal]](): ParameterValue")
   }
 
   test("implicit Seq[Option[scala.BigDecimal]] conversion works") {
-    assertCompiles("val _: ParameterValue = Seq[Option[BigDecimal]]()")
+    assertCompiles("Seq[Option[BigDecimal]](): ParameterValue")
   }
 
   test("implicit Seq[java.lang.Long] conversion works") {
-    assertCompiles("val _: ParameterValue = Seq[java.lang.Long]()")
+    assertCompiles("Seq[java.lang.Long](): ParameterValue")
   }
 
 }

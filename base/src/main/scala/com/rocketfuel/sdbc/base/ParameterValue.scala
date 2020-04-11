@@ -1,8 +1,6 @@
 package com.rocketfuel.sdbc.base
 
-import fs2.pipe
-import fs2.util.Async
-import scala.collection.GenMap
+import fs2.Stream
 import shapeless._
 import shapeless.record._
 import shapeless.ops.record._
@@ -111,7 +109,7 @@ trait ParameterValue {
 
   type ParameterPositions = Map[String, Set[Int]]
 
-  type Parameters = GenMap[String, ParameterValue]
+  type Parameters = Map[String, ParameterValue]
 
   object Parameters {
 
@@ -242,9 +240,9 @@ trait ParameterValue {
       }
     }
 
-    case class Pipe[F[_]](implicit async: Async[F]) {
+    case class Pipe[F[_]]() {
       def combine(p: Parameters): fs2.Pipe[F, Parameters, Parameters] = {
-        pipe.lift(p ++ _)
+        (p1: Stream[F, Parameters]) => p1.map(p ++ _)
       }
 
       def products[
@@ -254,7 +252,7 @@ trait ParameterValue {
         AsParameters <: HList
       ](implicit p: Products[A, Repr, Key, AsParameters]
       ): fs2.Pipe[F, A, Parameters] = {
-        pipe.lift(product[A, Repr, Key, AsParameters])
+        (v: Stream[F, A]) => v.map(product[A, Repr, Key, AsParameters])
       }
 
       def records[
@@ -263,7 +261,7 @@ trait ParameterValue {
         AsParameters <: HList
       ](implicit r: Records[Repr, Key, AsParameters]
       ): fs2.Pipe[F, Repr, Parameters] = {
-        pipe.lift(record[Repr, Key, AsParameters])
+        (v: Stream[F, Repr]) => v.map(record[Repr, Key, AsParameters])
       }
     }
 

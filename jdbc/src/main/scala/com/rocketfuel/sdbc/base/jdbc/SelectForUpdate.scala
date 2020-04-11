@@ -1,9 +1,9 @@
 package com.rocketfuel.sdbc.base.jdbc
 
-import com.rocketfuel.sdbc.base.Logger
+import cats.effect.Async
+import com.rocketfuel.sdbc.base.{CloseableIterator, Logger}
 import com.rocketfuel.sdbc.base.jdbc.resultset.Row
 import fs2.Stream
-import fs2.util.Async
 import java.io.InputStream
 import java.net.URL
 import java.nio.file.Path
@@ -47,11 +47,11 @@ trait SelectForUpdate {
 
     def iterator(resultSet: ResultSet): CloseableIterator[UpdatableRow]  = {
       val row = UpdatableRow(resultSet)
-      resultSet.iterator().map(Function.const(row))
+      new CloseableIterator(resultSet.iterator().map(Function.const(row)), row)
     }
 
     def iterator(row: UpdatableRow): CloseableIterator[UpdatableRow]  = {
-      row.underlying.iterator().map(Function.const(row))
+      new CloseableIterator(row.underlying.iterator().map(Function.const(row)), row)
     }
 
     /**
@@ -130,54 +130,60 @@ trait SelectForUpdate {
 
     def readInputStream(
       stream: InputStream,
-      rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
+      rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater,
+      hasParameters: Boolean = true
     )(implicit codec: scala.io.Codec = scala.io.Codec.default
     ): SelectForUpdate = {
-      SelectForUpdate(CompiledStatement.readInputStream(stream), rowUpdater = rowUpdater)
+      SelectForUpdate(CompiledStatement.readInputStream(stream, hasParameters), rowUpdater = rowUpdater)
     }
 
     def readUrl(
       u: URL,
-      rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
+      rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater,
+      hasParameters: Boolean = true
     )(implicit codec: scala.io.Codec = scala.io.Codec.default
     ): SelectForUpdate = {
-      SelectForUpdate(CompiledStatement.readUrl(u), rowUpdater = rowUpdater)
+      SelectForUpdate(CompiledStatement.readUrl(u, hasParameters), rowUpdater = rowUpdater)
     }
 
     def readPath(
       path: Path,
-      rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
+      rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater,
+      hasParameters: Boolean = true
     )(implicit codec: scala.io.Codec = scala.io.Codec.default
     ): SelectForUpdate = {
-      SelectForUpdate(CompiledStatement.readPath(path), rowUpdater = rowUpdater)
+      SelectForUpdate(CompiledStatement.readPath(path, hasParameters), rowUpdater = rowUpdater)
     }
 
     def readClassResource(
       clazz: Class[_],
       name: String,
       rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater,
-      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
+      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default,
+      hasParameters: Boolean = true
     )(implicit codec: scala.io.Codec = scala.io.Codec.default
     ): SelectForUpdate = {
-      SelectForUpdate(CompiledStatement.readClassResource(clazz, name, nameMangler), rowUpdater = rowUpdater)
+      SelectForUpdate(CompiledStatement.readClassResource(clazz, name, nameMangler, hasParameters), rowUpdater = rowUpdater)
     }
 
     def readTypeResource[A](
       name: String,
       rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater,
-      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
+      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default,
+      hasParameters: Boolean = true
     )(implicit codec: scala.io.Codec = scala.io.Codec.default,
       tag: ClassTag[A]
     ): SelectForUpdate = {
-      SelectForUpdate(CompiledStatement.readTypeResource(name, nameMangler), rowUpdater = rowUpdater)
+      SelectForUpdate(CompiledStatement.readTypeResource(name, nameMangler, hasParameters), rowUpdater = rowUpdater)
     }
 
     def readResource(
       name: String,
       rowUpdater: UpdatableRow => Unit = SelectForUpdate.defaultUpdater
-    )(implicit codec: scala.io.Codec = scala.io.Codec.default
+    )(implicit codec: scala.io.Codec = scala.io.Codec.default,
+      hasParameters: Boolean = true
     ): SelectForUpdate = {
-      SelectForUpdate(CompiledStatement.readResource(name), rowUpdater = rowUpdater)
+      SelectForUpdate(CompiledStatement.readResource(name, hasParameters), rowUpdater = rowUpdater)
     }
 
     override protected def logClass: Class[_] = classOf[com.rocketfuel.sdbc.base.jdbc.SelectForUpdate]

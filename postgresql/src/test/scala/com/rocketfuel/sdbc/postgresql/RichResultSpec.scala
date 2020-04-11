@@ -7,6 +7,8 @@ class RichResultSpec
   extends PostgreSqlSuite.Base
   with BeforeAndAfterEach {
 
+  import postgresql._
+
   test("option() selects nothing from an empty table") {implicit connection =>
     Ignore("CREATE TABLE tbl (x int)").ignore()
 

@@ -1,16 +1,17 @@
 package com.rocketfuel.sdbc.cassandra
 
-import com.datastax.driver.core
-import com.datastax.driver.core.LocalDate
+import com.datastax.oss.driver.api.core.`type`.DataType
+import com.datastax.oss.driver.api.core.data.UdtValue
+import com.datastax.oss.driver.api.core.metadata.token.Token
 import com.rocketfuel.sdbc.base
 import java.lang
 import java.math.BigInteger
 import java.net.InetAddress
 import java.nio.ByteBuffer
-import java.time.Instant
-import java.util.concurrent.TimeUnit
-import java.util.{Date, UUID}
+import java.time.{Instant, LocalDate, LocalTime}
+import java.util.UUID
 import scala.collection.JavaConverters._
+import scala.reflect.ClassTag
 import scodec.bits.ByteVector
 import shapeless.HList
 import shapeless.ops.hlist.{Mapper, ToTraversable}
@@ -20,7 +21,7 @@ trait ParameterValue
   extends base.ParameterValue
   with base.CompiledParameterizedQuery {
 
-  type PreparedStatement = core.BoundStatement
+  override type PreparedStatement = com.datastax.oss.driver.api.core.cql.BoundStatementBuilder
 
   override protected def setNone(preparedStatement: PreparedStatement, parameterIndex: Int): PreparedStatement = {
     preparedStatement.setToNull(parameterIndex)
@@ -29,7 +30,7 @@ trait ParameterValue
 
   implicit val BooleanParameter: Parameter[Boolean] = {
     (value: Boolean) => (statement: PreparedStatement, ix: Int) =>
-      statement.setBool(ix, value)
+      statement.setBoolean(ix, value)
   }
 
   implicit val BoxedBooleanParameter: Parameter[lang.Boolean] = Parameter.derived[lang.Boolean, Boolean]
@@ -40,7 +41,7 @@ trait ParameterValue
     (value: ByteVector) =>
       val bufferValue = value.toByteBuffer
       (statement: PreparedStatement, parameterIndex: Int) =>
-        statement.setBytes(parameterIndex, bufferValue)
+        statement.setByteBuffer(parameterIndex, bufferValue)
   }
 
   implicit val ByteBufferParameter: Parameter[ByteBuffer] = Parameter.converted[ByteBuffer, ByteVector](ByteVector(_))
@@ -51,23 +52,22 @@ trait ParameterValue
 
   implicit val LocalDateParameter: Parameter[LocalDate] = {
     (value: LocalDate) => (statement: PreparedStatement, parameterIndex: Int) =>
-      statement.setDate(parameterIndex, value)
+      statement.setLocalDate(parameterIndex, value)
   }
 
-  implicit val JavaLocalDateParameter: Parameter[java.time.LocalDate] =
-    Parameter.converted[java.time.LocalDate, LocalDate](l => LocalDate.fromMillisSinceEpoch(TimeUnit.DAYS.toMillis(l.toEpochDay)))
-
-  implicit val DateParameter: Parameter[Date] = {
-    Parameter.converted[Date, LocalDate](d => LocalDate.fromMillisSinceEpoch(d.getTime))
+  implicit val LocalTimeParameter: Parameter[LocalTime] = {
+    (value: LocalTime) => (statement: PreparedStatement, parameterIndex: Int) =>
+      statement.setLocalTime(parameterIndex, value)
   }
 
   implicit val InstantParameter: Parameter[Instant] = {
-    Parameter.converted[Instant, LocalDate](i => LocalDate.fromMillisSinceEpoch(i.toEpochMilli))
+    (value: Instant) => (statement: PreparedStatement, parameterIndex: Int) =>
+      statement.setInstant(parameterIndex, value)
   }
 
   implicit val JavaBigDecimalParameter: Parameter[java.math.BigDecimal] = {
     (value: java.math.BigDecimal) => (statement: PreparedStatement, parameterIndex: Int) =>
-      statement.setDecimal(parameterIndex, value)
+      statement.setBigDecimal(parameterIndex, value)
   }
 
   implicit val BigDecimalParameter: Parameter[BigDecimal] =
@@ -89,7 +89,7 @@ trait ParameterValue
 
   implicit val InetAddressParameter: Parameter[InetAddress] = {
     (value: InetAddress) => (statement: PreparedStatement, ix: Int) =>
-      statement.setInet(ix, value)
+      statement.setInetAddress(ix, value)
   }
 
   implicit val IntParameter: Parameter[Int] = {
@@ -99,17 +99,13 @@ trait ParameterValue
 
   implicit val BoxedIntParameter: Parameter[Integer] = Parameter.derived[Integer, Int]
 
-  implicit def JavaSeqParameter[T]: Parameter[java.util.List[T]] = {
+  implicit def JavaSeqParameter[T](implicit c: ClassTag[T]): Parameter[java.util.List[T]] = {
     (value: java.util.List[T]) => (statement: PreparedStatement, ix: Int) =>
-      statement.setList[T](ix, value)
+      statement.setList[T](ix, value, c.runtimeClass.asInstanceOf[Class[T]])
   }
 
-  implicit def SeqParameter[T]: Parameter[Seq[T]] = {
-    (value: Seq[T]) =>
-      val asJava = value.asJava
-      (statement: PreparedStatement, ix: Int) =>
-        statement.setList[T](ix, asJava)
-  }
+  implicit def SeqParameter[T](implicit c: ClassTag[T]): Parameter[Seq[T]] =
+    Parameter.converted[Seq[T], java.util.List[T]](_.asJava)
 
   implicit val LongParameter: Parameter[Long] = {
     (value: Long) => (statement: PreparedStatement, ix: Int) =>
@@ -118,29 +114,21 @@ trait ParameterValue
 
   implicit val BoxedLongParameter: Parameter[lang.Long] = Parameter.derived[lang.Long, Long]
 
-  implicit def JavaMapParameter[Key, Value]: Parameter[java.util.Map[Key, Value]] = {
+  implicit def JavaMapParameter[Key, Value](implicit k: ClassTag[Key], v: ClassTag[Value]): Parameter[java.util.Map[Key, Value]] = {
     (value: java.util.Map[Key, Value]) => (statement: PreparedStatement, ix: Int) =>
-        statement.setMap[Key, Value](ix, value)
+      statement.setMap[Key, Value](ix, value, k.runtimeClass.asInstanceOf[Class[Key]], v.runtimeClass.asInstanceOf[Class[Value]])
   }
 
-  implicit def MapParameter[Key, Value]: Parameter[Map[Key, Value]] = {
-    (value: Map[Key, Value]) =>
-      val asJava = value.asJava
-      (statement: PreparedStatement, ix: Int) =>
-        statement.setMap[Key, Value](ix, asJava)
-  }
+  implicit def MapParameter[Key, Value](implicit k: ClassTag[Key], v: ClassTag[Value]): Parameter[Map[Key, Value]] =
+    Parameter.converted[Map[Key, Value], java.util.Map[Key, Value]](_.asJava)
 
-  implicit def JavaSetParameter[T]: Parameter[java.util.Set[T]] = {
+  implicit def JavaSetParameter[T](implicit c: ClassTag[T]): Parameter[java.util.Set[T]] = {
     (value: java.util.Set[T]) => (statement: PreparedStatement, ix: Int) =>
-        statement.setSet[T](ix, value)
+      statement.setSet[T](ix, value, c.runtimeClass.asInstanceOf[Class[T]])
   }
 
-  implicit def SetParameter[T]: Parameter[Set[T]] = {
-    (value: Set[T]) =>
-      val asJava = value.asJava
-      (statement: PreparedStatement, ix: Int) =>
-        statement.setSet[T](ix, asJava)
-  }
+  implicit def SetParameter[T](implicit c: ClassTag[T]): Parameter[Set[T]] =
+    Parameter.converted[Set[T], java.util.Set[T]](_.asJava)
 
   implicit val StringParameter: Parameter[String] = {
     (value: String) => (statement: PreparedStatement, ix: Int) =>
@@ -149,11 +137,11 @@ trait ParameterValue
 
   implicit val UUIDParameter: Parameter[UUID] = {
     (value: UUID) => (statement: PreparedStatement, ix: Int) =>
-      statement.setUUID(ix, value)
+      statement.setUuid(ix, value)
   }
 
-  implicit val TokenParameter: Parameter[core.Token] = {
-    (value: core.Token) => (statement: PreparedStatement, ix: Int) =>
+  implicit val TokenParameter: Parameter[Token] = {
+    (value: Token) => (statement: PreparedStatement, ix: Int) =>
       statement.setToken(ix, value)
   }
 
@@ -162,14 +150,14 @@ trait ParameterValue
       statement.setTupleValue(ix, value.underlying)
   }
 
-  implicit val UDTValueParameter: Parameter[core.UDTValue] = {
-    (value: core.UDTValue) => (statement: PreparedStatement, ix: Int) =>
-      statement.setUDTValue(ix, value)
+  implicit val UDTValueParameter: Parameter[UdtValue] = {
+    (value: UdtValue) => (statement: PreparedStatement, ix: Int) =>
+      statement.setUdtValue(ix, value)
   }
 
   implicit val BigIntegerParameter: Parameter[BigInteger] = {
     (value: BigInteger) => (statement: PreparedStatement, ix: Int) =>
-      statement.setVarint(ix, value)
+      statement.setBigInteger(ix, value)
   }
 
   implicit def hlistParameterValue[
@@ -179,7 +167,7 @@ trait ParameterValue
     MappedValuesH <: HList
   ](h: H
   )(implicit dataTypeMapper: Mapper.Aux[TupleDataType.ToDataType.type, H, MappedTypesH],
-    dataTypeList: ToTraversable.Aux[MappedTypesH, Seq, core.DataType],
+    dataTypeList: ToTraversable.Aux[MappedTypesH, Seq, DataType],
     dataValueMapper: Mapper.Aux[TupleDataType.ToDataValue.type, H, MappedValuesH],
     dataValueList: ToTraversable.Aux[MappedValuesH, Seq, AnyRef]
   ): ParameterValue = {
@@ -195,7 +183,7 @@ trait ParameterValue
   ](p: P
   )(implicit toHList: ToHList.Aux[P, H],
     dataTypeMapper: Mapper.Aux[TupleDataType.ToDataType.type, H, MappedTypesH],
-    dataTypeList: ToTraversable.Aux[MappedTypesH, Seq, core.DataType],
+    dataTypeList: ToTraversable.Aux[MappedTypesH, Seq, DataType],
     dataValueMapper: Mapper.Aux[TupleDataType.ToDataValue.type, H, MappedValuesH],
     dataValueList: ToTraversable.Aux[MappedValuesH, Seq, AnyRef],
     toParameterValue: TupleValue => ParameterValue

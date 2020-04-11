@@ -1,6 +1,6 @@
 #Examples
 
-These can be pasted into a Scala REPL that has the H2, SDBC base, SDBC JDBC, and SDBC H2 jars in its class path.
+These can be pasted into a Scala REPL that has the H2, SDBC base, SDBC JDBC, and SDBC H2 jars in its class path. You can get such a REPL by running `sbt "project h2" console` from the SDBC directory.
 
 ## Query using a type classes
 
@@ -75,6 +75,7 @@ object SimpleExample {
   }
 }
 
+// yields Map(1 -> jeff)
 SimpleExample.result
 ```
 
@@ -138,6 +139,7 @@ object ManualConversionExample {
     }
 }
 
+// yields Some(Log(1,2020-02-23T18:10:38.029Z,Some(hi)))
 ManualConversionExample.result
 ```
 

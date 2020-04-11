@@ -1,6 +1,6 @@
 enablePlugins(JmhPlugin)
 
-val doobieVersion = "0.4.1"
+val doobieVersion = "0.8.8"
 
 libraryDependencies ++= Seq(
   "org.tpolecat" %% "doobie-core" % doobieVersion,

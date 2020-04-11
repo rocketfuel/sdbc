@@ -1,10 +1,10 @@
 package com.rocketfuel.sdbc.postgresql
 
 import org.json4s.JValue
-import org.json4s.jackson.JsonMethods
+import org.json4s.native.JsonMethods
 import org.postgresql.util.PGobject
 
-private class PGJson4s(
+private class PGJson4sNative(
   var jValue: Option[JValue]
 ) extends PGobject() {
 
@@ -16,7 +16,7 @@ private class PGJson4s(
 
   override def getValue: String = {
     jValue.map(j => JsonMethods.compact(JsonMethods.render(j))).
-    getOrElse(throw new IllegalStateException("setValue must be called first"))
+      getOrElse(throw new IllegalStateException("setValue must be called first"))
   }
 
   override def setValue(value: String): Unit = {
@@ -31,19 +31,19 @@ private class PGJson4s(
 
 }
 
-private object PGJson4s {
-  implicit def apply(j: JValue): PGJson4s = {
-    val p = new PGJson4s(jValue = Some(j))
+private object PGJson4sNative {
+  implicit def apply(j: JValue): PGJson4sNative = {
+    val p = new PGJson4sNative(jValue = Some(j))
     p
   }
 }
 
-trait Json4sSupport {
+trait Json4sNativeSupport {
   self: PostgreSql =>
 
   implicit val JValueParameter: Parameter[JValue] =
     (json: JValue) => {
-      val pgJson = PGJson4s(json)
+      val pgJson = PGJson4sNative(json)
       (statement: PreparedStatement, ix: Int) => {
         statement.setObject(ix + 1, pgJson)
         statement
@@ -53,14 +53,14 @@ trait Json4sSupport {
   implicit val jsonTypeName: ArrayTypeName[JValue] =
     ArrayTypeName[JValue]("json")
 
-  implicit val JValueGetter: Getter[JValue] = IsPGobjectGetter[PGJson4s, JValue](_.jValue.get)
+  implicit val JValueGetter: Getter[JValue] = IsPGobjectGetter[PGJson4sNative, JValue](_.jValue.get)
 
   implicit val JValueUpdater: Updater[JValue] =
-    IsPGobjectUpdater[JValue, PGJson4s]
+    IsPGobjectUpdater[JValue, PGJson4sNative]
 
   override def initializeJson(connection: Connection): Unit = {
-    connection.addDataType("json", classOf[PGJson4s])
-    connection.addDataType("jsonb", classOf[PGJson4s])
+    connection.addDataType("json", classOf[PGJson4sNative])
+    connection.addDataType("jsonb", classOf[PGJson4sNative])
   }
 
 }

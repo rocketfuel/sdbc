@@ -9,6 +9,8 @@ import scodec.bits.ByteVector
 class UpdatersSpec
   extends PostgreSqlSuite.Base {
 
+  import postgresql._
+
   testUpdate[Long]("int8")(1L)(2L)
 
   testUpdate[Int]("int4")(1)(2)

@@ -5,6 +5,8 @@ import scalaz.Scalaz._
 class SeqGetterSpec
   extends PostgreSqlSuite.Base {
 
+  import postgresql._
+
   testSelect[Seq[Option[Boolean]]]("SELECT '{}'::boolean[]", Seq.empty[Option[Boolean]].some)
 
   testSelect[Seq[Option[Int]]]("SELECT '{}'::int[]", Seq.empty[Option[Int]].some)

@@ -503,11 +503,11 @@ trait ConnectedRow {
 
     def iterator(resultSet: ResultSet): CloseableIterator[ConnectedRow]  = {
       val row = ConnectedRow(resultSet)
-      resultSet.iterator().map(Function.const(row))
+      new CloseableIterator(resultSet.iterator().map(Function.const(row)), row)
     }
 
     def iterator(row: ConnectedRow): CloseableIterator[ConnectedRow]  = {
-      row.underlying.iterator().map(Function.const(row))
+      new CloseableIterator(row.underlying.iterator().map(Function.const(row)), row)
     }
   }
 

@@ -38,6 +38,7 @@ trait DBMS
   self: com.rocketfuel.sdbc.base.jdbc.Connection =>
 
   type CloseableIterator[+A] = base.CloseableIterator[A]
+  val CloseableIterator = base.CloseableIterator
 
   type CompiledStatement = base.CompiledStatement
 

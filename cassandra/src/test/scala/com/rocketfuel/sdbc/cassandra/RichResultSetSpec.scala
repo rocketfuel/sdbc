@@ -14,16 +14,16 @@ class RichResultSetSpec
     PropertyCheckConfiguration(sizeRange = 10)
 
   test("iterator() works on several results") {implicit connection =>
-    Query(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x int)").execute()
+    Query("CREATE TABLE tbl (id int PRIMARY KEY, x int)").execute()
 
     forAll { (randoms: Seq[Int]) =>
-      val insert = Query(s"INSERT INTO $keyspace.tbl (id, x) VALUES (@id, @x)")
+      val insert = Query("INSERT INTO tbl (id, x) VALUES (@id, @x)")
 
       for ((random, ix) <- randoms.zipWithIndex) {
         insert.on("id" -> ix, "x" -> random).execute()
       }
 
-      val results = Query[Int](s"SELECT x FROM $keyspace.tbl").iterator().toSeq
+      val results = Query[Int]("SELECT x FROM tbl").iterator().toSeq
 
       assertResult(randoms.sorted)(results.sorted)
 
@@ -32,16 +32,16 @@ class RichResultSetSpec
   }
 
   test("iterator() works on several nullable results") {implicit connection =>
-    Query(s"CREATE TABLE $keyspace.tbl (x int PRIMARY KEY, y int)").execute()
+    Query("CREATE TABLE tbl (x int PRIMARY KEY, y int)").execute()
 
     forAll { (randoms: Seq[Option[Int]]) =>
-      val insert = Query(s"INSERT INTO $keyspace.tbl (x, y) VALUES (@x, @y)")
+      val insert = Query("INSERT INTO tbl (x, y) VALUES (@x, @y)")
 
       for ((random, ix) <- randoms.zipWithIndex) {
         insert.on("x" -> ix, "y" -> random).execute()
       }
 
-      val results = Query[Option[Int]](s"SELECT y FROM $keyspace.tbl").iterator().toSeq
+      val results = Query[Option[Int]]("SELECT y FROM tbl").iterator().toSeq
 
       assertResult(randoms.sorted)(results.sorted)
 
@@ -50,20 +50,20 @@ class RichResultSetSpec
   }
 
   test("Insert and select works for (0, 0).") { implicit connection =>
-    Query.execute(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x tuple<int, int>)")
-    Query(s"INSERT INTO $keyspace.tbl (id, x) VALUES (@id, @x)").on(
+    Query.execute("CREATE TABLE tbl (id int PRIMARY KEY, x tuple<int, int>)")
+    Query("INSERT INTO tbl (id, x) VALUES (@id, @x)").on(
       "id" -> 3, ("x", (0, 0))
     ).execute()
   }
 
   test("Insert and select works for tuples.") { implicit connection =>
-    Query.execute(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x tuple<int, int>)")
+    Query.execute("CREATE TABLE tbl (id int PRIMARY KEY, x tuple<int, int>)")
 
     forAll { (tuples: Seq[(Int, Int)]) =>
       //Note: Peng verified that values in tuples are nullable, so we need
       //to support that.
 
-      val insert = Query(s"INSERT INTO $keyspace.tbl (id, x) VALUES (@id, @x)")
+      val insert = Query("INSERT INTO tbl (id, x) VALUES (@id, @x)")
 
       for ((tuple, ix) <- tuples.zipWithIndex) {
         insert.on("id" -> ix, "x" -> tuple).execute()
@@ -71,7 +71,7 @@ class RichResultSetSpec
 
       val results = {
         for {
-          tupleValue <- Query[TupleValue](s"SELECT x FROM $keyspace.tbl").iterator()
+          tupleValue <- Query[TupleValue]("SELECT x FROM tbl").iterator()
         } yield tupleValue[(Int, Int)]
       }.toSeq
 
@@ -84,17 +84,17 @@ class RichResultSetSpec
   }
 
   test("Insert and select works for tuples having some null elements.") {implicit connection =>
-    Query(s"CREATE TABLE $keyspace.tbl (id int PRIMARY KEY, x tuple<int, int>)").execute()
+    Query("CREATE TABLE tbl (id int PRIMARY KEY, x tuple<int, int>)").execute()
 
     forAll { (tuples: Seq[(Option[Int], Option[Int])]) =>
-      val insert = Query(s"INSERT INTO $keyspace.tbl (id, x) VALUES (@id, @x)")
+      val insert = Query("INSERT INTO tbl (id, x) VALUES (@id, @x)")
 
       for ((tuple, ix) <- tuples.zipWithIndex) {
         val tupleParam: Cassandra.ParameterValue = productParameterValue(tuple)
         insert.on("id" -> ix, "x" -> tupleParam).execute()
       }
 
-      val results = Query[TupleValue](s"SELECT x FROM $keyspace.tbl").iterator().map(_[(Option[Int], Option[Int])]).toSeq
+      val results = Query[TupleValue]("SELECT x FROM tbl").iterator().map(_[(Option[Int], Option[Int])]).toSeq
 
       assertResult(tuples.toSet)(results.toSet)
 
@@ -105,15 +105,15 @@ class RichResultSetSpec
   }
 
   test("Insert and select works for sets.") {implicit connection =>
-    Query(s"CREATE TABLE $keyspace.tbl2 (id int PRIMARY KEY, x set<text>)").execute()
-    val insert = Query(s"INSERT INTO $keyspace.tbl2 (id, x) VALUES (@id, @x)")
+    Query("CREATE TABLE tbl2 (id int PRIMARY KEY, x set<text>)").execute()
+    val insert = Query("INSERT INTO tbl2 (id, x) VALUES (@id, @x)")
 
     forAll(Gen.nonEmptyListOf(Gen.nonEmptyContainerOf[Set, String](Gen.alphaStr))) { sets =>
       for ((set, id) <- sets.zipWithIndex) {
         insert.on("id" -> id, "x" -> set).execute()
       }
 
-      val results = Query[Set[String]](s"SELECT x FROM $keyspace.tbl2").iterator().toSeq
+      val results = Query[Set[String]]("SELECT x FROM tbl2").iterator().toSeq
 
       assertResult(sets.toSet)(results.toSet)
 
@@ -129,16 +129,16 @@ class RichResultSetSpec
   } yield (t0, t1)
 
   test("Insert and select works for maps.") {implicit connection =>
-    Query(s"CREATE TABLE $keyspace.tbl3 (id int PRIMARY KEY, x map<text, text>)").execute()
+    Query("CREATE TABLE tbl3 (id int PRIMARY KEY, x map<text, text>)").execute()
 
     forAll(Gen.nonEmptyListOf[Map[String, String]](Gen.nonEmptyMap[String, String](genStringTuple))) { maps =>
-      val insert = Query(s"INSERT INTO $keyspace.tbl3 (id, x) VALUES (@id, @x)")
+      val insert = Query("INSERT INTO tbl3 (id, x) VALUES (@id, @x)")
 
       for ((map, id) <- maps.zipWithIndex) {
         insert.on("id" -> id, "x" -> map).execute()
       }
 
-      val results = Query[Map[String, String]](s"SELECT x FROM $keyspace.tbl3").iterator().toSeq
+      val results = Query[Map[String, String]]("SELECT x FROM tbl3").iterator().toSeq
 
       assertResult(maps.toSet)(results.toSet)
 

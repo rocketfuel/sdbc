@@ -4,6 +4,7 @@ import com.rocketfuel.sdbc.Cassandra
 import java.math.{BigDecimal => JBigDecimal}
 import java.net.InetAddress
 import java.nio.ByteBuffer
+import java.time.{Instant, LocalDate, LocalTime}
 import java.util.{Date, UUID}
 import java.util
 import org.scalatest.FunSuite
@@ -12,127 +13,135 @@ import scodec.bits.ByteVector
 class ParameterValuesSpec extends FunSuite {
 
   test("implicit Boolean conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = false")
+    assertCompiles("false: Cassandra.ParameterValue")
   }
 
   test("implicit Boxed Boolean conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = java.lang.Boolean.valueOf(false)")
+    assertCompiles("java.lang.Boolean.valueOf(false): Cassandra.ParameterValue")
   }
 
   test("implicit ByteVector conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = ByteVector.empty")
+    assertCompiles("ByteVector.empty: Cassandra.ParameterValue")
   }
 
   test("implicit ByteBuffer conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = ByteBuffer.wrap(Array.emptyByteArray)")
+    assertCompiles("ByteBuffer.wrap(Array.emptyByteArray): Cassandra.ParameterValue")
   }
 
   test("implicit Array[Byte] conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = Array.emptyByteArray")
+    assertCompiles("Array.emptyByteArray: Cassandra.ParameterValue")
   }
 
-  test("implicit Date conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = new Date(0)")
+  test("implicit Instant conversion works") {
+    assertCompiles("Instant.MIN: Cassandra.ParameterValue")
+  }
+
+  test("implicit LocalDate conversion works") {
+    assertCompiles("LocalDate.MIN: Cassandra.ParameterValue")
+  }
+
+  test("implicit LocalTime conversion works") {
+    assertCompiles("LocalTime.MIN: Cassandra.ParameterValue")
   }
 
   test("implicit Java BigDecimal conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = JBigDecimal.valueOf(0L)")
+    assertCompiles("JBigDecimal.valueOf(0L): Cassandra.ParameterValue")
   }
 
   test("implicit Scala BigDecimal conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = BigDecimal(0L)")
+    assertCompiles("BigDecimal(0L): Cassandra.ParameterValue")
   }
 
   test("implicit Double conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = 3.0")
+    assertCompiles("3.0: Cassandra.ParameterValue")
   }
 
   test("implicit Boxed Double conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = java.lang.Double.valueOf(0.0)")
+    assertCompiles("java.lang.Double.valueOf(0.0): Cassandra.ParameterValue")
   }
 
   test("implicit Float conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = 3.0F")
+    assertCompiles("3.0F: Cassandra.ParameterValue")
   }
 
   test("implicit Boxed Float conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = java.lang.Float.valueOf(0.0F)")
+    assertCompiles("java.lang.Float.valueOf(0.0F): Cassandra.ParameterValue")
   }
 
   test("implicit InetAddress conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = InetAddress.getByAddress(Array[Byte](127,0,0,1))")
+    assertCompiles("InetAddress.getByAddress(Array[Byte](127,0,0,1)): Cassandra.ParameterValue")
   }
 
   test("implicit Int conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = 3")
+    assertCompiles("3: Cassandra.ParameterValue")
   }
 
   test("implicit Boxed Int conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = java.lang.Integer.valueOf(0)")
+    assertCompiles("java.lang.Integer.valueOf(0): Cassandra.ParameterValue")
   }
 
   test("implicit Seq conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = Seq.empty[Int]")
+    assertCompiles("Seq.empty[Int]: Cassandra.ParameterValue")
   }
 
   test("implicit java List conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = new util.LinkedList[Int]()")
+    assertCompiles("new util.LinkedList[Int](): Cassandra.ParameterValue")
   }
 
   test("implicit Long conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = 3L")
+    assertCompiles("3L: Cassandra.ParameterValue")
   }
 
   test("implicit Boxed Long conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = java.lang.Long.valueOf(0L)")
+    assertCompiles("java.lang.Long.valueOf(0L): Cassandra.ParameterValue")
   }
 
   test("implicit java Map conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = new util.HashMap[String, String]()")
+    assertCompiles("new util.HashMap[String, String](): Cassandra.ParameterValue")
   }
 
   test("implicit Map conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = Map.empty[String, String]")
+    assertCompiles("Map.empty[String, String]: Cassandra.ParameterValue")
   }
 
   test("implicit Option[String] conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = Some(\"hello\")")
+    assertCompiles("Some(\"hello\"): Cassandra.ParameterValue")
   }
 
   test("implicit scala.BigDecimal conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = BigDecimal(1)")
+    assertCompiles("BigDecimal(1): Cassandra.ParameterValue")
   }
 
   test("implicit java Set conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = new util.HashSet[String]()")
+    assertCompiles("new util.HashSet[String](): Cassandra.ParameterValue")
   }
 
   test("implicit Set conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = Set.empty[String]")
+    assertCompiles("Set.empty[String]: Cassandra.ParameterValue")
   }
 
   test("implicit String conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = \"\"")
+    assertCompiles("\"\": Cassandra.ParameterValue")
   }
 
   test("implicit UUID conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = UUID.randomUUID()")
+    assertCompiles("UUID.randomUUID(): Cassandra.ParameterValue")
   }
 
   test("implicit Tuple2 conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = (1, 1)")
+    assertCompiles("(1, 1): Cassandra.ParameterValue")
   }
 
   test("implicit Tuple3 conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = (1, 1, 1)")
+    assertCompiles("(1, 1, 1): Cassandra.ParameterValue")
   }
 
   test("implicit BigInteger conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = java.math.BigInteger.valueOf(0L)")
+    assertCompiles("java.math.BigInteger.valueOf(0L): Cassandra.ParameterValue")
   }
 
   test("implicit None conversion works") {
-    assertCompiles("val _: Cassandra.ParameterValue = None")
+    assertCompiles("None: Cassandra.ParameterValue")
   }
 
 }

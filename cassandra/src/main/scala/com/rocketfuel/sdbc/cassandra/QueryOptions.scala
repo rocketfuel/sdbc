@@ -1,33 +1,28 @@
 package com.rocketfuel.sdbc.cassandra
 
-import com.datastax.driver.core.policies.{DefaultRetryPolicy, RetryPolicy}
-import com.datastax.driver.core.{BoundStatement, ConsistencyLevel, QueryOptions => CQueryOptions}
+import com.datastax.oss.driver.api.core.cql.BoundStatement
+import com.datastax.oss.protocol.internal.request.query
+import com.datastax.oss.driver.api.core.{ConsistencyLevel, DefaultConsistencyLevel}
 import java.time.Instant
 
 case class QueryOptions(
-  consistencyLevel: ConsistencyLevel = CQueryOptions.DEFAULT_CONSISTENCY_LEVEL,
-  serialConsistencyLevel: ConsistencyLevel = CQueryOptions.DEFAULT_SERIAL_CONSISTENCY_LEVEL,
+  consistencyLevel: ConsistencyLevel = DefaultConsistencyLevel.fromCode(query.QueryOptions.DEFAULT.consistency),
+  serialConsistencyLevel: ConsistencyLevel = DefaultConsistencyLevel.fromCode(query.QueryOptions.DEFAULT.serialConsistency),
   defaultTimestamp: Option[Instant] = None,
-  fetchSize: Int = CQueryOptions.DEFAULT_FETCH_SIZE,
-  idempotent: Boolean = CQueryOptions.DEFAULT_IDEMPOTENCE,
-  retryPolicy: RetryPolicy = DefaultRetryPolicy.INSTANCE,
+  pageSize: Int = query.QueryOptions.DEFAULT.pageSize,
+  idempotent: Option[Boolean] = None,
   tracing: Boolean = false
 ) {
 
   def set(statement: BoundStatement): Unit = {
     statement.setConsistencyLevel(consistencyLevel)
     statement.setSerialConsistencyLevel(serialConsistencyLevel)
-    for (i <- defaultTimestamp)
-      statement.setDefaultTimestamp(i.toEpochMilli * 1000L)
-    statement.setFetchSize(fetchSize)
-    statement.setIdempotent(idempotent)
-    statement.setRetryPolicy(retryPolicy)
-
-    if (tracing) {
-      statement.enableTracing()
-    } else {
-      statement.disableTracing()
+    for (i <- defaultTimestamp) {
+      statement.setQueryTimestamp(i.toEpochMilli * 1000L)
     }
+    statement.setPageSize(pageSize)
+    idempotent.foreach(statement.setIdempotent(_))
+    statement.setTracing(tracing)
   }
 
 }

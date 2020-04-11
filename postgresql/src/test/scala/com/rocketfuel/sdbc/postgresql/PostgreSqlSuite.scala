@@ -2,15 +2,15 @@ package com.rocketfuel.sdbc.postgresql
 
 import java.time.OffsetDateTime
 import org.scalatest._
-import fs2.Strategy
 import org.apache.commons.lang3.RandomStringUtils
 import scala.reflect.ClassTag
 
-abstract class PostgreSqlSuite
+abstract class PostgreSqlSuite[P <: PostgreSql]
   extends fixture.FunSuite
-  with HasPostgreSqlPool
+  with HasPostgreSqlPool[P]
   with BeforeAndAfterAll {
-  self: PostgreSql =>
+
+  import postgresql._
 
   def testSelect[T](query: String, expectedValue: Option[T])(implicit converter: RowConverter[Option[T]]): Unit = {
     test(query) { implicit connection =>
@@ -41,9 +41,6 @@ abstract class PostgreSqlSuite
   override protected def afterAll(): Unit = {
     pgStop()
   }
-
-  implicit val strategy =
-    Strategy.sequential
 
   def testUpdate[T](
     typeName: String
@@ -88,19 +85,30 @@ abstract class PostgreSqlSuite
 object PostgreSqlSuite {
 
   abstract class Base
-    extends PostgreSqlSuite
-    with PostgreSql {
-    override def initializeJson(connection: Connection): Unit = ()
-  }
+    extends {
+      override val postgresql: PostgreSql = new PostgreSql {
+        override def initializeJson(connection: Connection): Unit = ()
+      }
+    } with PostgreSqlSuite[PostgreSql]
 
   abstract class Argonaut
-    extends PostgreSqlSuite
-    with PostgreSql
-    with ArgonautSupport
+    extends {
+    override val postgresql: com.rocketfuel.sdbc.PostgreSqlArgonaut.type = com.rocketfuel.sdbc.PostgreSqlArgonaut
+  } with PostgreSqlSuite[com.rocketfuel.sdbc.PostgreSqlArgonaut.type]
 
-  abstract class Json4s
-    extends PostgreSqlSuite
-      with PostgreSql
-      with Json4sSupport
+  abstract class Json4sJackson
+    extends {
+      override val postgresql: com.rocketfuel.sdbc.PostgreSqlJson4SJackson.type = com.rocketfuel.sdbc.PostgreSqlJson4SJackson
+    } with PostgreSqlSuite[com.rocketfuel.sdbc.PostgreSqlJson4SJackson.type]
+
+  abstract class Json4sNative
+    extends {
+      override val postgresql: com.rocketfuel.sdbc.PostgreSqlJson4SNative.type = com.rocketfuel.sdbc.PostgreSqlJson4SNative
+    } with PostgreSqlSuite[com.rocketfuel.sdbc.PostgreSqlJson4SNative.type]
+
+  abstract class Circe
+    extends {
+      override val postgresql: com.rocketfuel.sdbc.PostgreSqlCirce.type = com.rocketfuel.sdbc.PostgreSqlCirce
+    } with PostgreSqlSuite[com.rocketfuel.sdbc.PostgreSqlCirce.type]
 
 }

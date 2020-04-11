@@ -1,16 +1,28 @@
 package com.rocketfuel.sdbc.h2.benchmarks
 
+import cats.effect.{Blocker, IO}
 import com.rocketfuel.sdbc.H2._
+import doobie.implicits._
+import doobie.util.ExecutionContexts
+import doobie.util.transactor.Transactor
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations._
-import scalaz.effect.IO
 
 @State(Scope.Thread)
+@Fork(value = 1)
+@Measurement(iterations = 5, time = 1)
+@Warmup(iterations = 5, time = 1)
 class SelectBenchmarks {
 
   implicit val connection =
     Connection.get("jdbc:h2:mem:benchmark;DB_CLOSE_DELAY=0")
+
+  implicit val cs = IO.contextShift(ExecutionContexts.synchronous)
+
+  val xa = Blocker[IO].map { b =>
+    Transactor.fromConnection[IO](connection, b)
+  }
 
   @Param(Array("0", "1", "2", "4", "8", "16", "32", "64", "128", "256", "512"))
   var valueCount: Int = _
@@ -62,7 +74,13 @@ class SelectBenchmarks {
 
     val rs = s.executeQuery()
 
-    rs.iterator().map(TestTable(_)).toVector
+    val builder = Vector.newBuilder[TestTable]
+
+    while (rs.next()) {
+      builder.addOne(TestTable(rs))
+    }
+
+    builder.result()
     s.close()
   }
 
@@ -70,7 +88,7 @@ class SelectBenchmarks {
   @BenchmarkMode(Array(Mode.AverageTime))
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
   def doobie(): Unit = {
-    TestTable.doobieMethods.select.vector.transK[IO].run(connection).unsafePerformIO()
+    xa.use(TestTable.doobieMethods.select.to[Vector].transact[IO]).unsafeRunSync()
   }
 
 }

@@ -1,8 +1,8 @@
 package com.rocketfuel.sdbc.base.jdbc
 
+import cats.effect.Async
 import com.rocketfuel.sdbc.base.{CloseableIterator, Logger}
-import fs2.{Stream, pipe}
-import fs2.util.Async
+import fs2.Stream
 import java.io.InputStream
 import java.net.URL
 import java.nio.file.Path
@@ -26,6 +26,11 @@ trait Select {
   )(implicit rowConverter: RowConverter[A]
   ) extends IgnorableQuery[Select[A]] {
     q =>
+
+    def map[B](f: A => B): Select[B] = {
+      implicit val innerConverter: Row => B = rowConverter.andThen(f)
+      Select[B](statement, parameters)
+    }
 
     override def subclassConstructor(parameters: Parameters): Select[A] = {
       copy(parameters = parameters)
@@ -100,62 +105,68 @@ trait Select {
 
     def readInputStream[
       A
-    ](stream: InputStream
+    ](stream: InputStream,
+      hasParameters: Boolean = true
     )(implicit rowConverter: RowConverter[A],
       codec: scala.io.Codec = scala.io.Codec.default
     ): Select[A] = {
-      Select[A](CompiledStatement.readInputStream(stream))
+      Select[A](CompiledStatement.readInputStream(stream, hasParameters))
     }
 
     def readUrl[
       A
-    ](u: URL
+    ](u: URL,
+      hasParameters: Boolean = true
     )(implicit rowConverter: RowConverter[A],
       codec: scala.io.Codec = scala.io.Codec.default
     ): Select[A] = {
-      Select[A](CompiledStatement.readUrl(u))
+      Select[A](CompiledStatement.readUrl(u, hasParameters))
     }
 
     def readPath[
       A
-    ](path: Path
+    ](path: Path,
+      hasParameters: Boolean = true
     )(implicit rowConverter: RowConverter[A],
       codec: scala.io.Codec = scala.io.Codec.default
     ): Select[A] = {
-      Select[A](CompiledStatement.readPath(path))
+      Select[A](CompiledStatement.readPath(path, hasParameters))
     }
 
     def readClassResource[
       A
     ](clazz: Class[_],
       name: String,
-      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
+      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default,
+      hasParameters: Boolean = true
     )(implicit rowConverter: RowConverter[A],
       codec: scala.io.Codec = scala.io.Codec.default
     ): Select[A] = {
-      Select[A](CompiledStatement.readClassResource(clazz, name, nameMangler))
+      Select[A](CompiledStatement.readClassResource(clazz, name, nameMangler, hasParameters))
     }
 
     def readTypeResource[
       ResourceType,
       Row
     ](name: String,
-      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
+      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default,
+      hasParameters: Boolean = true
     )(implicit rowConverter: RowConverter[Row],
       codec: scala.io.Codec = scala.io.Codec.default,
       tag: ClassTag[ResourceType]
     ): Select[Row] = {
-      Select[Row](CompiledStatement.readTypeResource[ResourceType](name, nameMangler))
+      Select[Row](CompiledStatement.readTypeResource[ResourceType](name, nameMangler, hasParameters))
     }
 
 
     def readResource[
       A
-    ](name: String
+    ](name: String,
+      hasParameters: Boolean = true
     )(implicit rowConverter: RowConverter[A],
       codec: scala.io.Codec = scala.io.Codec.default
     ): Select[A] = {
-      Select[A](CompiledStatement.readResource(name))
+      Select[A](CompiledStatement.readResource(name, hasParameters))
     }
 
     def iterator[A](
@@ -213,13 +224,12 @@ trait Select {
       pool: Pool,
       rowConverter: RowConverter[A]
     ): Stream[F, A] = {
-      Stream.bracket[F, Connection, A](
-        r = async.delay(pool.getConnection())
-      )(use = {implicit connection: Connection =>
+      Stream.bracket[F, Connection](
+        async.delay(pool.getConnection())
+      )((connection: Connection) => async.delay(connection.close()))
+        .flatMap{implicit connection: Connection =>
           CloseableIterator.toStream(async.delay(iterator[A](statement, parameterValues)))
-      },
-        release = (connection: Connection) => async.delay(connection.close())
-      )
+        }
     }
 
     case class Pipe[F[_], A](
@@ -232,9 +242,7 @@ trait Select {
 
       def parameters(implicit pool: Pool): fs2.Pipe[F, Parameters, Stream[F, A]] = {
         parameterPipe.combine(defaultParameters).andThen(
-          pipe.lift[F, Parameters, Stream[F, A]] { params =>
-            stream(statement, params)
-          }
+          _.map(params => stream(statement, params))
         )
       }
 

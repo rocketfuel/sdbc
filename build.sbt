@@ -19,7 +19,7 @@ lazy val examples = project.in(file("examples")).dependsOn(h2 % "test->test;comp
 lazy val sdbc =
   project.in(file(".")).
     settings(publishArtifact := false).
-    settings(unidocSettings: _*).
+    enablePlugins(ScalaUnidocPlugin).
     aggregate(
       base,
       cassandra,
@@ -32,8 +32,8 @@ lazy val sdbc =
       examples
     )
 
-scalaVersion := "2.12.1"
+scalaVersion := "2.13.1"
 
-crossScalaVersions := Seq("2.11.8")
+crossScalaVersions := Seq("2.12.6", "2.11.12")
 
 scalacOptions in (Compile, doc) ++= Seq("-doc-root-content", baseDirectory.value+"/rootdoc.txt")

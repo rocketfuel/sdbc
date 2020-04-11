@@ -5,13 +5,13 @@ import java.nio.ByteBuffer
 import java.sql.{Array => _, _}
 import java.time._
 import java.util.UUID
-import argonaut._
-import argonaut.Argonaut._
 import org.postgresql.util.PGInterval
 import scalaz.Scalaz._
 
 class GettersSpec
   extends PostgreSqlSuite.Base {
+
+  import postgresql._
 
   val uuid = UUID.randomUUID()
 

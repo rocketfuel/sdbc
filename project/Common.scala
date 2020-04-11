@@ -5,14 +5,45 @@ object Common {
 
   val macroParadiseVersion = "2.1.0"
 
+  val previousVersions = Seq()
+
+  //Some helpful compiler flags from https://tpolecat.github.io/2014/04/11/scalac-flags.html
+  def extraScalacOptions(scalaVersion: String) =
+    Seq(
+      "-deprecation",
+      "-encoding", "UTF-8",       // yes, this is 2 args
+      "-feature",
+      "-language:existentials",
+      "-language:higherKinds",
+      "-language:implicitConversions",
+      "-language:postfixOps",
+      "-unchecked"
+    ) ++ {
+      CrossVersion.partialVersion(scalaVersion) match {
+        case Some((2, 11|12)) =>
+          Seq("-Xfuture", "-Yno-adapted-args", "-target:jvm-1.8")
+        case _ =>
+          Seq.empty
+      }
+    }
+
   val settings = Seq(
     organization := "com.rocketfuel.sdbc",
 
-    scalaVersion := "2.12.1",
+    scalaVersion := "2.13.1",
 
-    crossScalaVersions := Seq("2.11.8"),
+    crossScalaVersions := Seq("2.11.12", "2.12.11"),
 
-    version := "2.0.2",
+    unmanagedSourceDirectories in Compile ++= {
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((2, 11 | 12)) =>
+          Seq(baseDirectory.value / "src" / "main" / "scala-2.1x")
+        case Some((2, 13)) =>
+          Seq()
+      }
+    },
+
+    version := "4.0.0",
 
     licenses := Seq("The BSD 3-Clause License" -> url("http://opensource.org/licenses/BSD-3-Clause")),
 
@@ -40,27 +71,39 @@ object Common {
       else
         Some("releases" at nexus + "service/local/staging/deploy/maven2")
     },
+    publishConfiguration := publishConfiguration.value.withOverwrite(true),
 
     publishMavenStyle := true,
 
     publishArtifact in Test := true,
 
-    //Some helpful compiler flags from https://tpolecat.github.io/2014/04/11/scalac-flags.html
-    scalacOptions ++= Seq(
-      "-deprecation",
-      "-encoding", "UTF-8",       // yes, this is 2 args
-      "-feature",
-      "-language:existentials",
-      "-language:higherKinds",
-      "-language:implicitConversions",
-      "-language:postfixOps",
-      "-unchecked",
-      "-Yno-adapted-args",
-      "-Xfuture"
-    )
-
+    scalacOptions ++= extraScalacOptions(scalaVersion.value)
   )
 
-  val xml = "org.scala-lang.modules" %% "scala-xml" % "1.0.6"
+  val xml = "org.scala-lang.modules" %% "scala-xml" % "1.3.0"
+
+  def fs2(scalaVersion: String) =
+    CrossVersion.partialVersion(scalaVersion) match {
+      case Some((2, 12|13)) =>
+        "co.fs2" %% "fs2-core" % "2.3.0"
+      case Some((2, 11)) =>
+        "co.fs2" %% "fs2-core" % "2.1.0"
+    }
+
+  def fs2IO(scalaVersion: String) =
+    CrossVersion.partialVersion(scalaVersion) match {
+      case Some((2, 12|13)) =>
+        "co.fs2" %% "fs2-io" % "2.3.0"
+      case Some((2, 11)) =>
+        "co.fs2" %% "fs2-io" % "2.1.0"
+    }
+
+  def scodec(scalaVersion: String) =
+    CrossVersion.partialVersion(scalaVersion) match {
+      case Some((2, 12|13)) =>
+        "org.scodec" %% "scodec-bits" % "1.1.14"
+      case Some((2, 11)) =>
+        "org.scodec" %% "scodec-bits" % "1.1.12"
+    }
 
 }

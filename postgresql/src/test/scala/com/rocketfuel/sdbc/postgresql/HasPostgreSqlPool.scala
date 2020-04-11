@@ -4,8 +4,11 @@ import com.zaxxer.hikari.HikariConfig
 import ru.yandex.qatools.embed.postgresql._
 import ru.yandex.qatools.embed.postgresql.config.PostgresConfig
 
-trait HasPostgreSqlPool {
-  self: PostgreSql =>
+trait HasPostgreSqlPool[P <: PostgreSql] {
+
+  val postgresql: P
+
+  import postgresql._
 
   val dbName = "postgres"
   val user = "postgres"
@@ -21,7 +24,7 @@ trait HasPostgreSqlPool {
     pgProcess = Some(pgServer.prepare(pgConfig).start())
   }
 
-  def startPool(): Unit = {
+  def pgPoolConfig: HikariConfig = {
     val poolConfig = new HikariConfig()
     poolConfig.setUsername(user)
     poolConfig.setPassword(password)
@@ -29,8 +32,11 @@ trait HasPostgreSqlPool {
     poolConfig.setDataSourceClassName(classOf[org.postgresql.ds.PGSimpleDataSource].getCanonicalName)
     poolConfig.getDataSourceProperties.setProperty("PortNumber", pgConfig.net.port.toString)
     poolConfig.setMaximumPoolSize(10)
+    poolConfig
+  }
 
-    pgPool = Some(new Pool(poolConfig))
+  def startPool(): Unit = {
+    pgPool = Some(new Pool(pgPoolConfig))
   }
 
   protected def withPg[T](f: Connection => T): T = {

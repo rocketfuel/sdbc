@@ -1,10 +1,9 @@
 package com.rocketfuel.sdbc.cassandra
 
-import com.datastax.driver.core
-import com.datastax.driver.core.DataType
+import com.datastax.oss.driver.api.core.`type`.{DataType, DataTypes}
 import java.net.InetAddress
 import java.nio.ByteBuffer
-import java.time.Instant
+import java.time.{Instant, LocalDate, LocalTime}
 import java.util.UUID
 import scala.collection.JavaConverters._
 import scodec.bits.ByteVector
@@ -58,48 +57,50 @@ object TupleDataType {
 
   }
 
-  implicit val int: TupleDataType[Int] = ofConvertable[Int, java.lang.Integer](DataType.cint())
+  implicit val int: TupleDataType[Int] = ofConvertable[Int, java.lang.Integer](DataTypes.INT)
 
-  implicit val boxedInt: TupleDataType[java.lang.Integer] = ofIdentity[java.lang.Integer](DataType.cint())
+  implicit val boxedInt: TupleDataType[java.lang.Integer] = ofIdentity[java.lang.Integer](DataTypes.INT)
 
-  implicit val long: TupleDataType[Long] = ofConvertable[Long, java.lang.Long](DataType.bigint())
+  implicit val long: TupleDataType[Long] = ofConvertable[Long, java.lang.Long](DataTypes.BIGINT)
 
-  implicit val boxedLong: TupleDataType[java.lang.Long] = ofIdentity[java.lang.Long](DataType.bigint())
+  implicit val boxedLong: TupleDataType[java.lang.Long] = ofIdentity[java.lang.Long](DataTypes.BIGINT)
 
-  implicit val arrayByte: TupleDataType[Array[Byte]] = ofConvertable[Array[Byte], Array[Byte]](DataType.blob())(_.clone())
+  implicit val arrayByte: TupleDataType[Array[Byte]] = ofConvertable[Array[Byte], Array[Byte]](DataTypes.BLOB)(_.clone())
 
-  implicit val byteBuffer: TupleDataType[ByteBuffer] = ofConvertable[ByteBuffer, Array[Byte]](DataType.blob())(_.array().clone())
+  implicit val byteBuffer: TupleDataType[ByteBuffer] = ofConvertable[ByteBuffer, Array[Byte]](DataTypes.BLOB)(_.array().clone())
 
-  implicit val byteVector: TupleDataType[ByteVector] = ofConvertable[ByteVector, Array[Byte]](DataType.blob())(_.toArray)
+  implicit val byteVector: TupleDataType[ByteVector] = ofConvertable[ByteVector, Array[Byte]](DataTypes.BLOB)(_.toArray)
 
-  implicit val boolean: TupleDataType[Boolean] = ofConvertable[Boolean, java.lang.Boolean](DataType.cboolean())
+  implicit val boolean: TupleDataType[Boolean] = ofConvertable[Boolean, java.lang.Boolean](DataTypes.BOOLEAN)
 
-  implicit val boxedBoolean: TupleDataType[java.lang.Boolean] = ofIdentity[java.lang.Boolean](DataType.cboolean())
+  implicit val boxedBoolean: TupleDataType[java.lang.Boolean] = ofIdentity[java.lang.Boolean](DataTypes.BOOLEAN)
 
-  implicit val double: TupleDataType[Double] = ofConvertable[Double, java.lang.Double](DataType.cdouble())
+  implicit val double: TupleDataType[Double] = ofConvertable[Double, java.lang.Double](DataTypes.DOUBLE)
 
-  implicit val boxedDouble: TupleDataType[java.lang.Double] = ofIdentity[java.lang.Double](DataType.cdouble())
+  implicit val boxedDouble: TupleDataType[java.lang.Double] = ofIdentity[java.lang.Double](DataTypes.DOUBLE)
 
-  implicit val float: TupleDataType[Float] = ofConvertable[Float, java.lang.Float](DataType.cfloat())
+  implicit val float: TupleDataType[Float] = ofConvertable[Float, java.lang.Float](DataTypes.FLOAT)
 
-  implicit val boxedFloat: TupleDataType[java.lang.Float] = ofIdentity[java.lang.Float](DataType.cfloat())
+  implicit val boxedFloat: TupleDataType[java.lang.Float] = ofIdentity[java.lang.Float](DataTypes.FLOAT)
 
-  implicit val inet: TupleDataType[InetAddress] = ofIdentity[InetAddress](DataType.inet())
+  implicit val inet: TupleDataType[InetAddress] = ofIdentity[InetAddress](DataTypes.INET)
 
-  implicit val string: TupleDataType[String] = ofIdentity[String](DataType.text())
+  implicit val string: TupleDataType[String] = ofIdentity[String](DataTypes.TEXT)
 
-  implicit val uuid: TupleDataType[UUID] = ofIdentity[UUID](DataType.uuid())
+  implicit val uuid: TupleDataType[UUID] = ofIdentity[UUID](DataTypes.UUID)
 
-  implicit val bigDecimal: TupleDataType[BigDecimal] = ofConvertable[BigDecimal, java.math.BigDecimal](DataType.decimal())(_.underlying())
+  implicit val bigDecimal: TupleDataType[BigDecimal] = ofConvertable[BigDecimal, java.math.BigDecimal](DataTypes.DECIMAL)(_.underlying())
 
-  implicit val javaBigDecimal: TupleDataType[java.math.BigDecimal] = ofIdentity[java.math.BigDecimal](DataType.decimal())
+  implicit val javaBigDecimal: TupleDataType[java.math.BigDecimal] = ofIdentity[java.math.BigDecimal](DataTypes.DECIMAL)
 
-  implicit val date: TupleDataType[java.util.Date] = ofIdentity[java.util.Date](DataType.timestamp())
+  implicit val instant: TupleDataType[Instant] = ofIdentity[Instant](DataTypes.TIMESTAMP)
 
-  implicit val instant: TupleDataType[Instant] = ofConvertable[Instant, java.util.Date](DataType.timestamp())(java.util.Date.from)
+  implicit val localTime: TupleDataType[LocalTime] = ofIdentity[LocalTime](DataTypes.TIME)
+
+  implicit val localDate: TupleDataType[LocalDate] = ofIdentity[LocalDate](DataTypes.TIME)
 
   implicit val none: TupleDataType[None.type] =
-    ofConvertable(core.DataType.custom(classOf[java.lang.Object].getName))(Function.const(null))
+    ofConvertable(DataTypes.custom(classOf[java.lang.Object].getName))(Function.const(null))
 
   implicit def option[A](implicit innerType: TupleDataType[A]): TupleDataType[Option[A]] = {
     ofConvertable[
@@ -114,7 +115,7 @@ object TupleDataType {
     ofConvertable[
       collection.immutable.Seq[A],
       java.util.List[innerType.CassandraType]
-    ](DataType.list(innerType.dataType, true)
+    ](DataTypes.listOf(innerType.dataType, true)
     )(_.map(value => innerType.toCassandraValue(value)).asJava
     )
   }
@@ -123,7 +124,7 @@ object TupleDataType {
     ofConvertable[
       collection.mutable.Seq[A],
       java.util.List[innerType.CassandraType]
-    ](DataType.list(innerType.dataType, false)
+    ](DataTypes.listOf(innerType.dataType, false)
     )(_.map(value => innerType.toCassandraValue(value)).asJava
     )
   }
@@ -132,7 +133,7 @@ object TupleDataType {
     ofConvertable[
       collection.immutable.Set[A],
       java.util.Set[innerType.CassandraType]
-    ](DataType.set(innerType.dataType, true)
+    ](DataTypes.setOf(innerType.dataType, true)
     )(_.map(value => innerType.toCassandraValue(value)).asJava
     )
   }
@@ -141,7 +142,7 @@ object TupleDataType {
     ofConvertable[
       collection.mutable.Set[A],
       java.util.Set[innerType.CassandraType]
-    ](DataType.set(innerType.dataType, false)
+    ](DataTypes.setOf(innerType.dataType, false)
     )(_.map(value => innerType.toCassandraValue(value)).asJava
     )
   }
@@ -150,7 +151,7 @@ object TupleDataType {
     ofConvertable[
       collection.immutable.Map[K, V],
       java.util.Map[keyType.CassandraType, valueType.CassandraType]
-    ](DataType.map(keyType.dataType, valueType.dataType, true)
+    ](DataTypes.mapOf(keyType.dataType, valueType.dataType, true)
     )(_.map {case (k, v) => (keyType.toCassandraValue(k), valueType.toCassandraValue(v))}.asJava
     )
   }
@@ -159,7 +160,7 @@ object TupleDataType {
     ofConvertable[
       collection.mutable.Map[K, V],
       java.util.Map[keyType.CassandraType, valueType.CassandraType]
-    ](DataType.map(keyType.dataType, valueType.dataType, false)
+    ](DataTypes.mapOf(keyType.dataType, valueType.dataType, false)
     )(_.map {case (k, v) => (keyType.toCassandraValue(k), valueType.toCassandraValue(v))}.asJava
     )
   }

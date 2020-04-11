@@ -59,6 +59,7 @@ trait HikariImplicits {
         hikariConfig.setDataSourceProperties(dataSourceProperties)
       } catch {
         case e: ConfigException.Missing =>
+          // If there are no dataSource values, that's OK.
       }
 
       hikariConfig

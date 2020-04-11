@@ -1,6 +1,5 @@
 package com.rocketfuel.sdbc
 
-import com.datastax.driver.core
 import com.rocketfuel.sdbc.cassandra.{Getter, ParameterValue}
 import com.rocketfuel.sdbc.base.CompiledStatement
 import shapeless.ops.hlist._
@@ -21,9 +20,9 @@ object Cassandra
   extends ParameterValue
   with Getter {
 
-  type ResultSet = core.ResultSet
+  type ResultSet = com.datastax.oss.driver.api.core.cql.AsyncResultSet
 
-  type Session = core.Session
+  type Session = com.datastax.oss.driver.api.core.CqlSession
 
   val StreamUtils = cassandra.StreamUtils
 

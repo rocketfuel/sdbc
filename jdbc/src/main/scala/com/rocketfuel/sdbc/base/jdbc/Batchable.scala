@@ -1,7 +1,7 @@
 package com.rocketfuel.sdbc.base.jdbc
 
+import cats.effect.Async
 import fs2.{Pipe, Stream}
-import fs2.util.Async
 
 trait Batchable {
   self: DBMS with Connection =>

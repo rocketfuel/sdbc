@@ -1,10 +1,27 @@
 package com.rocketfuel.sdbc.cassandra
 
 import com.rocketfuel.sdbc.Cassandra._
-import com.datastax.driver.core
+import com.datastax.oss.driver.api.core._
+import com.datastax.oss.driver.api.core.config.DefaultDriverOption
+import com.datastax.oss.driver.internal.core.config.typesafe.DefaultDriverConfigLoader
+import com.typesafe.config.{Config, ConfigFactory}
+import java.net.InetSocketAddress
+import java.util.function.Supplier
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Outcome, fixture}
-import scala.collection.mutable
+
+// tests required increasing the default timeout
+object ConfigLoader extends DefaultDriverConfigLoader {
+  self =>
+  override def getConfigSupplier: Supplier[Config] = {
+    new Supplier[Config] {
+      override def get(): Config = {
+        val config = ConfigLoader.super.getConfigSupplier.get()
+        config.withFallback(ConfigFactory.parseString(s"${DefaultDriverOption.REQUEST_TIMEOUT.getPath}: 10 seconds"))
+      }
+    }
+  }
+}
 
 abstract class CassandraSuite
   extends fixture.FunSuite
@@ -12,16 +29,7 @@ abstract class CassandraSuite
   with BeforeAndAfterEach {
   self =>
 
-  private var keyspaceCount = 0
-
-  private val _keyspaces: mutable.Buffer[String] =
-    mutable.Buffer.empty[String]
-
-  def keyspaces: Vector[String] =
-    _keyspaces.toVector
-
-  def keyspace: String =
-    _keyspaces.head
+  val keyspace = "k"
 
   override protected def beforeAll(): Unit = {
     EmbeddedCassandraServerHelper.startEmbeddedCassandra()
@@ -29,39 +37,46 @@ abstract class CassandraSuite
   }
 
   override protected def afterAll(): Unit = {
-    EmbeddedCassandraServerHelper.cleanEmbeddedCassandra()
+    dropKeyspace()
+  }
+
+  def getSession(keyspace: String = keyspace): CqlSession = {
+    CqlSession.builder
+      .addContactPoint(new InetSocketAddress(EmbeddedCassandraServerHelper.getHost, EmbeddedCassandraServerHelper.getNativeTransportPort))
+      .withConfigLoader(ConfigLoader)
+      .withLocalDatacenter("datacenter1")
+      .withKeyspace(keyspace)
+      .build
   }
 
   override protected def afterEach(): Unit = {
-    implicit val session = client.connect()
-    try for (keyspace <- keyspaces)
-      util.Try(drop(keyspace = keyspace, tableName = "tbl"))
-    finally session.close()
+    implicit val session = getSession()
+    util.Try(drop(tableName = "tbl")).failed.foreach(_.printStackTrace())
+    session.close()
   }
 
   override type FixtureParam = Session
 
-  implicit val client = core.Cluster.builder().addContactPoint("localhost").withPort(9142).build()
-
   override protected def withFixture(test: OneArgTest): Outcome = {
-    val session = client.connect()
+    val session = getSession()
 
     try test.toNoArgTest(session)()
     finally session.close()
   }
 
-  def createKeyspace(): String = synchronized {
-    val keyspace = "k" + keyspaceCount.toString
-    implicit val session = client.connect()
+  def createKeyspace(): Unit = synchronized {
+    implicit val session = getSession(null)
     try Query.execute(s"CREATE KEYSPACE $keyspace WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}")
     finally session.close()
-    keyspaceCount += 1
-    _keyspaces += keyspace
-    keyspace
+  }
+
+  def dropKeyspace(): Unit = synchronized {
+    implicit val session = getSession(null)
+    try Query.execute(s"DROP KEYSPACE $keyspace")
+    finally session.close()
   }
 
   def truncate(
-    keyspace: String = self.keyspace,
     tableName: String
   )(implicit session: Session
   ): Unit = {
@@ -69,7 +84,6 @@ abstract class CassandraSuite
   }
 
   def drop(
-    keyspace: String = self.keyspace,
     tableName: String
   )(implicit session: Session
   ): Unit = {

@@ -14,49 +14,55 @@ trait QueryCompanion {
     protected def ofCompiledStatement(statement: CompiledStatement): Query
 
     def readInputStream(
-      stream: InputStream
+      stream: InputStream,
+      hasParameters: Boolean = true
     )(implicit codec: scala.io.Codec = scala.io.Codec.default
     ): Query = {
-      ofCompiledStatement(CompiledStatement.readInputStream(stream))
+      ofCompiledStatement(CompiledStatement.readInputStream(stream, hasParameters))
     }
 
     def readUrl(
-      u: URL
+      u: URL,
+      hasParameters: Boolean = true
     )(implicit codec: scala.io.Codec = scala.io.Codec.default
     ): Query = {
-      ofCompiledStatement(CompiledStatement.readUrl(u))
+      ofCompiledStatement(CompiledStatement.readUrl(u, hasParameters))
     }
 
     def readPath(
-      path: Path
+      path: Path,
+      hasParameters: Boolean = true
     )(implicit codec: scala.io.Codec = scala.io.Codec.default
     ): Query = {
-      ofCompiledStatement(CompiledStatement.readPath(path))
+      ofCompiledStatement(CompiledStatement.readPath(path, hasParameters))
     }
 
     def readClassResource(
       clazz: Class[_],
       name: String,
-      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
+      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default,
+      hasParameters: Boolean = true
     )(implicit codec: scala.io.Codec = scala.io.Codec.default
     ): Query = {
-      ofCompiledStatement(CompiledStatement.readClassResource(clazz, name, nameMangler))
+      ofCompiledStatement(CompiledStatement.readClassResource(clazz, name, nameMangler, hasParameters))
     }
 
     def readTypeResource[A](
       name: String,
-      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default
+      nameMangler: (Class[_], String) => String = CompiledStatement.NameManglers.default,
+      hasParameters: Boolean = true
     )(implicit codec: scala.io.Codec = scala.io.Codec.default,
       tag: ClassTag[A]
     ): Query = {
-      ofCompiledStatement(CompiledStatement.readTypeResource(name, nameMangler))
+      ofCompiledStatement(CompiledStatement.readTypeResource(name, nameMangler, hasParameters))
     }
 
     def readResource(
-      name: String
+      name: String,
+      hasParameters: Boolean = true
     )(implicit codec: scala.io.Codec = scala.io.Codec.default
     ): Query = {
-      ofCompiledStatement(CompiledStatement.readResource(name))
+      ofCompiledStatement(CompiledStatement.readResource(name, hasParameters))
     }
 
     protected def logRun(

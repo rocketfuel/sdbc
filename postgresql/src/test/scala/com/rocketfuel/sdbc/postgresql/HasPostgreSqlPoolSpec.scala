@@ -4,9 +4,11 @@ import org.scalatest._
 
 class HasPostgreSqlPoolSpec
   extends FunSuite
-    with HasPostgreSqlPool
-    with BeforeAndAfterAll
-    with PostgreSql {
+    with HasPostgreSqlPool[PostgreSql]
+    with BeforeAndAfterAll {
+
+  override val postgresql: PostgreSql = com.rocketfuel.sdbc.PostgreSql
+  import postgresql._
 
   def testDatabaseExists(): Boolean = {
     withPg[Boolean] { implicit connection =>
@@ -28,7 +30,5 @@ class HasPostgreSqlPoolSpec
   }
 
   override protected def afterAll(): Unit = pgStop()
-
-  override def initializeJson(connection: Connection): Unit = ()
 
 }

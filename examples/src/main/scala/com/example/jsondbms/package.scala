@@ -1,13 +1,13 @@
 package com.example
 
+import cats.effect.Async
+
 package object jsondbms {
 
   import argonaut.JsonIdentity._
   import argonaut.JsonScalaz._
   import argonaut._
-  import com.rocketfuel.sdbc.base.IteratorUtils
-  import fs2.util.Async
-  import fs2.{Pipe, Sink, Stream}
+  import fs2.{Pipe, Stream}
   import scala.collection.JavaConverters._
   import scalaz.syntax.equal._
 
@@ -52,7 +52,7 @@ package object jsondbms {
       pool: JsonDb,
       a: Async[F]
     ): Stream[F, Result] = {
-      IteratorUtils.toStream(a.delay(iterator(query)))
+      Stream.eval(a.delay(iterator(query))).flatMap(Stream.fromIterator(_))
     }
 
     def pipe[
@@ -95,7 +95,6 @@ package object jsondbms {
     }
 
     object syntax extends syntax
-
   }
 
   object Insert {
@@ -110,7 +109,7 @@ package object jsondbms {
       implicit a: Async[F],
       enc: EncodeJson[A],
       pool: JsonDb
-    ): Sink[F, A] =
+    ): Pipe[F, A, Unit] =
       (values: Stream[F, A]) =>
         for {
           value <- values

@@ -1,3 +1,5 @@
+import com.typesafe.tools.mima.core._
+
 organization := "com.rocketfuel.sdbc"
 
 name := "sqlserver-jdbc"
@@ -13,3 +15,9 @@ libraryDependencies ++=
 parallelExecution := false
 
 Common.settings
+
+//mimaPreviousArtifacts := {
+//  for (previousVersion <- Common.previousVersions) yield {
+//    organization.value %% name.value % previousVersion
+//  }
+//}.toSet
